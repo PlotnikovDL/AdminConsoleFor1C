@@ -12,6 +12,12 @@ publish/
 *.rsuser
 *.nupkg
 *.snupkg
+*.appx
+*.appxbundle
+*.appxupload
+*.msix
+*.msixbundle
+*.msixupload
 
 src/**/AppPackages/
 src/**/BundleArtifacts/

@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "Admin Console for 1C (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "Admin Console for 1C (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

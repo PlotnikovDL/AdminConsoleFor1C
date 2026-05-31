@@ -1,5 +1,8 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/AdminConsoleFor1C.App/AdminConsoleFor1C.App.csproj">
+      <Platform Project="x64" />
+    </Project>
     <Project Path="src/AdminConsoleFor1C.Application/AdminConsoleFor1C.Application.csproj" />
     <Project Path="src/AdminConsoleFor1C.Core/AdminConsoleFor1C.Core.csproj" />
     <Project Path="src/AdminConsoleFor1C.ElevatedWorker/AdminConsoleFor1C.ElevatedWorker.csproj" />
