@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/AdminConsoleFor1C.Application/AdminConsoleFor1C.Application.csproj" />
+    <Project Path="src/AdminConsoleFor1C.Core/AdminConsoleFor1C.Core.csproj" />
+    <Project Path="src/AdminConsoleFor1C.ElevatedWorker/AdminConsoleFor1C.ElevatedWorker.csproj" />
+    <Project Path="src/AdminConsoleFor1C.Infrastructure/AdminConsoleFor1C.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/AdminConsoleFor1C.Application.Tests/AdminConsoleFor1C.Application.Tests.csproj" />
+    <Project Path="tests/AdminConsoleFor1C.Core.Tests/AdminConsoleFor1C.Core.Tests.csproj" />
+  </Folder>
+</Solution>
