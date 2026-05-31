@@ -44,6 +44,28 @@ public sealed record OneCServiceInfo
 
     public string ProcessIdText => ProcessId is null or 0 ? "—" : ProcessId.Value.ToString();
 
+    public string StateDisplayName => State switch
+    {
+        "Running" => "Работает",
+        "Stopped" => "Остановлена",
+        "Paused" => "Приостановлена",
+        "Start Pending" => "Запускается",
+        "Stop Pending" => "Останавливается",
+        "Continue Pending" => "Возобновляется",
+        "Pause Pending" => "Приостанавливается",
+        _ => string.IsNullOrWhiteSpace(State) ? "—" : State
+    };
+
+    public string StartModeDisplayName => StartMode switch
+    {
+        "Auto" => "Автоматически",
+        "Manual" => "Вручную",
+        "Disabled" => "Отключена",
+        "Boot" => "При загрузке",
+        "System" => "Системная",
+        _ => string.IsNullOrWhiteSpace(StartMode) ? "—" : StartMode
+    };
+
     public string VersionText => string.IsNullOrWhiteSpace(Version) ? "—" : Version;
 
     public string AgentPortText => AgentPort?.ToString() ?? "—";
@@ -56,7 +78,31 @@ public sealed record OneCServiceInfo
 
     public string AccountText => string.IsNullOrWhiteSpace(Account) ? "—" : Account;
 
-    public string StartModeText => string.IsNullOrWhiteSpace(StartMode) ? "—" : StartMode;
+    public string ArgumentsText => string.IsNullOrWhiteSpace(Arguments) ? "—" : Arguments;
 
     public string ExecutablePathText => string.IsNullOrWhiteSpace(ExecutablePath) ? "—" : ExecutablePath;
+
+    public string PortsText
+    {
+        get
+        {
+            var ports = new List<string>();
+            if (AgentPort is not null)
+            {
+                ports.Add($"Порт: {AgentPort}");
+            }
+
+            if (RegPort is not null)
+            {
+                ports.Add($"RegPort: {RegPort}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(PortRange))
+            {
+                ports.Add($"Диапазон: {PortRange}");
+            }
+
+            return ports.Count == 0 ? "—" : string.Join(Environment.NewLine, ports);
+        }
+    }
 }

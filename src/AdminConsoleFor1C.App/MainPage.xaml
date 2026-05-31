@@ -59,102 +59,209 @@
             Title="Не удалось получить список служб" />
 
         <Grid Grid.Row="2">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
-            </Grid.RowDefinitions>
+            <ScrollViewer
+                x:Name="ServicesTable"
+                HorizontalScrollBarVisibility="Auto"
+                HorizontalScrollMode="Enabled"
+                VerticalScrollBarVisibility="Auto"
+                VerticalScrollMode="Enabled">
+                <StackPanel MinWidth="1180" Spacing="8">
+                    <Border
+                        Padding="12,8"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="6">
+                        <Grid ColumnSpacing="16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2*" MinWidth="260" />
+                                <ColumnDefinition Width="120" />
+                                <ColumnDefinition Width="110" />
+                                <ColumnDefinition Width="180" />
+                                <ColumnDefinition Width="70" />
+                                <ColumnDefinition Width="130" />
+                                <ColumnDefinition Width="170" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock FontWeight="SemiBold" Text="Служба" />
+                            <TextBlock Grid.Column="1" FontWeight="SemiBold" Text="Состояние" />
+                            <TextBlock Grid.Column="2" FontWeight="SemiBold" Text="Версия" />
+                            <TextBlock Grid.Column="3" FontWeight="SemiBold" Text="Порты" />
+                            <TextBlock Grid.Column="4" FontWeight="SemiBold" Text="PID" />
+                            <TextBlock Grid.Column="5" FontWeight="SemiBold" Text="Запуск" />
+                            <TextBlock Grid.Column="6" FontWeight="SemiBold" Text="Учётная запись" />
+                        </Grid>
+                    </Border>
+
+                    <ItemsRepeater x:Name="ServicesRepeater">
+                        <ItemsRepeater.ItemTemplate>
+                            <DataTemplate>
+                                <Border
+                                    Margin="0,0,0,8"
+                                    Padding="12,10"
+                                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="6">
+                                    <Grid RowSpacing="10">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+
+                                        <Grid ColumnSpacing="16">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="2*" MinWidth="260" />
+                                                <ColumnDefinition Width="120" />
+                                                <ColumnDefinition Width="110" />
+                                                <ColumnDefinition Width="180" />
+                                                <ColumnDefinition Width="70" />
+                                                <ColumnDefinition Width="130" />
+                                                <ColumnDefinition Width="170" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <StackPanel Spacing="2">
+                                                <TextBlock
+                                                    FontWeight="SemiBold"
+                                                    Text="{Binding KindDisplayName}"
+                                                    TextTrimming="CharacterEllipsis" />
+                                                <TextBlock
+                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                    Text="{Binding DisplayName}"
+                                                    TextTrimming="CharacterEllipsis" />
+                                            </StackPanel>
+
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                FontWeight="SemiBold"
+                                                Text="{Binding StateDisplayName}"
+                                                TextTrimming="CharacterEllipsis" />
+                                            <TextBlock
+                                                Grid.Column="2"
+                                                Text="{Binding VersionText}"
+                                                TextTrimming="CharacterEllipsis" />
+                                            <TextBlock
+                                                Grid.Column="3"
+                                                Text="{Binding PortsText}"
+                                                TextWrapping="WrapWholeWords" />
+                                            <TextBlock
+                                                Grid.Column="4"
+                                                Text="{Binding ProcessIdText}"
+                                                TextTrimming="CharacterEllipsis" />
+                                            <TextBlock
+                                                Grid.Column="5"
+                                                Text="{Binding StartModeDisplayName}"
+                                                TextTrimming="CharacterEllipsis" />
+                                            <TextBlock
+                                                Grid.Column="6"
+                                                Text="{Binding AccountText}"
+                                                TextTrimming="CharacterEllipsis" />
+                                        </Grid>
+
+                                        <Expander
+                                            Grid.Row="1"
+                                            Header="Подробности"
+                                            IsExpanded="False">
+                                            <StackPanel Spacing="10">
+                                                <Grid ColumnSpacing="20" RowSpacing="2">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto" />
+                                                        <RowDefinition Height="Auto" />
+                                                    </Grid.RowDefinitions>
+
+                                                    <TextBlock
+                                                        FontSize="12"
+                                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                        Text="Имя службы" />
+                                                    <TextBlock
+                                                        Grid.Column="1"
+                                                        FontSize="12"
+                                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                        Text="Каталог данных" />
+                                                    <TextBlock
+                                                        Grid.Row="1"
+                                                        FontFamily="Consolas"
+                                                        FontSize="12"
+                                                        Text="{Binding Name}"
+                                                        TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock
+                                                        Grid.Row="1"
+                                                        Grid.Column="1"
+                                                        FontFamily="Consolas"
+                                                        FontSize="12"
+                                                        Text="{Binding DataDirectoryText}"
+                                                        TextTrimming="CharacterEllipsis" />
+                                                </Grid>
+
+                                                <Grid ColumnSpacing="20" RowSpacing="2">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto" />
+                                                        <RowDefinition Height="Auto" />
+                                                    </Grid.RowDefinitions>
+
+                                                    <TextBlock
+                                                        FontSize="12"
+                                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                        Text="Исполняемый файл" />
+                                                    <TextBlock
+                                                        Grid.Column="1"
+                                                        FontSize="12"
+                                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                        Text="Аргументы" />
+                                                    <TextBlock
+                                                        Grid.Row="1"
+                                                        FontFamily="Consolas"
+                                                        FontSize="12"
+                                                        Text="{Binding ExecutablePathText}"
+                                                        TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock
+                                                        Grid.Row="1"
+                                                        Grid.Column="1"
+                                                        FontFamily="Consolas"
+                                                        FontSize="12"
+                                                        Text="{Binding ArgumentsText}"
+                                                        TextTrimming="CharacterEllipsis" />
+                                                </Grid>
+                                            </StackPanel>
+                                        </Expander>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsRepeater.ItemTemplate>
+                    </ItemsRepeater>
+                </StackPanel>
+            </ScrollViewer>
 
             <Border
-                Padding="12,8"
+                x:Name="EmptyState"
+                MaxWidth="420"
+                Padding="20"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
                 Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                 BorderThickness="1"
-                CornerRadius="6">
-                <Grid MinWidth="1320" ColumnSpacing="12">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="160" />
-                        <ColumnDefinition Width="110" />
-                        <ColumnDefinition Width="110" />
-                        <ColumnDefinition Width="80" />
-                        <ColumnDefinition Width="80" />
-                        <ColumnDefinition Width="120" />
-                        <ColumnDefinition Width="70" />
-                        <ColumnDefinition Width="180" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-
-                    <TextBlock FontWeight="SemiBold" Text="Тип" />
-                    <TextBlock Grid.Column="1" FontWeight="SemiBold" Text="Состояние" />
-                    <TextBlock Grid.Column="2" FontWeight="SemiBold" Text="Версия" />
-                    <TextBlock Grid.Column="3" FontWeight="SemiBold" Text="Порт" />
-                    <TextBlock Grid.Column="4" FontWeight="SemiBold" Text="RegPort" />
-                    <TextBlock Grid.Column="5" FontWeight="SemiBold" Text="Диапазон" />
-                    <TextBlock Grid.Column="6" FontWeight="SemiBold" Text="PID" />
-                    <TextBlock Grid.Column="7" FontWeight="SemiBold" Text="Учётная запись" />
-                    <TextBlock Grid.Column="8" FontWeight="SemiBold" Text="Имя службы" />
-                </Grid>
+                CornerRadius="6"
+                Visibility="Collapsed">
+                <StackPanel Spacing="6">
+                    <TextBlock
+                        FontSize="18"
+                        FontWeight="SemiBold"
+                        Text="Службы 1С не найдены" />
+                    <TextBlock
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Text="Проверяются службы ragent, ras и dbgs, зарегистрированные в Windows."
+                        TextWrapping="WrapWholeWords" />
+                </StackPanel>
             </Border>
-
-            <ListView
-                x:Name="ServicesList"
-                Grid.Row="1"
-                Margin="0,8,0,0"
-                SelectionMode="Single">
-                <ListView.ItemTemplate>
-                    <DataTemplate>
-                        <Grid MinWidth="1320" Padding="8,10" RowSpacing="6">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="160" />
-                                <ColumnDefinition Width="110" />
-                                <ColumnDefinition Width="110" />
-                                <ColumnDefinition Width="80" />
-                                <ColumnDefinition Width="80" />
-                                <ColumnDefinition Width="120" />
-                                <ColumnDefinition Width="70" />
-                                <ColumnDefinition Width="180" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-
-                            <TextBlock Text="{Binding KindDisplayName}" TextTrimming="CharacterEllipsis" />
-                            <TextBlock Grid.Column="1" Text="{Binding State}" TextTrimming="CharacterEllipsis" />
-                            <TextBlock Grid.Column="2" Text="{Binding VersionText}" TextTrimming="CharacterEllipsis" />
-                            <TextBlock Grid.Column="3" Text="{Binding AgentPortText}" TextTrimming="CharacterEllipsis" />
-                            <TextBlock Grid.Column="4" Text="{Binding RegPortText}" TextTrimming="CharacterEllipsis" />
-                            <TextBlock Grid.Column="5" Text="{Binding PortRangeText}" TextTrimming="CharacterEllipsis" />
-                            <TextBlock Grid.Column="6" Text="{Binding ProcessIdText}" TextTrimming="CharacterEllipsis" />
-                            <TextBlock Grid.Column="7" Text="{Binding AccountText}" TextTrimming="CharacterEllipsis" />
-                            <TextBlock Grid.Column="8" Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
-
-                            <TextBlock
-                                Grid.Row="1"
-                                Grid.ColumnSpan="9"
-                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                Text="{Binding DisplayName}"
-                                TextTrimming="CharacterEllipsis" />
-                            <TextBlock
-                                Grid.Row="2"
-                                Grid.ColumnSpan="9"
-                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                Text="{Binding DataDirectoryText}"
-                                TextTrimming="CharacterEllipsis" />
-                            <TextBlock
-                                Grid.Row="3"
-                                Grid.ColumnSpan="9"
-                                FontFamily="Consolas"
-                                FontSize="12"
-                                Foreground="{ThemeResource TextFillColorTertiaryBrush}"
-                                Text="{Binding RawCommandLine}"
-                                TextTrimming="CharacterEllipsis" />
-                        </Grid>
-                    </DataTemplate>
-                </ListView.ItemTemplate>
-            </ListView>
         </Grid>
     </Grid>
 </Page>

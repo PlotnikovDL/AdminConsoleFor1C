@@ -18,7 +18,7 @@ public sealed partial class MainPage : Page
     public MainPage()
     {
         InitializeComponent();
-        ServicesList.ItemsSource = _services;
+        ServicesRepeater.ItemsSource = _services;
         Loaded += MainPage_Loaded;
     }
 
@@ -51,6 +51,7 @@ public sealed partial class MainPage : Page
                 _services.Add(service);
             }
 
+            UpdateEmptyState();
             StatusText.Text = $"Найдено служб: {_services.Count}";
         }
         catch (Exception exception)
@@ -65,5 +66,12 @@ public sealed partial class MainPage : Page
             RefreshProgress.Visibility = Visibility.Collapsed;
             RefreshButton.IsEnabled = true;
         }
+    }
+
+    private void UpdateEmptyState()
+    {
+        var hasServices = _services.Count > 0;
+        ServicesTable.Visibility = hasServices ? Visibility.Visible : Visibility.Collapsed;
+        EmptyState.Visibility = hasServices ? Visibility.Collapsed : Visibility.Visible;
     }
 }
