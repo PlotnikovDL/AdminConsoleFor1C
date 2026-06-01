@@ -277,16 +277,10 @@
                                             <StackPanel Grid.Column="4" Spacing="4">
                                                 <TextBlock
                                                     Style="{StaticResource ColumnLabelTextBlockStyle}"
-                                                    Text="Версия / PID" />
+                                                    Text="Версия" />
                                                 <TextBlock
                                                     LineHeight="20"
                                                     Text="{Binding VersionText}"
-                                                    TextTrimming="CharacterEllipsis" />
-                                                <TextBlock
-                                                    FontSize="12"
-                                                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
-                                                    LineHeight="18"
-                                                    Text="{Binding ProcessIdSummaryText}"
                                                     TextTrimming="CharacterEllipsis" />
                                             </StackPanel>
 
@@ -438,9 +432,7 @@
                                                                         <ColumnDefinition Width="360" />
                                                                         <ColumnDefinition Width="80" />
                                                                         <ColumnDefinition Width="90" />
-                                                                        <ColumnDefinition Width="115" />
                                                                         <ColumnDefinition Width="230" />
-                                                                        <ColumnDefinition Width="150" />
                                                                     </Grid.ColumnDefinitions>
 
                                                                     <StackPanel Spacing="4">
@@ -478,31 +470,11 @@
                                                                     <StackPanel Grid.Column="3" Spacing="4">
                                                                         <TextBlock
                                                                             Style="{StaticResource ColumnLabelTextBlockStyle}"
-                                                                            Text="Версия" />
+                                                                            Text="Назначение" />
                                                                         <TextBlock
                                                                             LineHeight="20"
-                                                                            Text="{Binding VersionText}"
-                                                                            TextTrimming="CharacterEllipsis" />
-                                                                    </StackPanel>
-
-                                                                    <StackPanel Grid.Column="4" Spacing="4">
-                                                                        <TextBlock
-                                                                            Style="{StaticResource ColumnLabelTextBlockStyle}"
-                                                                            Text="Порты" />
-                                                                        <TextBlock
-                                                                            LineHeight="20"
-                                                                            Text="{Binding PortsText}"
+                                                                            Text="{Binding RoleText}"
                                                                             TextWrapping="WrapWholeWords" />
-                                                                    </StackPanel>
-
-                                                                    <StackPanel Grid.Column="5" Spacing="4">
-                                                                        <TextBlock
-                                                                            Style="{StaticResource ColumnLabelTextBlockStyle}"
-                                                                            Text="Пользователь" />
-                                                                        <TextBlock
-                                                                            LineHeight="20"
-                                                                            Text="{Binding OwnerText}"
-                                                                            TextTrimming="CharacterEllipsis" />
                                                                     </StackPanel>
                                                                 </Grid>
                                                             </Border>

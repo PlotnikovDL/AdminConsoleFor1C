@@ -58,6 +58,18 @@ public sealed record OneCProcessInfo
         ? "Не сопоставлен со службой"
         : $"Служба: {RelatedServiceDisplayName}";
 
+    public string RoleText => Kind switch
+    {
+        OneCProcessKind.ServerAgent => AgentPort is null ? "Агент сервера" : $"Агент: {AgentPort}",
+        OneCProcessKind.ClusterManager => ClusterPort is null ? "Менеджер кластера" : $"Кластер: {ClusterPort}",
+        OneCProcessKind.WorkerProcess => WorkerPort is not null
+            ? $"Рабочий: {WorkerPort}"
+            : string.IsNullOrWhiteSpace(PortRange) ? "Рабочий процесс" : $"Диапазон: {PortRange}",
+        OneCProcessKind.AdministrationServer => AdministrationServerPort is null ? "Сервер администрирования" : $"RAS: {AdministrationServerPort}",
+        OneCProcessKind.DebugServer => DebugServerPort is null ? "Сервер отладки" : $"Отладка HTTP: {DebugServerPort}",
+        _ => PortsText
+    };
+
     public string ArgumentsText => string.IsNullOrWhiteSpace(Arguments) ? "—" : Arguments;
 
     public string ExecutablePathText => string.IsNullOrWhiteSpace(ExecutablePath) ? "—" : ExecutablePath;
