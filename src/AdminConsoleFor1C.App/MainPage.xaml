@@ -234,15 +234,171 @@
                     </ItemsRepeater>
                 </ScrollViewer>
 
-                <Border
-                    x:Name="ComponentDetailsCard"
+                <Grid
                     Grid.Column="1"
-                    Padding="20"
-                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                    BorderThickness="1"
-                    CornerRadius="6"
-                    Visibility="Collapsed">
+                    RowSpacing="12">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Border
+                        x:Name="AdministrationToolsCard"
+                        Padding="16"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="6">
+                        <StackPanel Spacing="12">
+                            <StackPanel Spacing="2">
+                                <TextBlock
+                                    FontSize="16"
+                                    FontWeight="SemiBold"
+                                    Text="Инструменты администрирования" />
+                                <TextBlock
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                    LineHeight="20"
+                                    Text="{Binding SummaryText}"
+                                    TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+
+                            <Grid ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <Border
+                                    Padding="12"
+                                    Background="{ThemeResource LayerFillColorDefaultBrush}"
+                                    CornerRadius="6">
+                                    <StackPanel Spacing="8">
+                                        <Grid ColumnSpacing="8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <StackPanel Spacing="2">
+                                                <TextBlock
+                                                    Style="{StaticResource SectionTitleTextBlockStyle}"
+                                                    Text="rac.exe" />
+                                                <TextBlock
+                                                    Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                    Text="команды администрирования" />
+                                            </StackPanel>
+
+                                            <Border
+                                                Grid.Column="1"
+                                                MinHeight="26"
+                                                Padding="8,0"
+                                                HorizontalAlignment="Right"
+                                                Background="{Binding RacStatusBadgeBackgroundBrush}"
+                                                BorderBrush="{Binding RacStatusAccentBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="10">
+                                                <StackPanel
+                                                    VerticalAlignment="Center"
+                                                    Orientation="Horizontal"
+                                                    Spacing="6">
+                                                    <Ellipse
+                                                        Width="7"
+                                                        Height="7"
+                                                        VerticalAlignment="Center"
+                                                        Fill="{Binding RacStatusAccentBrush}" />
+                                                    <TextBlock
+                                                        VerticalAlignment="Center"
+                                                        FontSize="12"
+                                                        FontWeight="SemiBold"
+                                                        LineHeight="18"
+                                                        Text="{Binding RacStateText}" />
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+
+                                        <TextBlock
+                                            LineHeight="20"
+                                            Text="{Binding RacVersionText}"
+                                            TextTrimming="CharacterEllipsis" />
+                                        <TextBlock
+                                            Style="{StaticResource MetadataMonoTextBlockStyle}"
+                                            Text="{Binding RacPathText}"
+                                            TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                </Border>
+
+                                <Border
+                                    Grid.Column="1"
+                                    Padding="12"
+                                    Background="{ThemeResource LayerFillColorDefaultBrush}"
+                                    CornerRadius="6">
+                                    <StackPanel Spacing="8">
+                                        <Grid ColumnSpacing="8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <StackPanel Spacing="2">
+                                                <TextBlock
+                                                    Style="{StaticResource SectionTitleTextBlockStyle}"
+                                                    Text="ras.exe" />
+                                                <TextBlock
+                                                    Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                    Text="сервер администрирования" />
+                                            </StackPanel>
+
+                                            <Border
+                                                Grid.Column="1"
+                                                MinHeight="26"
+                                                Padding="8,0"
+                                                HorizontalAlignment="Right"
+                                                Background="{Binding RasStatusBadgeBackgroundBrush}"
+                                                BorderBrush="{Binding RasStatusAccentBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="10">
+                                                <StackPanel
+                                                    VerticalAlignment="Center"
+                                                    Orientation="Horizontal"
+                                                    Spacing="6">
+                                                    <Ellipse
+                                                        Width="7"
+                                                        Height="7"
+                                                        VerticalAlignment="Center"
+                                                        Fill="{Binding RasStatusAccentBrush}" />
+                                                    <TextBlock
+                                                        VerticalAlignment="Center"
+                                                        FontSize="12"
+                                                        FontWeight="SemiBold"
+                                                        LineHeight="18"
+                                                        Text="{Binding RasStateText}" />
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+
+                                        <TextBlock
+                                            LineHeight="20"
+                                            Text="{Binding RasVersionText}"
+                                            TextTrimming="CharacterEllipsis" />
+                                        <TextBlock
+                                            Style="{StaticResource MetadataMonoTextBlockStyle}"
+                                            Text="{Binding RasPathText}"
+                                            TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <Border
+                        x:Name="ComponentDetailsCard"
+                        Grid.Row="1"
+                        Padding="20"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="6"
+                        Visibility="Collapsed">
                     <ScrollViewer
                         HorizontalScrollBarVisibility="Disabled"
                         HorizontalScrollMode="Disabled"
@@ -614,7 +770,8 @@
                             </StackPanel>
                         </StackPanel>
                     </ScrollViewer>
-                </Border>
+                    </Border>
+                </Grid>
             </Grid>
 
             <Border

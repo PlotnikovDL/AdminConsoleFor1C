@@ -17,6 +17,7 @@ public sealed partial class MainPage : Page
 {
     private readonly IOneCServiceInventory _serviceInventory = new WindowsOneCServiceInventory();
     private readonly IOneCProcessInventory _processInventory = new WindowsOneCProcessInventory();
+    private readonly IOneCAdministrationToolInventory _administrationToolInventory = new WindowsOneCAdministrationToolInventory();
     private readonly IOneCServiceController _serviceController = new WindowsOneCServiceController();
     private readonly ObservableCollection<OneCServiceProcessNode> _nodes = [];
     private OneCServiceProcessNode? _selectedNode;
@@ -25,6 +26,7 @@ public sealed partial class MainPage : Page
     {
         InitializeComponent();
         ServiceTreeRepeater.ItemsSource = _nodes;
+        AdministrationToolsCard.DataContext = new OneCAdministrationToolDiagnosticsViewModel([], [], []);
         Loaded += MainPage_Loaded;
     }
 
@@ -112,8 +114,14 @@ public sealed partial class MainPage : Page
 
             var services = servicesTask.Result;
             var processes = EnrichProcesses(processesTask.Result, services);
+            var tools = await _administrationToolInventory.GetToolsAsync(GetKnownExecutablePaths(services, processes));
             var nodes = BuildServiceProcessTree(services, processes);
             var previousServiceName = _selectedNode?.Service?.Name;
+
+            AdministrationToolsCard.DataContext = new OneCAdministrationToolDiagnosticsViewModel(
+                tools,
+                services,
+                processes);
 
             _nodes.Clear();
             foreach (var node in nodes)
@@ -230,6 +238,19 @@ public sealed partial class MainPage : Page
         }
 
         return nodes;
+    }
+
+    private static IReadOnlyCollection<string> GetKnownExecutablePaths(
+        IReadOnlyList<OneCServiceInfo> services,
+        IReadOnlyList<OneCProcessInfo> processes)
+    {
+        return services
+            .Select(static service => service.ExecutablePath)
+            .Concat(processes.Select(static process => process.ExecutablePath))
+            .Where(static path => !string.IsNullOrWhiteSpace(path))
+            .Select(static path => path!)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 
     private static IReadOnlyList<OneCProcessInfo> EnrichProcesses(
