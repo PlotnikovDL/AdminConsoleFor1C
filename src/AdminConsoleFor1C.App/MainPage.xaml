@@ -7,9 +7,42 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
+    <Page.Resources>
+        <Style x:Key="SectionTitleTextBlockStyle" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="LineHeight" Value="20" />
+        </Style>
+
+        <Style x:Key="MetadataLabelTextBlockStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{ThemeResource TextFillColorTertiaryBrush}" />
+            <Setter Property="LineHeight" Value="18" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="MetadataValueTextBlockStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+            <Setter Property="LineHeight" Value="20" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="MetadataMonoTextBlockStyle" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="Consolas" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+            <Setter Property="LineHeight" Value="18" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="ColumnLabelTextBlockStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+            <Setter Property="LineHeight" Value="18" />
+        </Style>
+    </Page.Resources>
+
     <Grid Padding="24" RowSpacing="16">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -26,7 +59,7 @@
                 <TextBlock
                     FontSize="28"
                     FontWeight="SemiBold"
-                    Text="Службы" />
+                    Text="Компоненты сервера 1С" />
                 <TextBlock
                     x:Name="StatusText"
                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
@@ -54,227 +87,233 @@
 
         <InfoBar
             x:Name="ErrorInfoBar"
-            Grid.Row="2"
+            Grid.Row="1"
             IsOpen="False"
             Severity="Error"
-            Title="Не удалось получить список служб" />
+            Title="Не удалось обновить компоненты 1С" />
 
-        <Border
-            Grid.Row="1"
-            Padding="12"
-            HorizontalAlignment="Stretch"
-            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-            BorderThickness="1"
-            CornerRadius="6">
-            <Grid ColumnSpacing="20" RowSpacing="10">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="180" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-
-                <StackPanel Spacing="2">
-                    <TextBlock
-                        FontWeight="SemiBold"
-                        Text="Порты и параметры" />
-                    <TextBlock
-                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                        Text="Краткая памятка по службам 1С"
-                        TextWrapping="WrapWholeWords" />
-                </StackPanel>
-
-                <Grid
-                    Grid.Column="1"
-                    ColumnSpacing="20"
-                    RowSpacing="8">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="320" />
-                        <ColumnDefinition Width="320" />
-                        <ColumnDefinition Width="320" />
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-
-                    <StackPanel Spacing="1">
-                        <TextBlock FontWeight="SemiBold" Text="Агент 1540" />
-                        <TextBlock
-                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                            Text="ragent, центральный сервер"
-                            TextWrapping="WrapWholeWords" />
-                    </StackPanel>
-
-                    <StackPanel Grid.Column="1" Spacing="1">
-                        <TextBlock FontWeight="SemiBold" Text="Кластер 1541" />
-                        <TextBlock
-                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                            Text="rmngr, адрес кластера"
-                            TextWrapping="WrapWholeWords" />
-                    </StackPanel>
-
-                    <StackPanel Grid.Column="2" Spacing="1">
-                        <TextBlock FontWeight="SemiBold" Text="Процессы 1560:1591" />
-                        <TextBlock
-                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                            Text="rphost и доп. менеджеры"
-                            TextWrapping="WrapWholeWords" />
-                    </StackPanel>
-
-                    <StackPanel Grid.Row="1" Spacing="1">
-                        <TextBlock FontWeight="SemiBold" Text="RAS 1545" />
-                        <TextBlock
-                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                            Text="удаленное администрирование"
-                            TextWrapping="WrapWholeWords" />
-                    </StackPanel>
-
-                    <StackPanel
-                        Grid.Row="1"
-                        Grid.Column="1"
-                        Spacing="1">
-                        <TextBlock FontWeight="SemiBold" Text="Отладка 1550" />
-                        <TextBlock
-                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                            Text="HTTP-сервер отладки"
-                            TextWrapping="WrapWholeWords" />
-                    </StackPanel>
-
-                    <StackPanel
-                        Grid.Row="1"
-                        Grid.Column="2"
-                        Spacing="1">
-                        <TextBlock FontWeight="SemiBold" Text="Каталог -d" />
-                        <TextBlock
-                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                            Text="служебные данные сервера 1С"
-                            TextWrapping="WrapWholeWords" />
-                    </StackPanel>
-                </Grid>
-            </Grid>
-        </Border>
-
-        <Grid Grid.Row="3">
+        <Grid Grid.Row="2">
             <ScrollViewer
                 x:Name="ServicesTable"
                 HorizontalScrollBarVisibility="Disabled"
                 HorizontalScrollMode="Disabled"
                 VerticalScrollBarVisibility="Auto"
                 VerticalScrollMode="Enabled">
-                <Grid RowSpacing="8">
+                <Grid>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
-                    <Border
-                        Padding="12,8"
-                        HorizontalAlignment="Stretch"
-                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                        BorderThickness="1"
-                        CornerRadius="6">
-                        <Grid ColumnSpacing="12">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="900" />
-                                <ColumnDefinition Width="120" />
-                                <ColumnDefinition Width="105" />
-                                <ColumnDefinition Width="220" />
-                                <ColumnDefinition Width="65" />
-                                <ColumnDefinition Width="135" />
-                                <ColumnDefinition Width="170" />
-                            </Grid.ColumnDefinitions>
-
-                            <TextBlock FontWeight="SemiBold" Text="Служба" />
-                            <TextBlock Grid.Column="1" FontWeight="SemiBold" Text="Состояние" />
-                            <TextBlock Grid.Column="2" FontWeight="SemiBold" Text="Версия" />
-                            <TextBlock Grid.Column="3" FontWeight="SemiBold" Text="Порты" />
-                            <TextBlock Grid.Column="4" FontWeight="SemiBold" Text="PID" />
-                            <TextBlock Grid.Column="5" FontWeight="SemiBold" Text="Запуск" />
-                            <TextBlock Grid.Column="6" FontWeight="SemiBold" Text="Учётная запись" />
-                        </Grid>
-                    </Border>
-
                     <ItemsRepeater
-                        x:Name="ServicesRepeater"
-                        Grid.Row="1"
+                        x:Name="ServiceTreeRepeater"
                         HorizontalAlignment="Stretch">
                         <ItemsRepeater.ItemTemplate>
                             <DataTemplate>
                                 <Border
                                     Margin="0,0,0,8"
-                                    Padding="12,10"
+                                    Padding="16"
                                     HorizontalAlignment="Stretch"
                                     Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                                     BorderThickness="1"
                                     CornerRadius="6">
-                                    <Grid x:Name="ServiceRowRoot" RowSpacing="10">
+                                    <Grid RowSpacing="12">
                                         <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
                                             <RowDefinition Height="Auto" />
                                             <RowDefinition Height="Auto" />
                                         </Grid.RowDefinitions>
 
-                                        <Grid ColumnSpacing="12">
+                                        <Grid ColumnSpacing="16">
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="900" />
-                                                <ColumnDefinition Width="120" />
-                                                <ColumnDefinition Width="105" />
-                                                <ColumnDefinition Width="220" />
-                                                <ColumnDefinition Width="65" />
-                                                <ColumnDefinition Width="135" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="720" />
+                                                <ColumnDefinition Width="150" />
+                                                <ColumnDefinition Width="140" />
+                                                <ColumnDefinition Width="230" />
                                                 <ColumnDefinition Width="170" />
                                             </Grid.ColumnDefinitions>
 
-                                            <StackPanel Spacing="2">
+                                            <Border
+                                                Width="4"
+                                                Height="32"
+                                                VerticalAlignment="Top"
+                                                Background="{Binding StatusAccentBrush}"
+                                                CornerRadius="2" />
+
+                                            <Button
+                                                Grid.Column="1"
+                                                Width="32"
+                                                Height="32"
+                                                Padding="0"
+                                                VerticalAlignment="Top"
+                                                Click="ToggleNodeButton_Click"
+                                                Tag="{Binding}">
                                                 <TextBlock
-                                                    FontWeight="SemiBold"
-                                                    Text="{Binding KindDisplayName}"
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    FontSize="18"
+                                                    Text="{Binding ExpandGlyph}" />
+                                            </Button>
+
+                                            <Grid
+                                                Grid.Column="2"
+                                                ColumnSpacing="12"
+                                                RowSpacing="4">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="136" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto" />
+                                                    <RowDefinition Height="Auto" />
+                                                    <RowDefinition Height="Auto" />
+                                                    <RowDefinition Height="Auto" />
+                                                </Grid.RowDefinitions>
+
+                                                <TextBlock
+                                                    Grid.ColumnSpan="2"
+                                                    Style="{StaticResource SectionTitleTextBlockStyle}"
+                                                    Text="{Binding Title}"
                                                     TextTrimming="CharacterEllipsis" />
+
                                                 <TextBlock
-                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                    Grid.Row="1"
+                                                    Style="{StaticResource MetadataLabelTextBlockStyle}"
+                                                    Text="В списке служб" />
+                                                <TextBlock
+                                                    Grid.Row="1"
+                                                    Grid.Column="1"
+                                                    Style="{StaticResource MetadataValueTextBlockStyle}"
                                                     Text="{Binding WindowsServicesDisplayNameText}"
+                                                    TextTrimming="CharacterEllipsis" />
+
+                                                <TextBlock
+                                                    Grid.Row="2"
+                                                    Style="{StaticResource MetadataLabelTextBlockStyle}"
+                                                    Text="Имя службы"
+                                                    Visibility="{Binding TaskManagerServiceNameVisibility}" />
+                                                <TextBlock
+                                                    Grid.Row="2"
+                                                    Grid.Column="1"
+                                                    Style="{StaticResource MetadataMonoTextBlockStyle}"
+                                                    Text="{Binding TaskManagerServiceNameText}"
+                                                    TextTrimming="CharacterEllipsis"
+                                                    Visibility="{Binding TaskManagerServiceNameVisibility}" />
+
+                                                <TextBlock
+                                                    Grid.Row="3"
+                                                    Style="{StaticResource MetadataLabelTextBlockStyle}"
+                                                    Text="Процессы"
+                                                    Visibility="{Binding ProcessSummaryVisibility}" />
+
+                                                <StackPanel
+                                                    Grid.Row="3"
+                                                    Grid.Column="1"
+                                                    Orientation="Horizontal"
+                                                    Spacing="8"
+                                                    Visibility="{Binding ProcessSummaryVisibility}">
+                                                    <TextBlock
+                                                        FontSize="12"
+                                                        FontWeight="SemiBold"
+                                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                        Text="{Binding ProcessesSummaryText}" />
+                                                    <TextBlock
+                                                        FontSize="12"
+                                                        Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                                        Text="{Binding ProcessNamesSummaryText}"
+                                                        TextTrimming="CharacterEllipsis" />
+                                                </StackPanel>
+                                            </Grid>
+
+                                            <StackPanel Grid.Column="3" Spacing="4">
+                                                <TextBlock
+                                                    Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                    Text="Состояние" />
+                                                <Border
+                                                    MinHeight="28"
+                                                    Padding="8,0"
+                                                    HorizontalAlignment="Left"
+                                                    Background="{Binding StatusBadgeBackgroundBrush}"
+                                                    BorderBrush="{Binding StatusAccentBrush}"
+                                                    BorderThickness="1"
+                                                    CornerRadius="10">
+                                                    <StackPanel
+                                                        VerticalAlignment="Center"
+                                                        Orientation="Horizontal"
+                                                        Spacing="6">
+                                                        <Ellipse
+                                                            Width="7"
+                                                            Height="7"
+                                                            VerticalAlignment="Center"
+                                                            Fill="{Binding StatusAccentBrush}" />
+                                                        <TextBlock
+                                                            Margin="0,-1,0,0"
+                                                            VerticalAlignment="Center"
+                                                            FontWeight="SemiBold"
+                                                            LineHeight="20"
+                                                            Text="{Binding StateDisplayName}"
+                                                            TextTrimming="CharacterEllipsis" />
+                                                    </StackPanel>
+                                                </Border>
+                                                <TextBlock
+                                                    FontSize="12"
+                                                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                                    LineHeight="18"
+                                                    Text="{Binding StartModeDisplayName}"
+                                                    TextTrimming="CharacterEllipsis" />
+                                            </StackPanel>
+
+                                            <StackPanel Grid.Column="4" Spacing="4">
+                                                <TextBlock
+                                                    Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                    Text="Версия / PID" />
+                                                <TextBlock
+                                                    LineHeight="20"
+                                                    Text="{Binding VersionText}"
                                                     TextTrimming="CharacterEllipsis" />
                                                 <TextBlock
                                                     FontSize="12"
                                                     Foreground="{ThemeResource TextFillColorTertiaryBrush}"
-                                                    Text="{Binding TaskManagerServiceNameText}"
+                                                    LineHeight="18"
+                                                    Text="{Binding ProcessIdSummaryText}"
                                                     TextTrimming="CharacterEllipsis" />
                                             </StackPanel>
 
-                                            <TextBlock
-                                                Grid.Column="1"
-                                                FontWeight="SemiBold"
-                                                Text="{Binding StateDisplayName}"
-                                                TextTrimming="CharacterEllipsis" />
-                                            <TextBlock
-                                                Grid.Column="2"
-                                                Text="{Binding VersionText}"
-                                                TextTrimming="CharacterEllipsis" />
-                                            <TextBlock
-                                                Grid.Column="3"
-                                                Text="{Binding PortsText}"
-                                                TextWrapping="WrapWholeWords" />
-                                            <TextBlock
-                                                Grid.Column="4"
-                                                Text="{Binding ProcessIdText}"
-                                                TextTrimming="CharacterEllipsis" />
-                                            <TextBlock
-                                                Grid.Column="5"
-                                                Text="{Binding StartModeDisplayName}"
-                                                TextTrimming="CharacterEllipsis" />
-                                            <TextBlock
-                                                Grid.Column="6"
-                                                Text="{Binding AccountText}"
-                                                TextTrimming="CharacterEllipsis" />
+                                            <StackPanel Grid.Column="5" Spacing="4">
+                                                <TextBlock
+                                                    Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                    Text="Порты" />
+                                                <TextBlock
+                                                    LineHeight="20"
+                                                    Text="{Binding PortsText}"
+                                                    TextWrapping="WrapWholeWords" />
+                                            </StackPanel>
+
+                                            <StackPanel Grid.Column="6" Spacing="4">
+                                                <TextBlock
+                                                    Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                    Text="Учётная запись" />
+                                                <TextBlock
+                                                    LineHeight="20"
+                                                    Text="{Binding AccountText}"
+                                                    TextTrimming="CharacterEllipsis" />
+                                            </StackPanel>
                                         </Grid>
 
-                                        <Grid
+                                        <Border
                                             Grid.Row="1"
-                                            Margin="0,4,0,0">
-                                            <Grid ColumnSpacing="16" RowSpacing="6">
+                                            Margin="68,0,0,0"
+                                            Padding="16,12"
+                                            Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="6"
+                                            Visibility="{Binding ServiceDetailsVisibility}">
+                                            <Grid ColumnSpacing="16" RowSpacing="8">
                                                 <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="170" />
+                                                    <ColumnDefinition Width="160" />
                                                     <ColumnDefinition Width="*" />
                                                 </Grid.ColumnDefinitions>
                                                 <Grid.RowDefinitions>
@@ -284,43 +323,138 @@
                                                 </Grid.RowDefinitions>
 
                                                 <TextBlock
-                                                    FontSize="12"
-                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                    Style="{StaticResource MetadataLabelTextBlockStyle}"
                                                     Text="Каталог данных" />
                                                 <TextBlock
                                                     Grid.Column="1"
-                                                    FontFamily="Consolas"
-                                                    FontSize="12"
+                                                    Style="{StaticResource MetadataMonoTextBlockStyle}"
                                                     Text="{Binding DataDirectoryText}"
                                                     TextWrapping="Wrap" />
 
                                                 <TextBlock
                                                     Grid.Row="1"
-                                                    FontSize="12"
-                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                    Style="{StaticResource MetadataLabelTextBlockStyle}"
                                                     Text="Исполняемый файл" />
                                                 <TextBlock
                                                     Grid.Row="1"
                                                     Grid.Column="1"
-                                                    FontFamily="Consolas"
-                                                    FontSize="12"
+                                                    Style="{StaticResource MetadataMonoTextBlockStyle}"
                                                     Text="{Binding ExecutablePathText}"
                                                     TextWrapping="Wrap" />
 
                                                 <TextBlock
                                                     Grid.Row="2"
-                                                    FontSize="12"
-                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                    Style="{StaticResource MetadataLabelTextBlockStyle}"
                                                     Text="Аргументы" />
                                                 <TextBlock
                                                     Grid.Row="2"
                                                     Grid.Column="1"
-                                                    FontFamily="Consolas"
-                                                    FontSize="12"
+                                                    Style="{StaticResource MetadataMonoTextBlockStyle}"
                                                     Text="{Binding ArgumentsText}"
-                                                    TextWrapping="Wrap" />
+                                                    TextTrimming="CharacterEllipsis"
+                                                    TextWrapping="NoWrap" />
                                             </Grid>
-                                        </Grid>
+                                        </Border>
+
+                                        <Border
+                                            Grid.Row="2"
+                                            Margin="68,0,0,0"
+                                            Padding="16,10"
+                                            Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="6"
+                                            Visibility="{Binding ProcessesVisibility}">
+                                            <Grid RowSpacing="8">
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto" />
+                                                </Grid.RowDefinitions>
+
+                                                <ItemsRepeater ItemsSource="{Binding Processes}">
+                                                    <ItemsRepeater.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Border
+                                                                Padding="0,10"
+                                                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                                                BorderThickness="0,1,0,0">
+                                                                <Grid ColumnSpacing="16">
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="360" />
+                                                                        <ColumnDefinition Width="80" />
+                                                                        <ColumnDefinition Width="90" />
+                                                                        <ColumnDefinition Width="115" />
+                                                                        <ColumnDefinition Width="230" />
+                                                                        <ColumnDefinition Width="150" />
+                                                                    </Grid.ColumnDefinitions>
+
+                                                                    <StackPanel Spacing="4">
+                                                                        <TextBlock
+                                                                            Style="{StaticResource SectionTitleTextBlockStyle}"
+                                                                            Text="{Binding KindDisplayName}"
+                                                                            TextTrimming="CharacterEllipsis" />
+                                                                        <TextBlock
+                                                                            Style="{StaticResource MetadataValueTextBlockStyle}"
+                                                                            Text="{Binding Name}"
+                                                                            TextTrimming="CharacterEllipsis" />
+                                                                    </StackPanel>
+
+                                                                    <StackPanel Grid.Column="1" Spacing="4">
+                                                                        <TextBlock
+                                                                            Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                                            Text="PID" />
+                                                                        <TextBlock
+                                                                            FontWeight="SemiBold"
+                                                                            LineHeight="20"
+                                                                            Text="{Binding ProcessIdText}"
+                                                                            TextTrimming="CharacterEllipsis" />
+                                                                    </StackPanel>
+
+                                                                    <StackPanel Grid.Column="2" Spacing="4">
+                                                                        <TextBlock
+                                                                            Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                                            Text="Родитель" />
+                                                                        <TextBlock
+                                                                            LineHeight="20"
+                                                                            Text="{Binding ParentProcessIdText}"
+                                                                            TextTrimming="CharacterEllipsis" />
+                                                                    </StackPanel>
+
+                                                                    <StackPanel Grid.Column="3" Spacing="4">
+                                                                        <TextBlock
+                                                                            Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                                            Text="Версия" />
+                                                                        <TextBlock
+                                                                            LineHeight="20"
+                                                                            Text="{Binding VersionText}"
+                                                                            TextTrimming="CharacterEllipsis" />
+                                                                    </StackPanel>
+
+                                                                    <StackPanel Grid.Column="4" Spacing="4">
+                                                                        <TextBlock
+                                                                            Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                                            Text="Порты" />
+                                                                        <TextBlock
+                                                                            LineHeight="20"
+                                                                            Text="{Binding PortsText}"
+                                                                            TextWrapping="WrapWholeWords" />
+                                                                    </StackPanel>
+
+                                                                    <StackPanel Grid.Column="5" Spacing="4">
+                                                                        <TextBlock
+                                                                            Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                                            Text="Пользователь" />
+                                                                        <TextBlock
+                                                                            LineHeight="20"
+                                                                            Text="{Binding OwnerText}"
+                                                                            TextTrimming="CharacterEllipsis" />
+                                                                    </StackPanel>
+                                                                </Grid>
+                                                            </Border>
+                                                        </DataTemplate>
+                                                    </ItemsRepeater.ItemTemplate>
+                                                </ItemsRepeater>
+                                            </Grid>
+                                        </Border>
                                     </Grid>
                                 </Border>
                             </DataTemplate>
@@ -344,10 +478,10 @@
                     <TextBlock
                         FontSize="18"
                         FontWeight="SemiBold"
-                        Text="Службы 1С не найдены" />
+                        Text="Службы и процессы 1С не найдены" />
                     <TextBlock
                         Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                        Text="Проверяются службы ragent, ras и dbgs, зарегистрированные в Windows."
+                        Text="Проверяются службы Windows и серверные процессы ragent, rmngr, rphost, ras и dbgs."
                         TextWrapping="WrapWholeWords" />
                 </StackPanel>
             </Border>

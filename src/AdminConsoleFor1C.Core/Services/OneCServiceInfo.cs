@@ -46,7 +46,11 @@ public sealed record OneCServiceInfo
         _ => "Служба 1С"
     };
 
-    public string WindowsServicesDisplayNameText => $"Службы Windows: {DisplayName}";
+    public string DisplayNameText => string.IsNullOrWhiteSpace(DisplayName)
+        ? "—"
+        : DisplayName.Trim();
+
+    public string WindowsServicesDisplayNameText => $"Службы Windows: {DisplayNameText}";
 
     public string TaskManagerServiceNameText => $"Диспетчер задач: {Name}";
 

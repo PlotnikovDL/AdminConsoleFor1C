@@ -34,6 +34,30 @@ public sealed class OneCServiceInfoTests
         Assert.Equal("RAS: 1545", service.PortsText);
     }
 
+    [Fact]
+    public void DisplayNameText_ReturnsExactWindowsDisplayName()
+    {
+        var service = CreateServiceInfo() with
+        {
+            DisplayName = "Агент сервера 1С:Предприятия 8.3. Порт: 1540, Версия: 8.3.27.2170"
+        };
+
+        Assert.Equal(
+            "Агент сервера 1С:Предприятия 8.3. Порт: 1540, Версия: 8.3.27.2170",
+            service.DisplayNameText);
+    }
+
+    [Fact]
+    public void DisplayNameText_TrimsDisplayName()
+    {
+        var service = CreateServiceInfo() with
+        {
+            DisplayName = "  Агент сервера 1С:Предприятия 8.3  "
+        };
+
+        Assert.Equal("Агент сервера 1С:Предприятия 8.3", service.DisplayNameText);
+    }
+
     private static OneCServiceInfo CreateServiceInfo()
     {
         return new OneCServiceInfo
