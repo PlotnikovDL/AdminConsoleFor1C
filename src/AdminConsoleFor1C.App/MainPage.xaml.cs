@@ -17,6 +17,7 @@ public sealed partial class MainPage : Page
     private readonly IOneCServiceInventory _serviceInventory = new WindowsOneCServiceInventory();
     private readonly IOneCProcessInventory _processInventory = new WindowsOneCProcessInventory();
     private readonly ObservableCollection<OneCServiceProcessNode> _nodes = [];
+    private OneCServiceProcessNode? _selectedNode;
 
     public MainPage()
     {
@@ -41,6 +42,14 @@ public sealed partial class MainPage : Page
         if (sender is FrameworkElement { Tag: OneCServiceProcessNode node })
         {
             node.ToggleExpanded();
+        }
+    }
+
+    private void ServiceNode_Tapped(object sender, Microsoft.UI.Xaml.Input.TappedRoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: OneCServiceProcessNode node })
+        {
+            SelectNode(node);
         }
     }
 
@@ -78,12 +87,15 @@ public sealed partial class MainPage : Page
             var services = servicesTask.Result;
             var processes = EnrichProcesses(processesTask.Result, services);
             var nodes = BuildServiceProcessTree(services, processes);
+            var previousServiceName = _selectedNode?.Service?.Name;
 
             _nodes.Clear();
             foreach (var node in nodes)
             {
                 _nodes.Add(node);
             }
+
+            SelectNode(GetNodeToSelect(previousServiceName));
 
             UpdateEmptyState();
             StatusText.Text = $"Найдено служб: {services.Count}, процессов: {processes.Count}";
@@ -107,9 +119,44 @@ public sealed partial class MainPage : Page
         var hasItems = _nodes.Count > 0;
 
         ServiceTreeRepeater.Visibility = hasItems ? Visibility.Visible : Visibility.Collapsed;
-
+        ComponentDetailsCard.Visibility = hasItems && _selectedNode is not null ? Visibility.Visible : Visibility.Collapsed;
         ServicesTable.Visibility = hasItems ? Visibility.Visible : Visibility.Collapsed;
         EmptyState.Visibility = hasItems ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    private OneCServiceProcessNode? GetNodeToSelect(string? previousServiceName)
+    {
+        if (!string.IsNullOrWhiteSpace(previousServiceName))
+        {
+            var previousNode = _nodes.FirstOrDefault(node => node.Service?.Name == previousServiceName);
+            if (previousNode is not null)
+            {
+                return previousNode;
+            }
+        }
+
+        return _nodes.FirstOrDefault();
+    }
+
+    private void SelectNode(OneCServiceProcessNode? node)
+    {
+        if (_selectedNode is not null)
+        {
+            _selectedNode.IsSelected = false;
+        }
+
+        _selectedNode = node;
+
+        if (_selectedNode is null)
+        {
+            ComponentDetailsCard.DataContext = null;
+            ComponentDetailsCard.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        _selectedNode.IsSelected = true;
+        ComponentDetailsCard.DataContext = _selectedNode;
+        ComponentDetailsCard.Visibility = Visibility.Visible;
     }
 
     private static IReadOnlyList<OneCServiceProcessNode> BuildServiceProcessTree(

@@ -10,6 +10,7 @@ namespace AdminConsoleFor1C.App;
 public sealed class OneCServiceProcessNode : INotifyPropertyChanged
 {
     private bool _isExpanded = true;
+    private bool _isSelected;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -58,7 +59,35 @@ public sealed class OneCServiceProcessNode : INotifyPropertyChanged
         }
     }
 
+    public bool IsSelected
+    {
+        get => _isSelected;
+        set
+        {
+            if (_isSelected == value)
+            {
+                return;
+            }
+
+            _isSelected = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(CardBorderBrush));
+            OnPropertyChanged(nameof(CardBackgroundBrush));
+            OnPropertyChanged(nameof(CardBorderThickness));
+        }
+    }
+
     public string ExpandGlyph => IsExpanded ? "−" : "+";
+
+    public Brush CardBorderBrush => new SolidColorBrush(IsSelected
+        ? ColorHelper.FromArgb(255, 0, 95, 184)
+        : ColorHelper.FromArgb(28, 0, 0, 0));
+
+    public Brush CardBackgroundBrush => new SolidColorBrush(IsSelected
+        ? ColorHelper.FromArgb(18, 0, 95, 184)
+        : ColorHelper.FromArgb(0, 0, 0, 0));
+
+    public Thickness CardBorderThickness => IsSelected ? new Thickness(2) : new Thickness(1);
 
     public string StateDisplayName => Service?.StateDisplayName ?? "—";
 

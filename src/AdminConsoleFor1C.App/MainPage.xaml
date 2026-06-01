@@ -101,17 +101,20 @@
             Title="Не удалось обновить компоненты 1С" />
 
         <Grid Grid.Row="2">
-            <ScrollViewer
-                x:Name="ServicesTable"
-                HorizontalScrollBarVisibility="Disabled"
-                HorizontalScrollMode="Disabled"
-                VerticalScrollBarVisibility="Auto"
-                VerticalScrollMode="Enabled">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
+            <Grid
+                x:Name="ContentGrid"
+                ColumnSpacing="16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="640" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
 
+                <ScrollViewer
+                    x:Name="ServicesTable"
+                    HorizontalScrollBarVisibility="Disabled"
+                    HorizontalScrollMode="Disabled"
+                    VerticalScrollBarVisibility="Auto"
+                    VerticalScrollMode="Enabled">
                     <ItemsRepeater
                         x:Name="ServiceTreeRepeater"
                         HorizontalAlignment="Stretch">
@@ -119,377 +122,449 @@
                             <DataTemplate>
                                 <Border
                                     Margin="0,0,0,8"
-                                    Padding="16"
+                                    Padding="14"
                                     HorizontalAlignment="Stretch"
-                                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                                    BorderThickness="1"
-                                    CornerRadius="6">
-                                    <Grid RowSpacing="12">
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto" />
-                                            <RowDefinition Height="Auto" />
-                                            <RowDefinition Height="Auto" />
-                                        </Grid.RowDefinitions>
+                                    Background="{Binding CardBackgroundBrush}"
+                                    BorderBrush="{Binding CardBorderBrush}"
+                                    BorderThickness="{Binding CardBorderThickness}"
+                                    CornerRadius="6"
+                                    Tag="{Binding}"
+                                    Tapped="ServiceNode_Tapped">
+                                    <Grid ColumnSpacing="12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="120" />
+                                            <ColumnDefinition Width="170" />
+                                        </Grid.ColumnDefinitions>
 
-                                        <Grid ColumnSpacing="16">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto" />
-                                                <ColumnDefinition Width="Auto" />
-                                                <ColumnDefinition Width="720" />
-                                                <ColumnDefinition Width="150" />
-                                                <ColumnDefinition Width="140" />
-                                                <ColumnDefinition Width="230" />
-                                                <ColumnDefinition Width="170" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
+                                        <Border
+                                            Width="4"
+                                            Height="36"
+                                            VerticalAlignment="Top"
+                                            Background="{Binding StatusAccentBrush}"
+                                            CornerRadius="2" />
 
-                                            <Border
-                                                Width="4"
-                                                Height="32"
-                                                VerticalAlignment="Top"
-                                                Background="{Binding StatusAccentBrush}"
-                                                CornerRadius="2" />
+                                        <Button
+                                            Grid.Column="1"
+                                            Width="32"
+                                            Height="32"
+                                            Padding="0"
+                                            VerticalAlignment="Top"
+                                            Click="ToggleNodeButton_Click"
+                                            Tag="{Binding}">
+                                            <TextBlock
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"
+                                                FontSize="18"
+                                                Text="{Binding ExpandGlyph}" />
+                                        </Button>
 
-                                            <Button
-                                                Grid.Column="1"
-                                                Width="32"
-                                                Height="32"
-                                                Padding="0"
-                                                VerticalAlignment="Top"
-                                                Click="ToggleNodeButton_Click"
-                                                Tag="{Binding}">
+                                        <StackPanel Grid.Column="2" Spacing="4">
+                                            <TextBlock
+                                                Style="{StaticResource SectionTitleTextBlockStyle}"
+                                                Text="{Binding Title}"
+                                                TextTrimming="CharacterEllipsis" />
+                                            <TextBlock
+                                                Style="{StaticResource MetadataValueTextBlockStyle}"
+                                                Text="{Binding WindowsServicesDisplayNameText}"
+                                                TextTrimming="CharacterEllipsis" />
+                                            <StackPanel
+                                                Orientation="Horizontal"
+                                                Spacing="8"
+                                                Visibility="{Binding ProcessSummaryVisibility}">
                                                 <TextBlock
-                                                    HorizontalAlignment="Center"
-                                                    VerticalAlignment="Center"
-                                                    FontSize="18"
-                                                    Text="{Binding ExpandGlyph}" />
-                                            </Button>
-
-                                            <Grid
-                                                Grid.Column="2"
-                                                ColumnSpacing="12"
-                                                RowSpacing="4">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="136" />
-                                                    <ColumnDefinition Width="*" />
-                                                </Grid.ColumnDefinitions>
-                                                <Grid.RowDefinitions>
-                                                    <RowDefinition Height="Auto" />
-                                                    <RowDefinition Height="Auto" />
-                                                    <RowDefinition Height="Auto" />
-                                                    <RowDefinition Height="Auto" />
-                                                </Grid.RowDefinitions>
-
-                                                <TextBlock
-                                                    Grid.ColumnSpan="2"
-                                                    Style="{StaticResource SectionTitleTextBlockStyle}"
-                                                    Text="{Binding Title}"
-                                                    TextTrimming="CharacterEllipsis" />
-
-                                                <TextBlock
-                                                    Grid.Row="1"
-                                                    Style="{StaticResource MetadataLabelTextBlockStyle}"
-                                                    Text="В списке служб" />
-                                                <TextBlock
-                                                    Grid.Row="1"
-                                                    Grid.Column="1"
-                                                    Style="{StaticResource MetadataValueTextBlockStyle}"
-                                                    Text="{Binding WindowsServicesDisplayNameText}"
-                                                    TextTrimming="CharacterEllipsis" />
-
-                                                <TextBlock
-                                                    Grid.Row="2"
-                                                    Style="{StaticResource MetadataLabelTextBlockStyle}"
-                                                    Text="Имя службы"
-                                                    Visibility="{Binding TaskManagerServiceNameVisibility}" />
-                                                <TextBlock
-                                                    Grid.Row="2"
-                                                    Grid.Column="1"
-                                                    Style="{StaticResource MetadataMonoTextBlockStyle}"
-                                                    Text="{Binding TaskManagerServiceNameText}"
-                                                    TextTrimming="CharacterEllipsis"
-                                                    Visibility="{Binding TaskManagerServiceNameVisibility}" />
-
-                                                <TextBlock
-                                                    Grid.Row="3"
-                                                    Style="{StaticResource MetadataLabelTextBlockStyle}"
-                                                    Text="Процессы"
-                                                    Visibility="{Binding ProcessSummaryVisibility}" />
-
-                                                <StackPanel
-                                                    Grid.Row="3"
-                                                    Grid.Column="1"
-                                                    Orientation="Horizontal"
-                                                    Spacing="8"
-                                                    Visibility="{Binding ProcessSummaryVisibility}">
-                                                    <TextBlock
-                                                        FontSize="12"
-                                                        FontWeight="SemiBold"
-                                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                        Text="{Binding ProcessesSummaryText}" />
-                                                    <TextBlock
-                                                        FontSize="12"
-                                                        Foreground="{ThemeResource TextFillColorTertiaryBrush}"
-                                                        Text="{Binding ProcessNamesSummaryText}"
-                                                        TextTrimming="CharacterEllipsis" />
-                                                </StackPanel>
-                                            </Grid>
-
-                                            <StackPanel Grid.Column="3" Spacing="4">
-                                                <TextBlock
-                                                    Style="{StaticResource ColumnLabelTextBlockStyle}"
-                                                    Text="Состояние" />
-                                                <Border
-                                                    MinHeight="28"
-                                                    Padding="8,0"
-                                                    HorizontalAlignment="Left"
-                                                    Background="{Binding StatusBadgeBackgroundBrush}"
-                                                    BorderBrush="{Binding StatusAccentBrush}"
-                                                    BorderThickness="1"
-                                                    CornerRadius="10">
-                                                    <StackPanel
-                                                        VerticalAlignment="Center"
-                                                        Orientation="Horizontal"
-                                                        Spacing="6">
-                                                        <Ellipse
-                                                            Width="7"
-                                                            Height="7"
-                                                            VerticalAlignment="Center"
-                                                            Fill="{Binding StatusAccentBrush}" />
-                                                        <TextBlock
-                                                            Margin="0,-1,0,0"
-                                                            VerticalAlignment="Center"
-                                                            FontWeight="SemiBold"
-                                                            LineHeight="20"
-                                                            Text="{Binding StateDisplayName}"
-                                                            TextTrimming="CharacterEllipsis" />
-                                                    </StackPanel>
-                                                </Border>
+                                                    FontSize="12"
+                                                    FontWeight="SemiBold"
+                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                    Text="{Binding ProcessesSummaryText}" />
                                                 <TextBlock
                                                     FontSize="12"
                                                     Foreground="{ThemeResource TextFillColorTertiaryBrush}"
-                                                    LineHeight="18"
-                                                    Text="{Binding StartModeDisplayName}"
+                                                    Text="{Binding ProcessNamesSummaryText}"
                                                     TextTrimming="CharacterEllipsis" />
                                             </StackPanel>
+                                        </StackPanel>
 
-                                            <StackPanel Grid.Column="4" Spacing="4">
-                                                <TextBlock
-                                                    Style="{StaticResource ColumnLabelTextBlockStyle}"
-                                                    Text="Версия" />
-                                                <TextBlock
-                                                    LineHeight="20"
-                                                    Text="{Binding VersionText}"
-                                                    TextTrimming="CharacterEllipsis" />
-                                            </StackPanel>
-
-                                            <StackPanel Grid.Column="5" Spacing="4">
-                                                <TextBlock
-                                                    Style="{StaticResource ColumnLabelTextBlockStyle}"
-                                                    Text="Порты" />
-                                                <TextBlock
-                                                    LineHeight="20"
-                                                    Text="{Binding PortsText}"
-                                                    TextWrapping="WrapWholeWords" />
-                                            </StackPanel>
-
-                                            <StackPanel Grid.Column="6" Spacing="4">
-                                                <TextBlock
-                                                    Style="{StaticResource ColumnLabelTextBlockStyle}"
-                                                    Text="Учётная запись" />
-                                                <TextBlock
-                                                    LineHeight="20"
-                                                    Text="{Binding AccountText}"
-                                                    TextTrimming="CharacterEllipsis" />
-                                            </StackPanel>
-
-                                            <Button
-                                                Grid.Column="7"
-                                                AutomationProperties.Name="Открыть службы Windows"
-                                                Padding="10,6"
-                                                VerticalAlignment="Top"
-                                                Click="OpenWindowsServicesButton_Click"
-                                                Tag="{Binding}"
-                                                ToolTipService.ToolTip="Открыть службы Windows">
-                                                <StackPanel Orientation="Horizontal" Spacing="6">
-                                                    <SymbolIcon Symbol="Setting" />
-                                                    <TextBlock Text="Службы Windows" />
+                                        <StackPanel Grid.Column="3" Spacing="4">
+                                            <TextBlock
+                                                Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                Text="Состояние" />
+                                            <Border
+                                                MinHeight="28"
+                                                Padding="8,0"
+                                                HorizontalAlignment="Left"
+                                                Background="{Binding StatusBadgeBackgroundBrush}"
+                                                BorderBrush="{Binding StatusAccentBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="10">
+                                                <StackPanel
+                                                    VerticalAlignment="Center"
+                                                    Orientation="Horizontal"
+                                                    Spacing="6">
+                                                    <Ellipse
+                                                        Width="7"
+                                                        Height="7"
+                                                        VerticalAlignment="Center"
+                                                        Fill="{Binding StatusAccentBrush}" />
+                                                    <TextBlock
+                                                        VerticalAlignment="Center"
+                                                        FontWeight="SemiBold"
+                                                        LineHeight="20"
+                                                        Text="{Binding StateDisplayName}"
+                                                        TextTrimming="CharacterEllipsis" />
                                                 </StackPanel>
-                                            </Button>
-                                        </Grid>
+                                            </Border>
+                                        </StackPanel>
 
-                                        <Border
-                                            Grid.Row="1"
-                                            Margin="68,0,0,0"
-                                            Padding="16,12"
-                                            Background="{ThemeResource SubtleFillColorSecondaryBrush}"
-                                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                                            BorderThickness="1"
-                                            CornerRadius="6"
-                                            Visibility="{Binding ServiceDetailsVisibility}">
-                                            <Grid ColumnSpacing="16" RowSpacing="8">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="160" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                    <ColumnDefinition Width="*" />
-                                                </Grid.ColumnDefinitions>
-                                                <Grid.RowDefinitions>
-                                                    <RowDefinition Height="Auto" />
-                                                    <RowDefinition Height="Auto" />
-                                                    <RowDefinition Height="Auto" />
-                                                </Grid.RowDefinitions>
-
-                                                <TextBlock
-                                                    Style="{StaticResource MetadataLabelTextBlockStyle}"
-                                                    Text="Каталог данных" />
-                                                <TextBlock
-                                                    Grid.Column="2"
-                                                    Style="{StaticResource MetadataMonoTextBlockStyle}"
-                                                    Text="{Binding DataDirectoryText}"
-                                                    TextWrapping="Wrap" />
-                                                <Button
-                                                    Grid.Column="1"
-                                                    AutomationProperties.Name="Копировать каталог данных"
-                                                    CommandParameter="Каталог данных"
-                                                    Click="CopyValueButton_Click"
-                                                    Style="{StaticResource CopyIconButtonStyle}"
-                                                    Tag="{Binding DataDirectoryText}"
-                                                    ToolTipService.ToolTip="Копировать каталог данных">
-                                                    <SymbolIcon Symbol="Copy" />
-                                                </Button>
-
-                                                <TextBlock
-                                                    Grid.Row="1"
-                                                    Style="{StaticResource MetadataLabelTextBlockStyle}"
-                                                    Text="Исполняемый файл" />
-                                                <TextBlock
-                                                    Grid.Row="1"
-                                                    Grid.Column="2"
-                                                    Style="{StaticResource MetadataMonoTextBlockStyle}"
-                                                    Text="{Binding ExecutablePathText}"
-                                                    TextWrapping="Wrap" />
-                                                <Button
-                                                    Grid.Row="1"
-                                                    Grid.Column="1"
-                                                    AutomationProperties.Name="Копировать исполняемый файл"
-                                                    CommandParameter="Исполняемый файл"
-                                                    Click="CopyValueButton_Click"
-                                                    Style="{StaticResource CopyIconButtonStyle}"
-                                                    Tag="{Binding ExecutablePathText}"
-                                                    ToolTipService.ToolTip="Копировать исполняемый файл">
-                                                    <SymbolIcon Symbol="Copy" />
-                                                </Button>
-
-                                                <TextBlock
-                                                    Grid.Row="2"
-                                                    Style="{StaticResource MetadataLabelTextBlockStyle}"
-                                                    Text="Аргументы" />
-                                                <TextBlock
-                                                    Grid.Row="2"
-                                                    Grid.Column="2"
-                                                    Style="{StaticResource MetadataMonoTextBlockStyle}"
-                                                    Text="{Binding ArgumentsText}"
-                                                    TextTrimming="CharacterEllipsis"
-                                                    TextWrapping="NoWrap" />
-                                                <Button
-                                                    Grid.Row="2"
-                                                    Grid.Column="1"
-                                                    AutomationProperties.Name="Копировать аргументы"
-                                                    CommandParameter="Аргументы"
-                                                    Click="CopyValueButton_Click"
-                                                    Style="{StaticResource CopyIconButtonStyle}"
-                                                    Tag="{Binding ArgumentsText}"
-                                                    ToolTipService.ToolTip="Копировать аргументы">
-                                                    <SymbolIcon Symbol="Copy" />
-                                                </Button>
-                                            </Grid>
-                                        </Border>
-
-                                        <Border
-                                            Grid.Row="2"
-                                            Margin="68,0,0,0"
-                                            Padding="16,10"
-                                            Background="{ThemeResource SubtleFillColorSecondaryBrush}"
-                                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                                            BorderThickness="1"
-                                            CornerRadius="6"
-                                            Visibility="{Binding ProcessesVisibility}">
-                                            <Grid RowSpacing="8">
-                                                <Grid.RowDefinitions>
-                                                    <RowDefinition Height="Auto" />
-                                                </Grid.RowDefinitions>
-
-                                                <ItemsRepeater ItemsSource="{Binding Processes}">
-                                                    <ItemsRepeater.ItemTemplate>
-                                                        <DataTemplate>
-                                                            <Border
-                                                                Padding="0,10"
-                                                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                                                                BorderThickness="0,1,0,0">
-                                                                <Grid ColumnSpacing="16">
-                                                                    <Grid.ColumnDefinitions>
-                                                                        <ColumnDefinition Width="360" />
-                                                                        <ColumnDefinition Width="80" />
-                                                                        <ColumnDefinition Width="90" />
-                                                                        <ColumnDefinition Width="230" />
-                                                                    </Grid.ColumnDefinitions>
-
-                                                                    <StackPanel Spacing="4">
-                                                                        <TextBlock
-                                                                            Style="{StaticResource SectionTitleTextBlockStyle}"
-                                                                            Text="{Binding KindDisplayName}"
-                                                                            TextTrimming="CharacterEllipsis" />
-                                                                        <TextBlock
-                                                                            Style="{StaticResource MetadataValueTextBlockStyle}"
-                                                                            Text="{Binding Name}"
-                                                                            TextTrimming="CharacterEllipsis" />
-                                                                    </StackPanel>
-
-                                                                    <StackPanel Grid.Column="1" Spacing="4">
-                                                                        <TextBlock
-                                                                            Style="{StaticResource ColumnLabelTextBlockStyle}"
-                                                                            Text="PID" />
-                                                                        <TextBlock
-                                                                            FontWeight="SemiBold"
-                                                                            LineHeight="20"
-                                                                            Text="{Binding ProcessIdText}"
-                                                                            TextTrimming="CharacterEllipsis" />
-                                                                    </StackPanel>
-
-                                                                    <StackPanel Grid.Column="2" Spacing="4">
-                                                                        <TextBlock
-                                                                            Style="{StaticResource ColumnLabelTextBlockStyle}"
-                                                                            Text="Родитель" />
-                                                                        <TextBlock
-                                                                            LineHeight="20"
-                                                                            Text="{Binding ParentProcessIdText}"
-                                                                            TextTrimming="CharacterEllipsis" />
-                                                                    </StackPanel>
-
-                                                                    <StackPanel Grid.Column="3" Spacing="4">
-                                                                        <TextBlock
-                                                                            Style="{StaticResource ColumnLabelTextBlockStyle}"
-                                                                            Text="Назначение" />
-                                                                        <TextBlock
-                                                                            LineHeight="20"
-                                                                            Text="{Binding RoleText}"
-                                                                            TextWrapping="WrapWholeWords" />
-                                                                    </StackPanel>
-                                                                </Grid>
-                                                            </Border>
-                                                        </DataTemplate>
-                                                    </ItemsRepeater.ItemTemplate>
-                                                </ItemsRepeater>
-                                            </Grid>
-                                        </Border>
+                                        <StackPanel Grid.Column="4" Spacing="4">
+                                            <TextBlock
+                                                Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                Text="Порты" />
+                                            <TextBlock
+                                                LineHeight="20"
+                                                Text="{Binding PortsText}"
+                                                TextWrapping="WrapWholeWords" />
+                                        </StackPanel>
                                     </Grid>
                                 </Border>
                             </DataTemplate>
                         </ItemsRepeater.ItemTemplate>
                     </ItemsRepeater>
-                </Grid>
-            </ScrollViewer>
+                </ScrollViewer>
+
+                <Border
+                    x:Name="ComponentDetailsCard"
+                    Grid.Column="1"
+                    Padding="20"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Visibility="Collapsed">
+                    <ScrollViewer
+                        HorizontalScrollBarVisibility="Disabled"
+                        HorizontalScrollMode="Disabled"
+                        VerticalScrollBarVisibility="Auto"
+                        VerticalScrollMode="Enabled">
+                        <StackPanel Spacing="18">
+                            <Grid ColumnSpacing="16">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Spacing="4">
+                                    <TextBlock
+                                        FontSize="22"
+                                        FontWeight="SemiBold"
+                                        Text="{Binding Title}"
+                                        TextTrimming="CharacterEllipsis" />
+                                    <TextBlock
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                        Text="{Binding WindowsServicesDisplayNameText}"
+                                        TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+
+                                <Button
+                                    Grid.Column="1"
+                                    AutomationProperties.Name="Открыть службы Windows"
+                                    Padding="10,6"
+                                    VerticalAlignment="Top"
+                                    Click="OpenWindowsServicesButton_Click"
+                                    Tag="{Binding}"
+                                    ToolTipService.ToolTip="Открыть службы Windows">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <SymbolIcon Symbol="Setting" />
+                                        <TextBlock Text="Службы Windows" />
+                                    </StackPanel>
+                                </Button>
+                            </Grid>
+
+                            <Grid ColumnSpacing="24">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="1.1*" />
+                                    <ColumnDefinition Width="0.8*" />
+                                    <ColumnDefinition Width="1.5*" />
+                                    <ColumnDefinition Width="1.2*" />
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Spacing="4">
+                                    <TextBlock
+                                        Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                        Text="Состояние" />
+                                    <Border
+                                        MinHeight="28"
+                                        Padding="8,0"
+                                        HorizontalAlignment="Left"
+                                        Background="{Binding StatusBadgeBackgroundBrush}"
+                                        BorderBrush="{Binding StatusAccentBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="10">
+                                        <StackPanel
+                                            VerticalAlignment="Center"
+                                            Orientation="Horizontal"
+                                            Spacing="6">
+                                            <Ellipse
+                                                Width="7"
+                                                Height="7"
+                                                VerticalAlignment="Center"
+                                                Fill="{Binding StatusAccentBrush}" />
+                                            <TextBlock
+                                                VerticalAlignment="Center"
+                                                FontWeight="SemiBold"
+                                                LineHeight="20"
+                                                Text="{Binding StateDisplayName}"
+                                                TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                    </Border>
+                                    <TextBlock
+                                        FontSize="12"
+                                        Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                        LineHeight="18"
+                                        Text="{Binding StartModeDisplayName}"
+                                        TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="1" Spacing="4">
+                                    <TextBlock
+                                        Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                        Text="Версия" />
+                                    <TextBlock
+                                        LineHeight="20"
+                                        Text="{Binding VersionText}"
+                                        TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="2" Spacing="4">
+                                    <TextBlock
+                                        Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                        Text="Порты" />
+                                    <TextBlock
+                                        LineHeight="20"
+                                        Text="{Binding PortsText}"
+                                        TextWrapping="WrapWholeWords" />
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="3" Spacing="4">
+                                    <TextBlock
+                                        Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                        Text="Учётная запись" />
+                                    <TextBlock
+                                        LineHeight="20"
+                                        Text="{Binding AccountText}"
+                                        TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </Grid>
+
+                            <Border
+                                Height="1"
+                                Background="{ThemeResource CardStrokeColorDefaultBrush}" />
+
+                            <StackPanel Spacing="10">
+                                <TextBlock
+                                    FontSize="16"
+                                    FontWeight="SemiBold"
+                                    Text="Имена в Windows" />
+
+                                <Grid ColumnSpacing="16" RowSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="150" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+
+                                    <TextBlock
+                                        Style="{StaticResource MetadataLabelTextBlockStyle}"
+                                        Text="В списке служб" />
+                                    <TextBlock
+                                        Grid.Column="1"
+                                        Style="{StaticResource MetadataValueTextBlockStyle}"
+                                        Text="{Binding WindowsServicesDisplayNameText}"
+                                        TextWrapping="WrapWholeWords" />
+
+                                    <TextBlock
+                                        Grid.Row="1"
+                                        Style="{StaticResource MetadataLabelTextBlockStyle}"
+                                        Text="Имя службы"
+                                        Visibility="{Binding TaskManagerServiceNameVisibility}" />
+                                    <TextBlock
+                                        Grid.Row="1"
+                                        Grid.Column="1"
+                                        Style="{StaticResource MetadataMonoTextBlockStyle}"
+                                        Text="{Binding TaskManagerServiceNameText}"
+                                        TextWrapping="WrapWholeWords"
+                                        Visibility="{Binding TaskManagerServiceNameVisibility}" />
+                                </Grid>
+                            </StackPanel>
+
+                            <Border
+                                Height="1"
+                                Background="{ThemeResource CardStrokeColorDefaultBrush}" />
+
+                            <StackPanel Spacing="10">
+                                <TextBlock
+                                    FontSize="16"
+                                    FontWeight="SemiBold"
+                                    Text="Файлы и запуск" />
+
+                                <Grid ColumnSpacing="12" RowSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="150" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+
+                                    <TextBlock
+                                        Style="{StaticResource MetadataLabelTextBlockStyle}"
+                                        Text="Каталог данных" />
+                                    <Button
+                                        Grid.Column="1"
+                                        AutomationProperties.Name="Копировать каталог данных"
+                                        CommandParameter="Каталог данных"
+                                        Click="CopyValueButton_Click"
+                                        Style="{StaticResource CopyIconButtonStyle}"
+                                        Tag="{Binding DataDirectoryText}"
+                                        ToolTipService.ToolTip="Копировать каталог данных">
+                                        <SymbolIcon Symbol="Copy" />
+                                    </Button>
+                                    <TextBlock
+                                        Grid.Column="2"
+                                        Style="{StaticResource MetadataMonoTextBlockStyle}"
+                                        Text="{Binding DataDirectoryText}"
+                                        TextWrapping="Wrap" />
+
+                                    <TextBlock
+                                        Grid.Row="1"
+                                        Style="{StaticResource MetadataLabelTextBlockStyle}"
+                                        Text="Исполняемый файл" />
+                                    <Button
+                                        Grid.Row="1"
+                                        Grid.Column="1"
+                                        AutomationProperties.Name="Копировать исполняемый файл"
+                                        CommandParameter="Исполняемый файл"
+                                        Click="CopyValueButton_Click"
+                                        Style="{StaticResource CopyIconButtonStyle}"
+                                        Tag="{Binding ExecutablePathText}"
+                                        ToolTipService.ToolTip="Копировать исполняемый файл">
+                                        <SymbolIcon Symbol="Copy" />
+                                    </Button>
+                                    <TextBlock
+                                        Grid.Row="1"
+                                        Grid.Column="2"
+                                        Style="{StaticResource MetadataMonoTextBlockStyle}"
+                                        Text="{Binding ExecutablePathText}"
+                                        TextWrapping="Wrap" />
+
+                                    <TextBlock
+                                        Grid.Row="2"
+                                        Style="{StaticResource MetadataLabelTextBlockStyle}"
+                                        Text="Аргументы" />
+                                    <Button
+                                        Grid.Row="2"
+                                        Grid.Column="1"
+                                        AutomationProperties.Name="Копировать аргументы"
+                                        CommandParameter="Аргументы"
+                                        Click="CopyValueButton_Click"
+                                        Style="{StaticResource CopyIconButtonStyle}"
+                                        Tag="{Binding ArgumentsText}"
+                                        ToolTipService.ToolTip="Копировать аргументы">
+                                        <SymbolIcon Symbol="Copy" />
+                                    </Button>
+                                    <TextBlock
+                                        Grid.Row="2"
+                                        Grid.Column="2"
+                                        Style="{StaticResource MetadataMonoTextBlockStyle}"
+                                        Text="{Binding ArgumentsText}"
+                                        TextWrapping="Wrap" />
+                                </Grid>
+                            </StackPanel>
+
+                            <Border
+                                Height="1"
+                                Background="{ThemeResource CardStrokeColorDefaultBrush}" />
+
+                            <StackPanel Spacing="10">
+                                <TextBlock
+                                    FontSize="16"
+                                    FontWeight="SemiBold"
+                                    Text="Процессы" />
+
+                                <ItemsRepeater ItemsSource="{Binding Processes}">
+                                    <ItemsRepeater.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border
+                                                Padding="0,10"
+                                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                                BorderThickness="0,1,0,0">
+                                                <Grid ColumnSpacing="16">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="2*" />
+                                                        <ColumnDefinition Width="80" />
+                                                        <ColumnDefinition Width="90" />
+                                                        <ColumnDefinition Width="2*" />
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <StackPanel Spacing="4">
+                                                        <TextBlock
+                                                            Style="{StaticResource SectionTitleTextBlockStyle}"
+                                                            Text="{Binding KindDisplayName}"
+                                                            TextTrimming="CharacterEllipsis" />
+                                                        <TextBlock
+                                                            Style="{StaticResource MetadataValueTextBlockStyle}"
+                                                            Text="{Binding Name}"
+                                                            TextTrimming="CharacterEllipsis" />
+                                                    </StackPanel>
+
+                                                    <StackPanel Grid.Column="1" Spacing="4">
+                                                        <TextBlock
+                                                            Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                            Text="PID" />
+                                                        <TextBlock
+                                                            FontWeight="SemiBold"
+                                                            LineHeight="20"
+                                                            Text="{Binding ProcessIdText}"
+                                                            TextTrimming="CharacterEllipsis" />
+                                                    </StackPanel>
+
+                                                    <StackPanel Grid.Column="2" Spacing="4">
+                                                        <TextBlock
+                                                            Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                            Text="Родитель" />
+                                                        <TextBlock
+                                                            LineHeight="20"
+                                                            Text="{Binding ParentProcessIdText}"
+                                                            TextTrimming="CharacterEllipsis" />
+                                                    </StackPanel>
+
+                                                    <StackPanel Grid.Column="3" Spacing="4">
+                                                        <TextBlock
+                                                            Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                            Text="Назначение" />
+                                                        <TextBlock
+                                                            LineHeight="20"
+                                                            Text="{Binding RoleText}"
+                                                            TextWrapping="WrapWholeWords" />
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsRepeater.ItemTemplate>
+                                </ItemsRepeater>
+                            </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Border>
+            </Grid>
 
             <Border
                 x:Name="EmptyState"
