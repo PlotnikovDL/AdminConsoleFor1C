@@ -41,6 +41,14 @@ public sealed class OneCServiceProcessNode : INotifyPropertyChanged
 
     public Visibility ProcessSummaryVisibility => Processes.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
 
+    public Visibility ServiceActionsVisibility => Service is null ? Visibility.Collapsed : Visibility.Visible;
+
+    public bool CanStartService => Service?.State == "Stopped";
+
+    public bool CanStopService => Service?.State is "Running" or "Paused";
+
+    public bool CanRestartService => Service?.State == "Running";
+
     public bool IsExpanded
     {
         get => _isExpanded;

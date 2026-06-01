@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using AdminConsoleFor1C.Application.Services;
 using AdminConsoleFor1C.Core.Services;
@@ -16,6 +17,7 @@ public sealed partial class MainPage : Page
 {
     private readonly IOneCServiceInventory _serviceInventory = new WindowsOneCServiceInventory();
     private readonly IOneCProcessInventory _processInventory = new WindowsOneCProcessInventory();
+    private readonly IOneCServiceController _serviceController = new WindowsOneCServiceController();
     private readonly ObservableCollection<OneCServiceProcessNode> _nodes = [];
     private OneCServiceProcessNode? _selectedNode;
 
@@ -69,7 +71,31 @@ public sealed partial class MainPage : Page
         }
     }
 
-    private async Task RefreshServicesAsync()
+    private async void StartServiceButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: OneCServiceProcessNode node })
+        {
+            await ExecuteServiceCommandAsync(node, OneCServiceControlAction.Start);
+        }
+    }
+
+    private async void StopServiceButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: OneCServiceProcessNode node })
+        {
+            await ExecuteServiceCommandAsync(node, OneCServiceControlAction.Stop);
+        }
+    }
+
+    private async void RestartServiceButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: OneCServiceProcessNode node })
+        {
+            await ExecuteServiceCommandAsync(node, OneCServiceControlAction.Restart);
+        }
+    }
+
+    private async Task<bool> RefreshServicesAsync()
     {
         RefreshButton.IsEnabled = false;
         RefreshProgress.IsActive = true;
@@ -99,12 +125,14 @@ public sealed partial class MainPage : Page
 
             UpdateEmptyState();
             StatusText.Text = $"Найдено служб: {services.Count}, процессов: {processes.Count}";
+            return true;
         }
         catch (Exception exception)
         {
             ErrorInfoBar.Message = exception.Message;
             ErrorInfoBar.IsOpen = true;
             StatusText.Text = "Ошибка обновления";
+            return false;
         }
         finally
         {
@@ -344,5 +372,124 @@ public sealed partial class MainPage : Page
         var package = new DataPackage();
         package.SetText(value);
         Clipboard.SetContent(package);
+    }
+
+    private async Task ExecuteServiceCommandAsync(OneCServiceProcessNode node, OneCServiceControlAction action)
+    {
+        var serviceName = node.Service?.Name;
+        if (string.IsNullOrWhiteSpace(serviceName))
+        {
+            return;
+        }
+
+        if (!await ConfirmServiceCommandAsync(node, action))
+        {
+            return;
+        }
+
+        SetServiceCommandRunning(true);
+        ErrorInfoBar.IsOpen = false;
+        StatusText.Text = GetActionProgressText(action);
+
+        try
+        {
+            switch (action)
+            {
+                case OneCServiceControlAction.Start:
+                    await _serviceController.StartAsync(serviceName);
+                    break;
+                case OneCServiceControlAction.Stop:
+                    await _serviceController.StopAsync(serviceName);
+                    break;
+                case OneCServiceControlAction.Restart:
+                    await _serviceController.RestartAsync(serviceName);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(action), action, null);
+            }
+
+            if (await RefreshServicesAsync())
+            {
+                StatusText.Text = GetActionCompletedText(action);
+            }
+        }
+        catch (Exception exception) when (IsAccessDenied(exception))
+        {
+            ErrorInfoBar.Title = "Не хватает прав администратора";
+            ErrorInfoBar.Message = "Запустите приложение от имени администратора или используйте будущий режим повышенных действий.";
+            ErrorInfoBar.IsOpen = true;
+            StatusText.Text = "Действие не выполнено";
+        }
+        catch (Exception exception)
+        {
+            ErrorInfoBar.Title = "Не удалось выполнить действие со службой";
+            ErrorInfoBar.Message = exception.Message;
+            ErrorInfoBar.IsOpen = true;
+            StatusText.Text = "Действие не выполнено";
+        }
+        finally
+        {
+            SetServiceCommandRunning(false);
+        }
+    }
+
+    private async Task<bool> ConfirmServiceCommandAsync(OneCServiceProcessNode node, OneCServiceControlAction action)
+    {
+        if (action == OneCServiceControlAction.Start)
+        {
+            return true;
+        }
+
+        var dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = action == OneCServiceControlAction.Stop
+                ? "Остановить службу 1С?"
+                : "Перезапустить службу 1С?",
+            Content = $"{node.Service?.DisplayNameText}{Environment.NewLine}{Environment.NewLine}Активные подключения к этому компоненту могут быть прерваны.",
+            PrimaryButtonText = action == OneCServiceControlAction.Stop ? "Остановить" : "Перезапустить",
+            CloseButtonText = "Отмена",
+            DefaultButton = ContentDialogButton.Close
+        };
+
+        return await dialog.ShowAsync() == ContentDialogResult.Primary;
+    }
+
+    private void SetServiceCommandRunning(bool isRunning)
+    {
+        ServiceActionsPanel.IsHitTestVisible = !isRunning;
+        ServiceActionsPanel.Opacity = isRunning ? 0.55 : 1;
+        ServiceCommandProgress.IsActive = isRunning;
+        ServiceCommandProgress.Visibility = isRunning ? Visibility.Visible : Visibility.Collapsed;
+        RefreshButton.IsEnabled = !isRunning;
+    }
+
+    private static bool IsAccessDenied(Exception exception)
+    {
+        return exception is UnauthorizedAccessException
+            || exception is Win32Exception { NativeErrorCode: 5 }
+            || exception.InnerException is Win32Exception { NativeErrorCode: 5 };
+    }
+
+    private static string GetActionProgressText(OneCServiceControlAction action)
+    {
+        return action switch
+        {
+            OneCServiceControlAction.Start => "Запуск службы...",
+            OneCServiceControlAction.Stop => "Остановка службы...",
+            OneCServiceControlAction.Restart => "Перезапуск службы...",
+            _ => "Выполнение действия..."
+        };
+    }
+
+    private static string GetActionCompletedText(OneCServiceControlAction action)
+    {
+        return action switch
+        {
+            OneCServiceControlAction.Start => "Служба была запущена",
+            OneCServiceControlAction.Stop => "Служба была остановлена",
+            OneCServiceControlAction.Restart => "Служба была перезапущена",
+            _ => "Действие было выполнено"
+        };
     }
 }

@@ -252,7 +252,6 @@
                             <Grid ColumnSpacing="16">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
 
                                 <StackPanel Spacing="4">
@@ -266,20 +265,72 @@
                                         Text="{Binding WindowsServicesDisplayNameText}"
                                         TextTrimming="CharacterEllipsis" />
                                 </StackPanel>
+                            </Grid>
 
-                                <Button
+                            <Grid
+                                ColumnSpacing="8"
+                                Visibility="{Binding ServiceActionsVisibility}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel
+                                    x:Name="ServiceActionsPanel"
+                                    Orientation="Horizontal"
+                                    Spacing="8">
+                                    <Button
+                                        AutomationProperties.Name="Запустить службу 1С"
+                                        Click="StartServiceButton_Click"
+                                        IsEnabled="{Binding CanStartService}"
+                                        Tag="{Binding}">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <SymbolIcon Symbol="Play" />
+                                            <TextBlock Text="Запустить" />
+                                        </StackPanel>
+                                    </Button>
+
+                                    <Button
+                                        AutomationProperties.Name="Остановить службу 1С"
+                                        Click="StopServiceButton_Click"
+                                        IsEnabled="{Binding CanStopService}"
+                                        Tag="{Binding}">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <SymbolIcon Symbol="Stop" />
+                                            <TextBlock Text="Остановить" />
+                                        </StackPanel>
+                                    </Button>
+
+                                    <Button
+                                        AutomationProperties.Name="Перезапустить службу 1С"
+                                        Click="RestartServiceButton_Click"
+                                        IsEnabled="{Binding CanRestartService}"
+                                        Tag="{Binding}">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <SymbolIcon Symbol="Refresh" />
+                                            <TextBlock Text="Перезапустить" />
+                                        </StackPanel>
+                                    </Button>
+
+                                    <Button
+                                        AutomationProperties.Name="Открыть службы Windows"
+                                        Click="OpenWindowsServicesButton_Click"
+                                        Tag="{Binding}"
+                                        ToolTipService.ToolTip="Открыть службы Windows">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <SymbolIcon Symbol="Setting" />
+                                            <TextBlock Text="Службы Windows" />
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+
+                                <ProgressRing
+                                    x:Name="ServiceCommandProgress"
                                     Grid.Column="1"
-                                    AutomationProperties.Name="Открыть службы Windows"
-                                    Padding="10,6"
-                                    VerticalAlignment="Top"
-                                    Click="OpenWindowsServicesButton_Click"
-                                    Tag="{Binding}"
-                                    ToolTipService.ToolTip="Открыть службы Windows">
-                                    <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <SymbolIcon Symbol="Setting" />
-                                        <TextBlock Text="Службы Windows" />
-                                    </StackPanel>
-                                </Button>
+                                    Width="28"
+                                    Height="28"
+                                    IsActive="False"
+                                    Visibility="Collapsed" />
                             </Grid>
 
                             <Grid ColumnSpacing="24">
