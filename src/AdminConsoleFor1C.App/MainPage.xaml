@@ -39,6 +39,14 @@
             <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
             <Setter Property="LineHeight" Value="18" />
         </Style>
+
+        <Style x:Key="CopyIconButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="28" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
     </Page.Resources>
 
     <Grid Padding="24" RowSpacing="16">
@@ -133,6 +141,7 @@
                                                 <ColumnDefinition Width="140" />
                                                 <ColumnDefinition Width="230" />
                                                 <ColumnDefinition Width="170" />
+                                                <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
 
                                             <Border
@@ -300,6 +309,20 @@
                                                     Text="{Binding AccountText}"
                                                     TextTrimming="CharacterEllipsis" />
                                             </StackPanel>
+
+                                            <Button
+                                                Grid.Column="7"
+                                                AutomationProperties.Name="Открыть службы Windows"
+                                                Padding="10,6"
+                                                VerticalAlignment="Top"
+                                                Click="OpenWindowsServicesButton_Click"
+                                                Tag="{Binding}"
+                                                ToolTipService.ToolTip="Открыть службы Windows">
+                                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                                    <SymbolIcon Symbol="Setting" />
+                                                    <TextBlock Text="Службы Windows" />
+                                                </StackPanel>
+                                            </Button>
                                         </Grid>
 
                                         <Border
@@ -314,6 +337,7 @@
                                             <Grid ColumnSpacing="16" RowSpacing="8">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="160" />
+                                                    <ColumnDefinition Width="Auto" />
                                                     <ColumnDefinition Width="*" />
                                                 </Grid.ColumnDefinitions>
                                                 <Grid.RowDefinitions>
@@ -326,10 +350,20 @@
                                                     Style="{StaticResource MetadataLabelTextBlockStyle}"
                                                     Text="Каталог данных" />
                                                 <TextBlock
-                                                    Grid.Column="1"
+                                                    Grid.Column="2"
                                                     Style="{StaticResource MetadataMonoTextBlockStyle}"
                                                     Text="{Binding DataDirectoryText}"
                                                     TextWrapping="Wrap" />
+                                                <Button
+                                                    Grid.Column="1"
+                                                    AutomationProperties.Name="Копировать каталог данных"
+                                                    CommandParameter="Каталог данных"
+                                                    Click="CopyValueButton_Click"
+                                                    Style="{StaticResource CopyIconButtonStyle}"
+                                                    Tag="{Binding DataDirectoryText}"
+                                                    ToolTipService.ToolTip="Копировать каталог данных">
+                                                    <SymbolIcon Symbol="Copy" />
+                                                </Button>
 
                                                 <TextBlock
                                                     Grid.Row="1"
@@ -337,10 +371,21 @@
                                                     Text="Исполняемый файл" />
                                                 <TextBlock
                                                     Grid.Row="1"
-                                                    Grid.Column="1"
+                                                    Grid.Column="2"
                                                     Style="{StaticResource MetadataMonoTextBlockStyle}"
                                                     Text="{Binding ExecutablePathText}"
                                                     TextWrapping="Wrap" />
+                                                <Button
+                                                    Grid.Row="1"
+                                                    Grid.Column="1"
+                                                    AutomationProperties.Name="Копировать исполняемый файл"
+                                                    CommandParameter="Исполняемый файл"
+                                                    Click="CopyValueButton_Click"
+                                                    Style="{StaticResource CopyIconButtonStyle}"
+                                                    Tag="{Binding ExecutablePathText}"
+                                                    ToolTipService.ToolTip="Копировать исполняемый файл">
+                                                    <SymbolIcon Symbol="Copy" />
+                                                </Button>
 
                                                 <TextBlock
                                                     Grid.Row="2"
@@ -348,11 +393,22 @@
                                                     Text="Аргументы" />
                                                 <TextBlock
                                                     Grid.Row="2"
-                                                    Grid.Column="1"
+                                                    Grid.Column="2"
                                                     Style="{StaticResource MetadataMonoTextBlockStyle}"
                                                     Text="{Binding ArgumentsText}"
                                                     TextTrimming="CharacterEllipsis"
                                                     TextWrapping="NoWrap" />
+                                                <Button
+                                                    Grid.Row="2"
+                                                    Grid.Column="1"
+                                                    AutomationProperties.Name="Копировать аргументы"
+                                                    CommandParameter="Аргументы"
+                                                    Click="CopyValueButton_Click"
+                                                    Style="{StaticResource CopyIconButtonStyle}"
+                                                    Tag="{Binding ArgumentsText}"
+                                                    ToolTipService.ToolTip="Копировать аргументы">
+                                                    <SymbolIcon Symbol="Copy" />
+                                                </Button>
                                             </Grid>
                                         </Border>
 

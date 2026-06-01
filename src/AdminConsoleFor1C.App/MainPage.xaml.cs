@@ -1,9 +1,11 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using AdminConsoleFor1C.Application.Services;
 using AdminConsoleFor1C.Core.Services;
 using AdminConsoleFor1C.Infrastructure.Services;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Windows.ApplicationModel.DataTransfer;
 
 namespace AdminConsoleFor1C.App;
 
@@ -39,6 +41,22 @@ public sealed partial class MainPage : Page
         if (sender is FrameworkElement { Tag: OneCServiceProcessNode node })
         {
             node.ToggleExpanded();
+        }
+    }
+
+    private void OpenWindowsServicesButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: OneCServiceProcessNode node })
+        {
+            OpenWindowsServices(node.WindowsServicesDisplayNameText);
+        }
+    }
+
+    private void CopyValueButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: string value, CommandParameter: string actionText })
+        {
+            CopyToClipboard(value, actionText);
         }
     }
 
@@ -228,5 +246,56 @@ public sealed partial class MainPage : Page
     private static string? Prefer(string? current, string? fallback)
     {
         return string.IsNullOrWhiteSpace(current) ? fallback : current;
+    }
+
+    private void CopyToClipboard(string value, string actionText)
+    {
+        if (!IsCopyValueAvailable(value))
+        {
+            StatusText.Text = $"{actionText}: нет значения";
+            return;
+        }
+
+        SetClipboardText(value);
+        StatusText.Text = $"{actionText}: скопировано";
+    }
+
+    private void OpenWindowsServices(string displayName)
+    {
+        try
+        {
+            if (IsCopyValueAvailable(displayName))
+            {
+                SetClipboardText(displayName);
+            }
+
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "services.msc",
+                UseShellExecute = true
+            });
+
+            StatusText.Text = IsCopyValueAvailable(displayName)
+                ? "Открыто окно служб Windows, имя строки скопировано"
+                : "Открыто окно служб Windows";
+        }
+        catch (Exception exception)
+        {
+            ErrorInfoBar.Message = exception.Message;
+            ErrorInfoBar.IsOpen = true;
+            StatusText.Text = "Не удалось открыть службы Windows";
+        }
+    }
+
+    private static bool IsCopyValueAvailable(string value)
+    {
+        return !string.IsNullOrWhiteSpace(value) && value != "—";
+    }
+
+    private static void SetClipboardText(string value)
+    {
+        var package = new DataPackage();
+        package.SetText(value);
+        Clipboard.SetContent(package);
     }
 }
