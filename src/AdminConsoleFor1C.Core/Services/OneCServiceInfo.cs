@@ -28,6 +28,10 @@ public sealed record OneCServiceInfo
 
     public int? RegPort { get; init; }
 
+    public int? AdministrationServerPort { get; init; }
+
+    public int? DebugServerPort { get; init; }
+
     public string? PortRange { get; init; }
 
     public string? DataDirectory { get; init; }
@@ -41,6 +45,10 @@ public sealed record OneCServiceInfo
         OneCServiceKind.DebugServer => "Сервер отладки",
         _ => "Служба 1С"
     };
+
+    public string WindowsServicesDisplayNameText => $"Службы Windows: {DisplayName}";
+
+    public string TaskManagerServiceNameText => $"Диспетчер задач: {Name}";
 
     public string ProcessIdText => ProcessId is null or 0 ? "—" : ProcessId.Value.ToString();
 
@@ -72,6 +80,10 @@ public sealed record OneCServiceInfo
 
     public string RegPortText => RegPort?.ToString() ?? "—";
 
+    public string AdministrationServerPortText => AdministrationServerPort?.ToString() ?? "—";
+
+    public string DebugServerPortText => DebugServerPort?.ToString() ?? "—";
+
     public string PortRangeText => string.IsNullOrWhiteSpace(PortRange) ? "—" : PortRange;
 
     public string DataDirectoryText => string.IsNullOrWhiteSpace(DataDirectory) ? "—" : DataDirectory;
@@ -89,17 +101,27 @@ public sealed record OneCServiceInfo
             var ports = new List<string>();
             if (AgentPort is not null)
             {
-                ports.Add($"Порт: {AgentPort}");
+                ports.Add($"Агент: {AgentPort}");
             }
 
             if (RegPort is not null)
             {
-                ports.Add($"RegPort: {RegPort}");
+                ports.Add($"Кластер: {RegPort}");
+            }
+
+            if (AdministrationServerPort is not null)
+            {
+                ports.Add($"RAS: {AdministrationServerPort}");
+            }
+
+            if (DebugServerPort is not null)
+            {
+                ports.Add($"Отладка HTTP: {DebugServerPort}");
             }
 
             if (!string.IsNullOrWhiteSpace(PortRange))
             {
-                ports.Add($"Диапазон: {PortRange}");
+                ports.Add($"Процессы: {PortRange}");
             }
 
             return ports.Count == 0 ? "—" : string.Join(Environment.NewLine, ports);

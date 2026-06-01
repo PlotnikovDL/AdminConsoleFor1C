@@ -30,17 +30,20 @@ public sealed class WindowsOneCServiceInventory : IOneCServiceInventory
             var displayName = GetString(service, "DisplayName") ?? name;
             var pathName = GetString(service, "PathName");
             var commandLine = OneCServiceCommandLineParser.Parse(pathName);
+            var kind = OneCServiceCommandLineParser.GetKind(name, displayName, commandLine.ExecutablePath);
 
             if (!OneCServiceCommandLineParser.IsProbablyOneCService(name, displayName, commandLine.ExecutablePath))
             {
                 continue;
             }
 
+            var servicePort = GetInt32Option(commandLine.Arguments, "port");
+
             services.Add(new OneCServiceInfo
             {
                 Name = name,
                 DisplayName = displayName,
-                Kind = OneCServiceCommandLineParser.GetKind(name, displayName, commandLine.ExecutablePath),
+                Kind = kind,
                 State = GetString(service, "State") ?? "Unknown",
                 Status = GetString(service, "Status") ?? "Unknown",
                 StartMode = GetString(service, "StartMode"),
@@ -49,9 +52,13 @@ public sealed class WindowsOneCServiceInventory : IOneCServiceInventory
                 ExecutablePath = commandLine.ExecutablePath,
                 Arguments = commandLine.Arguments,
                 Version = OneCServiceCommandLineParser.GetVersionFromExecutablePath(commandLine.ExecutablePath),
-                AgentPort = GetInt32Option(commandLine.Arguments, "port"),
-                RegPort = GetInt32Option(commandLine.Arguments, "regport"),
-                PortRange = OneCServiceCommandLineParser.GetOptionValue(commandLine.Arguments, "range"),
+                AgentPort = kind == OneCServiceKind.ServerAgent ? servicePort : null,
+                RegPort = kind == OneCServiceKind.ServerAgent ? GetInt32Option(commandLine.Arguments, "regport") : null,
+                AdministrationServerPort = kind == OneCServiceKind.AdministrationServer ? servicePort : null,
+                DebugServerPort = GetDebugServerPort(kind, commandLine.Arguments, servicePort),
+                PortRange = kind == OneCServiceKind.ServerAgent
+                    ? OneCServiceCommandLineParser.GetOptionValue(commandLine.Arguments, "range")
+                    : null,
                 DataDirectory = OneCServiceCommandLineParser.GetOptionValue(commandLine.Arguments, "d"),
                 RawCommandLine = pathName
             });
@@ -82,5 +89,16 @@ public sealed class WindowsOneCServiceInventory : IOneCServiceInventory
         return int.TryParse(OneCServiceCommandLineParser.GetOptionValue(arguments, optionName), out var value)
             ? value
             : null;
+    }
+
+    private static int? GetDebugServerPort(OneCServiceKind kind, string arguments, int? servicePort)
+    {
+        var ragentDebugPort = GetInt32Option(arguments, "debugserverport");
+        if (ragentDebugPort is not null)
+        {
+            return ragentDebugPort;
+        }
+
+        return kind == OneCServiceKind.DebugServer ? servicePort : null;
     }
 }

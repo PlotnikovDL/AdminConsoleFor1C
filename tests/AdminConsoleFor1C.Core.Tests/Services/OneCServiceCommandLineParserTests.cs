@@ -17,12 +17,13 @@ public sealed class OneCServiceCommandLineParserTests
     [Fact]
     public void GetOptionValue_ReturnsValues_ForDashArguments()
     {
-        const string arguments = "-srvc -agent -regport 1541 -port 1540 -range 1560:1591 -d \"C:\\Program Files\\1cv8\\srvinfo\\1540\"";
+        const string arguments = "-srvc -agent -regport 1541 -port 1540 -range 1560:1591 -d \"C:\\Program Files\\1cv8\\srvinfo\\1540\" -debugServerPort 1550";
 
         Assert.Equal("1540", OneCServiceCommandLineParser.GetOptionValue(arguments, "port"));
         Assert.Equal("1541", OneCServiceCommandLineParser.GetOptionValue(arguments, "regport"));
         Assert.Equal("1560:1591", OneCServiceCommandLineParser.GetOptionValue(arguments, "range"));
         Assert.Equal("C:\\Program Files\\1cv8\\srvinfo\\1540", OneCServiceCommandLineParser.GetOptionValue(arguments, "d"));
+        Assert.Equal("1550", OneCServiceCommandLineParser.GetOptionValue(arguments, "debugserverport"));
     }
 
     [Fact]

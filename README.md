@@ -18,3 +18,9 @@
 ## Правило коммитов
 
 Все коммиты ведутся на русском языке, в прошедшем времени.
+
+## UI-гайд
+
+Интерфейс проектируется как нативная Windows 11 админ-консоль на WinUI 3 с опорой на Windows app design guidelines, Fluent Design и WinUI Gallery.
+
+Подробные правила: [docs/ui-guidelines.md](docs/ui-guidelines.md)
