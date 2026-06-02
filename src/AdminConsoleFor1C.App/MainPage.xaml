@@ -239,6 +239,7 @@
                     RowSpacing="12">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
@@ -262,137 +263,298 @@
                                     TextTrimming="CharacterEllipsis" />
                             </StackPanel>
 
-                            <Grid ColumnSpacing="12">
+                            <Grid ColumnSpacing="16" RowSpacing="10">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="120" />
+                                    <ColumnDefinition Width="120" />
+                                    <ColumnDefinition Width="120" />
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
 
-                                <Border
-                                    Padding="12"
-                                    Background="{ThemeResource LayerFillColorDefaultBrush}"
-                                    CornerRadius="6">
-                                    <StackPanel Spacing="8">
-                                        <Grid ColumnSpacing="8">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-
-                                            <StackPanel Spacing="2">
-                                                <TextBlock
-                                                    Style="{StaticResource SectionTitleTextBlockStyle}"
-                                                    Text="rac.exe" />
-                                                <TextBlock
-                                                    Style="{StaticResource ColumnLabelTextBlockStyle}"
-                                                    Text="команды администрирования" />
-                                            </StackPanel>
-
-                                            <Border
-                                                Grid.Column="1"
-                                                MinHeight="26"
-                                                Padding="8,0"
-                                                HorizontalAlignment="Right"
-                                                Background="{Binding RacStatusBadgeBackgroundBrush}"
-                                                BorderBrush="{Binding RacStatusAccentBrush}"
-                                                BorderThickness="1"
-                                                CornerRadius="10">
-                                                <StackPanel
-                                                    VerticalAlignment="Center"
-                                                    Orientation="Horizontal"
-                                                    Spacing="6">
-                                                    <Ellipse
-                                                        Width="7"
-                                                        Height="7"
-                                                        VerticalAlignment="Center"
-                                                        Fill="{Binding RacStatusAccentBrush}" />
-                                                    <TextBlock
-                                                        VerticalAlignment="Center"
-                                                        FontSize="12"
-                                                        FontWeight="SemiBold"
-                                                        LineHeight="18"
-                                                        Text="{Binding RacStateText}" />
-                                                </StackPanel>
-                                            </Border>
-                                        </Grid>
-
-                                        <TextBlock
-                                            LineHeight="20"
-                                            Text="{Binding RacVersionText}"
-                                            TextTrimming="CharacterEllipsis" />
-                                        <TextBlock
-                                            Style="{StaticResource MetadataMonoTextBlockStyle}"
-                                            Text="{Binding RacPathText}"
-                                            TextTrimming="CharacterEllipsis" />
-                                    </StackPanel>
-                                </Border>
+                                <StackPanel Spacing="2">
+                                    <TextBlock
+                                        Style="{StaticResource SectionTitleTextBlockStyle}"
+                                        Text="rac.exe" />
+                                    <TextBlock
+                                        Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                        Text="команды" />
+                                </StackPanel>
 
                                 <Border
                                     Grid.Column="1"
-                                    Padding="12"
-                                    Background="{ThemeResource LayerFillColorDefaultBrush}"
-                                    CornerRadius="6">
-                                    <StackPanel Spacing="8">
-                                        <Grid ColumnSpacing="8">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-
-                                            <StackPanel Spacing="2">
-                                                <TextBlock
-                                                    Style="{StaticResource SectionTitleTextBlockStyle}"
-                                                    Text="ras.exe" />
-                                                <TextBlock
-                                                    Style="{StaticResource ColumnLabelTextBlockStyle}"
-                                                    Text="сервер администрирования" />
-                                            </StackPanel>
-
-                                            <Border
-                                                Grid.Column="1"
-                                                MinHeight="26"
-                                                Padding="8,0"
-                                                HorizontalAlignment="Right"
-                                                Background="{Binding RasStatusBadgeBackgroundBrush}"
-                                                BorderBrush="{Binding RasStatusAccentBrush}"
-                                                BorderThickness="1"
-                                                CornerRadius="10">
-                                                <StackPanel
-                                                    VerticalAlignment="Center"
-                                                    Orientation="Horizontal"
-                                                    Spacing="6">
-                                                    <Ellipse
-                                                        Width="7"
-                                                        Height="7"
-                                                        VerticalAlignment="Center"
-                                                        Fill="{Binding RasStatusAccentBrush}" />
-                                                    <TextBlock
-                                                        VerticalAlignment="Center"
-                                                        FontSize="12"
-                                                        FontWeight="SemiBold"
-                                                        LineHeight="18"
-                                                        Text="{Binding RasStateText}" />
-                                                </StackPanel>
-                                            </Border>
-                                        </Grid>
-
+                                    MinHeight="26"
+                                    Padding="8,0"
+                                    HorizontalAlignment="Left"
+                                    Background="{Binding RacStatusBadgeBackgroundBrush}"
+                                    BorderBrush="{Binding RacStatusAccentBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="10">
+                                    <StackPanel
+                                        VerticalAlignment="Center"
+                                        Orientation="Horizontal"
+                                        Spacing="6">
+                                        <Ellipse
+                                            Width="7"
+                                            Height="7"
+                                            VerticalAlignment="Center"
+                                            Fill="{Binding RacStatusAccentBrush}" />
                                         <TextBlock
-                                            LineHeight="20"
-                                            Text="{Binding RasVersionText}"
-                                            TextTrimming="CharacterEllipsis" />
-                                        <TextBlock
-                                            Style="{StaticResource MetadataMonoTextBlockStyle}"
-                                            Text="{Binding RasPathText}"
-                                            TextTrimming="CharacterEllipsis" />
+                                            VerticalAlignment="Center"
+                                            FontSize="12"
+                                            FontWeight="SemiBold"
+                                            LineHeight="18"
+                                            Text="{Binding RacStateText}" />
                                     </StackPanel>
                                 </Border>
+
+                                <TextBlock
+                                    Grid.Column="2"
+                                    LineHeight="20"
+                                    Text="{Binding RacVersionText}"
+                                    TextTrimming="CharacterEllipsis" />
+                                <TextBlock
+                                    Grid.Column="3"
+                                    Style="{StaticResource MetadataMonoTextBlockStyle}"
+                                    Text="{Binding RacPathText}"
+                                    TextTrimming="CharacterEllipsis" />
+
+                                <StackPanel Grid.Row="1" Spacing="2">
+                                    <TextBlock
+                                        Style="{StaticResource SectionTitleTextBlockStyle}"
+                                        Text="ras.exe" />
+                                    <TextBlock
+                                        Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                        Text="сервер" />
+                                </StackPanel>
+
+                                <Border
+                                    Grid.Row="1"
+                                    Grid.Column="1"
+                                    MinHeight="26"
+                                    Padding="8,0"
+                                    HorizontalAlignment="Left"
+                                    Background="{Binding RasStatusBadgeBackgroundBrush}"
+                                    BorderBrush="{Binding RasStatusAccentBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="10">
+                                    <StackPanel
+                                        VerticalAlignment="Center"
+                                        Orientation="Horizontal"
+                                        Spacing="6">
+                                        <Ellipse
+                                            Width="7"
+                                            Height="7"
+                                            VerticalAlignment="Center"
+                                            Fill="{Binding RasStatusAccentBrush}" />
+                                        <TextBlock
+                                            VerticalAlignment="Center"
+                                            FontSize="12"
+                                            FontWeight="SemiBold"
+                                            LineHeight="18"
+                                            Text="{Binding RasStateText}" />
+                                    </StackPanel>
+                                </Border>
+
+                                <TextBlock
+                                    Grid.Row="1"
+                                    Grid.Column="2"
+                                    LineHeight="20"
+                                    Text="{Binding RasVersionText}"
+                                    TextTrimming="CharacterEllipsis" />
+                                <TextBlock
+                                    Grid.Row="1"
+                                    Grid.Column="3"
+                                    Style="{StaticResource MetadataMonoTextBlockStyle}"
+                                    Text="{Binding RasPathText}"
+                                    TextTrimming="CharacterEllipsis" />
                             </Grid>
                         </StackPanel>
                     </Border>
 
                     <Border
-                        x:Name="ComponentDetailsCard"
+                        x:Name="ClustersCard"
                         Grid.Row="1"
+                        Padding="16"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="6">
+                        <StackPanel Spacing="12">
+                            <Grid ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Spacing="2">
+                                    <TextBlock
+                                        FontSize="16"
+                                        FontWeight="SemiBold"
+                                        Text="Кластеры" />
+                                    <TextBlock
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                        LineHeight="20"
+                                        Text="{Binding MessageText}"
+                                        TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+
+                                <StackPanel
+                                    Grid.Column="1"
+                                    HorizontalAlignment="Right"
+                                    Orientation="Horizontal"
+                                    Spacing="8">
+                                    <Button
+                                        x:Name="StartTemporaryRasButton"
+                                        AutomationProperties.Name="Запустить временный RAS"
+                                        Click="StartTemporaryRasButton_Click"
+                                        Visibility="{Binding StartTemporaryRasVisibility}">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <SymbolIcon Symbol="Play" />
+                                            <TextBlock Text="Запустить RAS" />
+                                        </StackPanel>
+                                    </Button>
+
+                                    <Button
+                                        x:Name="StopTemporaryRasButton"
+                                        AutomationProperties.Name="Остановить временный RAS"
+                                        Click="StopTemporaryRasButton_Click"
+                                        Visibility="{Binding StopTemporaryRasVisibility}">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <SymbolIcon Symbol="Stop" />
+                                            <TextBlock Text="Остановить RAS" />
+                                        </StackPanel>
+                                    </Button>
+
+                                    <Border
+                                        MinHeight="28"
+                                        Padding="8,0"
+                                        Background="{Binding StatusBadgeBackgroundBrush}"
+                                        BorderBrush="{Binding StatusAccentBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="10">
+                                        <StackPanel
+                                            VerticalAlignment="Center"
+                                            Orientation="Horizontal"
+                                            Spacing="6">
+                                            <Ellipse
+                                                Width="7"
+                                                Height="7"
+                                                VerticalAlignment="Center"
+                                                Fill="{Binding StatusAccentBrush}" />
+                                            <TextBlock
+                                                VerticalAlignment="Center"
+                                                FontSize="12"
+                                                FontWeight="SemiBold"
+                                                LineHeight="18"
+                                                Text="{Binding StatusText}" />
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </Grid>
+
+                            <Grid ColumnSpacing="16" RowSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="160" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <TextBlock
+                                    Style="{StaticResource MetadataLabelTextBlockStyle}"
+                                    Text="Адрес RAS" />
+                                <TextBlock
+                                    Grid.Column="1"
+                                    Style="{StaticResource MetadataMonoTextBlockStyle}"
+                                    Text="{Binding AddressText}"
+                                    TextTrimming="CharacterEllipsis" />
+
+                                <TextBlock
+                                    Grid.Row="1"
+                                    Style="{StaticResource MetadataLabelTextBlockStyle}"
+                                    Text="Агент сервера" />
+                                <TextBlock
+                                    Grid.Row="1"
+                                    Grid.Column="1"
+                                    Style="{StaticResource MetadataMonoTextBlockStyle}"
+                                    Text="{Binding AgentAddressText}"
+                                    TextTrimming="CharacterEllipsis" />
+                            </Grid>
+
+                            <ItemsRepeater
+                                ItemsSource="{Binding Clusters}"
+                                Visibility="{Binding ClustersVisibility}">
+                                <ItemsRepeater.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border
+                                            Padding="0,10"
+                                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                            BorderThickness="0,1,0,0">
+                                            <Grid ColumnSpacing="16">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="2*" />
+                                                    <ColumnDefinition Width="1.1*" />
+                                                    <ColumnDefinition Width="1.4*" />
+                                                    <ColumnDefinition Width="1.2*" />
+                                                </Grid.ColumnDefinitions>
+
+                                                <StackPanel Spacing="4">
+                                                    <TextBlock
+                                                        Style="{StaticResource SectionTitleTextBlockStyle}"
+                                                        Text="{Binding NameText}"
+                                                        TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock
+                                                        Style="{StaticResource MetadataMonoTextBlockStyle}"
+                                                        Text="{Binding UuidText}"
+                                                        TextTrimming="CharacterEllipsis" />
+                                                </StackPanel>
+
+                                                <StackPanel Grid.Column="1" Spacing="4">
+                                                    <TextBlock
+                                                        Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                        Text="Адрес" />
+                                                    <TextBlock
+                                                        LineHeight="20"
+                                                        Text="{Binding AddressText}"
+                                                        TextTrimming="CharacterEllipsis" />
+                                                </StackPanel>
+
+                                                <StackPanel Grid.Column="2" Spacing="4">
+                                                    <TextBlock
+                                                        Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                        Text="Безопасность" />
+                                                    <TextBlock
+                                                        LineHeight="20"
+                                                        Text="{Binding SecurityLevelText}"
+                                                        TextTrimming="CharacterEllipsis" />
+                                                </StackPanel>
+
+                                                <StackPanel Grid.Column="3" Spacing="4">
+                                                    <TextBlock
+                                                        Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                        Text="Балансировка" />
+                                                    <TextBlock
+                                                        LineHeight="20"
+                                                        Text="{Binding LoadBalancingModeText}"
+                                                        TextTrimming="CharacterEllipsis" />
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsRepeater.ItemTemplate>
+                            </ItemsRepeater>
+                        </StackPanel>
+                    </Border>
+
+                    <Border
+                        x:Name="ComponentDetailsCard"
+                        Grid.Row="2"
                         Padding="20"
                         Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                         BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"

@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
+using AdminConsoleFor1C.Core.Administration;
 using AdminConsoleFor1C.Application.Services;
 using AdminConsoleFor1C.Core.Services;
 using AdminConsoleFor1C.Infrastructure.Services;
@@ -18,15 +19,24 @@ public sealed partial class MainPage : Page
     private readonly IOneCServiceInventory _serviceInventory = new WindowsOneCServiceInventory();
     private readonly IOneCProcessInventory _processInventory = new WindowsOneCProcessInventory();
     private readonly IOneCAdministrationToolInventory _administrationToolInventory = new WindowsOneCAdministrationToolInventory();
+    private readonly IOneCClusterInventory _clusterInventory = new RacOneCClusterInventory();
+    private readonly IOneCAdministrationServerLauncher _administrationServerLauncher = new RasOneCAdministrationServerLauncher();
     private readonly IOneCServiceController _serviceController = new WindowsOneCServiceController();
     private readonly ObservableCollection<OneCServiceProcessNode> _nodes = [];
+    private OneCAdministrationToolDiagnosticsViewModel? _administrationToolDiagnostics;
     private OneCServiceProcessNode? _selectedNode;
+    private int? _temporaryRasProcessId;
 
     public MainPage()
     {
         InitializeComponent();
         ServiceTreeRepeater.ItemsSource = _nodes;
         AdministrationToolsCard.DataContext = new OneCAdministrationToolDiagnosticsViewModel([], [], []);
+        ClustersCard.DataContext = new OneCClusterDiagnosticsViewModel(
+            CreateUnavailableClusterResult("localhost:1545", "Данные еще не обновлены"),
+            "localhost:1540",
+            canStartTemporaryRas: false,
+            canStopTemporaryRas: false);
         Loaded += MainPage_Loaded;
     }
 
@@ -97,6 +107,16 @@ public sealed partial class MainPage : Page
         }
     }
 
+    private async void StartTemporaryRasButton_Click(object sender, RoutedEventArgs e)
+    {
+        await StartTemporaryRasAsync();
+    }
+
+    private async void StopTemporaryRasButton_Click(object sender, RoutedEventArgs e)
+    {
+        await StopTemporaryRasAsync();
+    }
+
     private async Task<bool> RefreshServicesAsync()
     {
         RefreshButton.IsEnabled = false;
@@ -115,13 +135,17 @@ public sealed partial class MainPage : Page
             var services = servicesTask.Result;
             var processes = EnrichProcesses(processesTask.Result, services);
             var tools = await _administrationToolInventory.GetToolsAsync(GetKnownExecutablePaths(services, processes));
-            var nodes = BuildServiceProcessTree(services, processes);
-            var previousServiceName = _selectedNode?.Service?.Name;
-
-            AdministrationToolsCard.DataContext = new OneCAdministrationToolDiagnosticsViewModel(
+            var administrationToolDiagnostics = new OneCAdministrationToolDiagnosticsViewModel(
                 tools,
                 services,
                 processes);
+            var clusterDiagnostics = await GetClusterDiagnosticsAsync(administrationToolDiagnostics);
+            var nodes = BuildServiceProcessTree(services, processes);
+            var previousServiceName = _selectedNode?.Service?.Name;
+
+            _administrationToolDiagnostics = administrationToolDiagnostics;
+            AdministrationToolsCard.DataContext = administrationToolDiagnostics;
+            ClustersCard.DataContext = clusterDiagnostics;
 
             _nodes.Clear();
             foreach (var node in nodes)
@@ -251,6 +275,83 @@ public sealed partial class MainPage : Page
             .Select(static path => path!)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
+    }
+
+    private async Task<OneCClusterDiagnosticsViewModel> GetClusterDiagnosticsAsync(
+        OneCAdministrationToolDiagnosticsViewModel administrationTools)
+    {
+        var address = administrationTools.AdministrationServerAddress;
+        var canStopTemporaryRas = IsTemporaryRasRunning();
+        var canStartTemporaryRas = administrationTools.RasTool is not null
+            && !IsAdministrationServerRunning(administrationTools)
+            && !canStopTemporaryRas;
+
+        if (administrationTools.RacTool is null)
+        {
+            return new OneCClusterDiagnosticsViewModel(
+                CreateUnavailableClusterResult(address, "rac.exe не найден"),
+                administrationTools.AgentAddress,
+                canStartTemporaryRas,
+                canStopTemporaryRas);
+        }
+
+        if (!IsAdministrationServerRunning(administrationTools))
+        {
+            return new OneCClusterDiagnosticsViewModel(
+                CreateUnavailableClusterResult(address, "RAS не запущен"),
+                administrationTools.AgentAddress,
+                canStartTemporaryRas,
+                canStopTemporaryRas);
+        }
+
+        var result = await _clusterInventory.GetClustersAsync(administrationTools.RacTool.FilePath, address);
+        return new OneCClusterDiagnosticsViewModel(
+            result,
+            administrationTools.AgentAddress,
+            canStartTemporaryRas,
+            canStopTemporaryRas);
+    }
+
+    private static OneCClusterInventoryResult CreateUnavailableClusterResult(
+        string administrationServerAddress,
+        string message)
+    {
+        return OneCClusterInventoryResult.Unavailable(
+            administrationServerAddress,
+            $"rac.exe {administrationServerAddress} cluster list",
+            message);
+    }
+
+    private static bool IsAdministrationServerRunning(OneCAdministrationToolDiagnosticsViewModel administrationTools)
+    {
+        return administrationTools.RasProcess is not null
+            || administrationTools.RasService?.State == "Running";
+    }
+
+    private bool IsTemporaryRasRunning()
+    {
+        if (_temporaryRasProcessId is null)
+        {
+            return false;
+        }
+
+        try
+        {
+            using var process = Process.GetProcessById(_temporaryRasProcessId.Value);
+            if (!process.HasExited)
+            {
+                return true;
+            }
+        }
+        catch (ArgumentException)
+        {
+        }
+        catch (InvalidOperationException)
+        {
+        }
+
+        _temporaryRasProcessId = null;
+        return false;
     }
 
     private static IReadOnlyList<OneCProcessInfo> EnrichProcesses(
@@ -393,6 +494,90 @@ public sealed partial class MainPage : Page
         var package = new DataPackage();
         package.SetText(value);
         Clipboard.SetContent(package);
+    }
+
+    private async Task StartTemporaryRasAsync()
+    {
+        var diagnostics = _administrationToolDiagnostics;
+        if (diagnostics?.RasTool is null)
+        {
+            StatusText.Text = "ras.exe не найден";
+            return;
+        }
+
+        SetClusterCommandRunning(true);
+        ErrorInfoBar.IsOpen = false;
+        StatusText.Text = "Запуск временного RAS...";
+
+        try
+        {
+            _temporaryRasProcessId = await _administrationServerLauncher.StartTemporaryAsync(
+                diagnostics.RasTool.FilePath,
+                diagnostics.AdministrationServerPort,
+                diagnostics.AgentAddress);
+
+            if (await RefreshServicesAsync())
+            {
+                StatusText.Text = $"RAS был временно запущен: {diagnostics.AdministrationServerAddress}";
+            }
+        }
+        catch (Exception exception)
+        {
+            _temporaryRasProcessId = null;
+            ErrorInfoBar.Title = "Не удалось запустить RAS";
+            ErrorInfoBar.Message = exception.Message;
+            ErrorInfoBar.IsOpen = true;
+            StatusText.Text = "RAS не был запущен";
+        }
+        finally
+        {
+            SetClusterCommandRunning(false);
+        }
+    }
+
+    private async Task StopTemporaryRasAsync()
+    {
+        if (!IsTemporaryRasRunning() || _temporaryRasProcessId is null)
+        {
+            StatusText.Text = "Временный RAS не запущен";
+            await RefreshServicesAsync();
+            return;
+        }
+
+        var processId = _temporaryRasProcessId.Value;
+
+        SetClusterCommandRunning(true);
+        ErrorInfoBar.IsOpen = false;
+        StatusText.Text = "Остановка временного RAS...";
+
+        try
+        {
+            await _administrationServerLauncher.StopTemporaryAsync(processId);
+            _temporaryRasProcessId = null;
+
+            if (await RefreshServicesAsync())
+            {
+                StatusText.Text = "Временный RAS был остановлен";
+            }
+        }
+        catch (Exception exception)
+        {
+            ErrorInfoBar.Title = "Не удалось остановить RAS";
+            ErrorInfoBar.Message = exception.Message;
+            ErrorInfoBar.IsOpen = true;
+            StatusText.Text = "RAS не был остановлен";
+        }
+        finally
+        {
+            SetClusterCommandRunning(false);
+        }
+    }
+
+    private void SetClusterCommandRunning(bool isRunning)
+    {
+        StartTemporaryRasButton.IsEnabled = !isRunning;
+        StopTemporaryRasButton.IsEnabled = !isRunning;
+        RefreshButton.IsEnabled = !isRunning;
     }
 
     private async Task ExecuteServiceCommandAsync(OneCServiceProcessNode node, OneCServiceControlAction action)

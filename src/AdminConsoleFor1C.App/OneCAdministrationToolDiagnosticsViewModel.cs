@@ -21,6 +21,7 @@ public sealed class OneCAdministrationToolDiagnosticsViewModel
         _processes = processes;
 
         TargetVersion = GetTargetVersion();
+        AgentPort = GetAgentPort();
         RacTool = GetPreferredTool(OneCAdministrationToolKind.Rac);
         RasTool = GetPreferredTool(OneCAdministrationToolKind.Ras);
         RasService = _services.FirstOrDefault(static service => service.Kind == OneCServiceKind.AdministrationServer);
@@ -29,6 +30,10 @@ public sealed class OneCAdministrationToolDiagnosticsViewModel
 
     public string? TargetVersion { get; }
 
+    public int AgentPort { get; }
+
+    public string AgentAddress => $"localhost:{AgentPort}";
+
     public OneCAdministrationToolInfo? RacTool { get; }
 
     public OneCAdministrationToolInfo? RasTool { get; }
@@ -36,6 +41,12 @@ public sealed class OneCAdministrationToolDiagnosticsViewModel
     public OneCServiceInfo? RasService { get; }
 
     public OneCProcessInfo? RasProcess { get; }
+
+    public int AdministrationServerPort => RasProcess?.AdministrationServerPort
+        ?? RasService?.AdministrationServerPort
+        ?? 1545;
+
+    public string AdministrationServerAddress => $"localhost:{AdministrationServerPort}";
 
     public string SummaryText
     {
@@ -64,16 +75,12 @@ public sealed class OneCAdministrationToolDiagnosticsViewModel
         {
             if (RasProcess is not null)
             {
-                return RasProcess.AdministrationServerPort is null
-                    ? "Работает"
-                    : $"Работает, порт {RasProcess.AdministrationServerPort}";
+                return "Работает";
             }
 
             if (RasService is not null)
             {
-                return RasService.AdministrationServerPort is null
-                    ? RasService.StateDisplayName
-                    : $"{RasService.StateDisplayName}, порт {RasService.AdministrationServerPort}";
+                return RasService.StateDisplayName;
             }
 
             return RasTool is null ? "Не найден" : "Не запущен";
@@ -116,7 +123,20 @@ public sealed class OneCAdministrationToolDiagnosticsViewModel
             ?? _processes
                 .Where(static process => process.Kind == OneCProcessKind.ServerAgent)
                 .Select(static process => process.Version)
-                .FirstOrDefault(static version => !string.IsNullOrWhiteSpace(version));
+            .FirstOrDefault(static version => !string.IsNullOrWhiteSpace(version));
+    }
+
+    private int GetAgentPort()
+    {
+        return _services
+                .Where(static service => service.Kind == OneCServiceKind.ServerAgent)
+                .Select(static service => service.AgentPort)
+                .FirstOrDefault(static port => port is not null)
+            ?? _processes
+                .Where(static process => process.Kind == OneCProcessKind.ServerAgent)
+                .Select(static process => process.AgentPort)
+                .FirstOrDefault(static port => port is not null)
+            ?? 1540;
     }
 
     private OneCAdministrationToolInfo? GetPreferredTool(OneCAdministrationToolKind kind)
