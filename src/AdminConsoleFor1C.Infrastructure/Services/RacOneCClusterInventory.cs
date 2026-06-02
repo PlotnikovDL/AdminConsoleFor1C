@@ -20,7 +20,8 @@ public sealed class RacOneCClusterInventory : IOneCClusterInventory
         string administrationServerAddress,
         CancellationToken cancellationToken = default)
     {
-        var commandText = BuildCommandText(racPath, administrationServerAddress);
+        string[] clusterArguments = [administrationServerAddress, "cluster", "list"];
+        var commandText = BuildCommandText(racPath, clusterArguments);
         if (string.IsNullOrWhiteSpace(racPath) || !File.Exists(racPath))
         {
             return OneCClusterInventoryResult.Unavailable(
@@ -31,19 +32,10 @@ public sealed class RacOneCClusterInventory : IOneCClusterInventory
 
         try
         {
-            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeout.CancelAfter(CommandTimeout);
+            var clusterCommand = await RunRacAsync(racPath, clusterArguments, cancellationToken);
+            var combinedOutput = CombineOutput(clusterCommand.Output, clusterCommand.Error);
 
-            using var process = StartRac(racPath, administrationServerAddress);
-            var outputTask = process.StandardOutput.ReadToEndAsync(timeout.Token);
-            var errorTask = process.StandardError.ReadToEndAsync(timeout.Token);
-
-            await process.WaitForExitAsync(timeout.Token);
-            var output = await outputTask;
-            var error = await errorTask;
-            var combinedOutput = CombineOutput(output, error);
-
-            if (process.ExitCode != 0)
+            if (clusterCommand.ExitCode != 0)
             {
                 return OneCClusterInventoryResult.Unavailable(
                     administrationServerAddress,
@@ -51,18 +43,38 @@ public sealed class RacOneCClusterInventory : IOneCClusterInventory
                     NormalizeMessage(combinedOutput, "RAS не отвечает"));
             }
 
-            var clusters = OneCRacOutputParser.ParseObjects(output)
+            var clusters = OneCRacOutputParser.ParseObjects(clusterCommand.Output)
                 .Select(OneCClusterInfo.FromProperties)
                 .Where(static cluster => !string.IsNullOrWhiteSpace(cluster.Uuid))
                 .ToList();
+            var detailedClusters = new List<OneCClusterInfo>(clusters.Count);
+
+            foreach (var cluster in clusters)
+            {
+                var servers = await GetClusterServersAsync(racPath, administrationServerAddress, cluster.Uuid, cancellationToken);
+                var infobases = await GetClusterInfobasesAsync(racPath, administrationServerAddress, cluster.Uuid, cancellationToken);
+                var detailsMessage = CombineDetailsMessages(servers.Message, infobases.Message);
+
+                detailedClusters.Add(cluster with
+                {
+                    Servers = servers.Items,
+                    Infobases = infobases.Items,
+                    DetailsMessage = detailsMessage
+                });
+            }
+
+            var serverCount = detailedClusters.Sum(static cluster => cluster.Servers.Count);
+            var infobaseCount = detailedClusters.Sum(static cluster => cluster.Infobases.Count);
 
             return new OneCClusterInventoryResult
             {
                 AdministrationServerAddress = administrationServerAddress,
                 CommandText = commandText,
                 IsAvailable = true,
-                Message = clusters.Count == 0 ? "Кластеры не найдены" : $"Найдено кластеров: {clusters.Count}",
-                Clusters = clusters
+                Message = clusters.Count == 0
+                    ? "Кластеры не найдены"
+                    : $"Найдено кластеров: {clusters.Count}, серверов: {serverCount}, баз: {infobaseCount}",
+                Clusters = detailedClusters
             };
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
@@ -81,7 +93,92 @@ public sealed class RacOneCClusterInventory : IOneCClusterInventory
         }
     }
 
-    private static Process StartRac(string racPath, string administrationServerAddress)
+    private static async Task<(IReadOnlyList<OneCClusterServerInfo> Items, string? Message)> GetClusterServersAsync(
+        string racPath,
+        string administrationServerAddress,
+        string clusterUuid,
+        CancellationToken cancellationToken)
+    {
+        string[] arguments = [administrationServerAddress, "server", "list", $"--cluster={clusterUuid}"];
+        return await GetClusterItemsAsync(
+            racPath,
+            arguments,
+            static output => OneCRacOutputParser.ParseObjects(output)
+                .Select(OneCClusterServerInfo.FromProperties)
+                .Where(static server => !string.IsNullOrWhiteSpace(server.Uuid))
+                .ToList(),
+            "Рабочие серверы не были прочитаны",
+            cancellationToken);
+    }
+
+    private static async Task<(IReadOnlyList<OneCInfobaseSummaryInfo> Items, string? Message)> GetClusterInfobasesAsync(
+        string racPath,
+        string administrationServerAddress,
+        string clusterUuid,
+        CancellationToken cancellationToken)
+    {
+        string[] arguments = [administrationServerAddress, "infobase", "summary", "list", $"--cluster={clusterUuid}"];
+        return await GetClusterItemsAsync(
+            racPath,
+            arguments,
+            static output => OneCRacOutputParser.ParseObjects(output)
+                .Select(OneCInfobaseSummaryInfo.FromProperties)
+                .Where(static infobase => !string.IsNullOrWhiteSpace(infobase.Uuid))
+                .ToList(),
+            "Информационные базы не были прочитаны",
+            cancellationToken);
+    }
+
+    private static async Task<(IReadOnlyList<T> Items, string? Message)> GetClusterItemsAsync<T>(
+        string racPath,
+        IReadOnlyList<string> arguments,
+        Func<string, IReadOnlyList<T>> parser,
+        string fallbackMessage,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var command = await RunRacAsync(racPath, arguments, cancellationToken);
+            if (command.ExitCode != 0)
+            {
+                return ([], NormalizeMessage(CombineOutput(command.Output, command.Error), fallbackMessage));
+            }
+
+            return (parser(command.Output), null);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return ([], $"{fallbackMessage}: команда rac не ответила за отведенное время");
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
+        {
+            return ([], $"{fallbackMessage}: {exception.Message}");
+        }
+    }
+
+    private static async Task<RacCommandResult> RunRacAsync(
+        string racPath,
+        IReadOnlyList<string> arguments,
+        CancellationToken cancellationToken)
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(CommandTimeout);
+
+        using var process = StartRac(racPath, arguments);
+        var outputTask = process.StandardOutput.ReadToEndAsync(timeout.Token);
+        var errorTask = process.StandardError.ReadToEndAsync(timeout.Token);
+
+        await process.WaitForExitAsync(timeout.Token);
+        var output = await outputTask;
+        var error = await errorTask;
+
+        return new RacCommandResult(
+            output,
+            error,
+            process.ExitCode);
+    }
+
+    private static Process StartRac(string racPath, IReadOnlyList<string> arguments)
     {
         var startInfo = new ProcessStartInfo
         {
@@ -94,21 +191,22 @@ public sealed class RacOneCClusterInventory : IOneCClusterInventory
             StandardErrorEncoding = GetOemEncoding()
         };
 
-        startInfo.ArgumentList.Add(administrationServerAddress);
-        startInfo.ArgumentList.Add("cluster");
-        startInfo.ArgumentList.Add("list");
+        foreach (var argument in arguments)
+        {
+            startInfo.ArgumentList.Add(argument);
+        }
 
         return Process.Start(startInfo)
             ?? throw new InvalidOperationException("Не удалось запустить rac.exe");
     }
 
-    private static string BuildCommandText(string racPath, string administrationServerAddress)
+    private static string BuildCommandText(string racPath, IReadOnlyList<string> arguments)
     {
         var executableName = string.IsNullOrWhiteSpace(racPath)
             ? "rac.exe"
             : Path.GetFileName(racPath);
 
-        return $"{executableName} {administrationServerAddress} cluster list";
+        return $"{executableName} {string.Join(' ', arguments)}";
     }
 
     private static Encoding GetOemEncoding()
@@ -137,4 +235,13 @@ public sealed class RacOneCClusterInventory : IOneCClusterInventory
 
         return string.Join(". ", lines);
     }
+
+    private static string? CombineDetailsMessages(params string?[] messages)
+    {
+        var details = messages.Where(static message => !string.IsNullOrWhiteSpace(message));
+        var text = string.Join(Environment.NewLine, details);
+        return string.IsNullOrWhiteSpace(text) ? null : text;
+    }
+
+    private sealed record RacCommandResult(string Output, string Error, int ExitCode);
 }

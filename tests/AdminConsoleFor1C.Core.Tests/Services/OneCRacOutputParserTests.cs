@@ -46,4 +46,54 @@ public sealed class OneCRacOutputParserTests
         Assert.Equal("0", cluster.SecurityLevelText);
         Assert.Equal("performance", cluster.LoadBalancingModeText);
     }
+
+    [Fact]
+    public void FromProperties_ReturnsClusterServerInfo()
+    {
+        var properties = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["server"] = "33333333-3333-3333-3333-333333333333",
+            ["agent-host"] = "DESKTOP-ROY",
+            ["agent-port"] = "1540",
+            ["port-range"] = "1560:1591",
+            ["name"] = "\"Центральный сервер\"",
+            ["using"] = "main",
+            ["infobases-limit"] = "8",
+            ["connections-limit"] = "256",
+            ["cluster-port"] = "1541"
+        };
+
+        var server = OneCClusterServerInfo.FromProperties(properties);
+
+        Assert.Equal("Центральный сервер", server.NameText);
+        Assert.Equal("DESKTOP-ROY:1540", server.AgentAddressText);
+        Assert.Contains("Кластер: 1541", server.PortsText);
+        Assert.Contains("Процессы: 1560:1591", server.PortsText);
+        Assert.Equal("Центральный сервер", server.UsageText);
+        Assert.Contains("Соединений: 256", server.LimitsText);
+    }
+
+    [Fact]
+    public void FromProperties_ReturnsInfobaseSummaryInfo()
+    {
+        var properties = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["infobase"] = "44444444-4444-4444-4444-444444444444",
+            ["name"] = "\"Управление торговлей\"",
+            ["descr"] = "\"Рабочая база\"",
+            ["dbms"] = "MSSQLServer",
+            ["db-server"] = "sql01",
+            ["db-name"] = "ut",
+            ["sessions-deny"] = "off",
+            ["scheduled-jobs-deny"] = "on"
+        };
+
+        var infobase = OneCInfobaseSummaryInfo.FromProperties(properties);
+
+        Assert.Equal("Управление торговлей", infobase.NameText);
+        Assert.Equal("Рабочая база", infobase.DescriptionText);
+        Assert.Equal("MSSQLServer, sql01, ut", infobase.DatabaseText);
+        Assert.Contains("Сеансы: разрешены", infobase.RestrictionsText);
+        Assert.Contains("Задания: запрещены", infobase.RestrictionsText);
+    }
 }

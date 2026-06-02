@@ -14,6 +14,12 @@ public sealed record OneCClusterInfo
 
     public string? LoadBalancingMode { get; init; }
 
+    public IReadOnlyList<OneCClusterServerInfo> Servers { get; init; } = [];
+
+    public IReadOnlyList<OneCInfobaseSummaryInfo> Infobases { get; init; } = [];
+
+    public string? DetailsMessage { get; init; }
+
     public IReadOnlyDictionary<string, string> Properties { get; init; } =
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
@@ -30,6 +36,22 @@ public sealed record OneCClusterInfo
     public string SecurityLevelText => string.IsNullOrWhiteSpace(SecurityLevel) ? "—" : SecurityLevel;
 
     public string LoadBalancingModeText => string.IsNullOrWhiteSpace(LoadBalancingMode) ? "—" : LoadBalancingMode;
+
+    public string ServersSummaryText => Servers.Count switch
+    {
+        0 => "Рабочие серверы не найдены",
+        1 => "1 рабочий сервер",
+        >= 2 and <= 4 => $"{Servers.Count} рабочих сервера",
+        _ => $"{Servers.Count} рабочих серверов"
+    };
+
+    public string InfobasesSummaryText => Infobases.Count switch
+    {
+        0 => "Информационные базы не найдены",
+        1 => "1 информационная база",
+        >= 2 and <= 4 => $"{Infobases.Count} информационные базы",
+        _ => $"{Infobases.Count} информационных баз"
+    };
 
     public static OneCClusterInfo FromProperties(IReadOnlyDictionary<string, string> properties)
     {

@@ -21,9 +21,12 @@ public sealed class OneCClusterDiagnosticsViewModel
         AgentAddressText = agentAddress;
         _canStartTemporaryRas = canStartTemporaryRas;
         _canStopTemporaryRas = canStopTemporaryRas;
+        Clusters = result.Clusters
+            .Select(static cluster => new OneCClusterViewModel(cluster))
+            .ToList();
     }
 
-    public IReadOnlyList<OneCClusterInfo> Clusters => _result.Clusters;
+    public IReadOnlyList<OneCClusterViewModel> Clusters { get; }
 
     public string StatusText => _result.IsAvailable
         ? _result.Clusters.Count == 0 ? "Пусто" : "Доступны"

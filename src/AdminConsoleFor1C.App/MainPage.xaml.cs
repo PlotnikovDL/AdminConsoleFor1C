@@ -117,6 +117,14 @@ public sealed partial class MainPage : Page
         await StopTemporaryRasAsync();
     }
 
+    private async void OpenCreateInfobaseDialogButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: OneCClusterViewModel cluster })
+        {
+            await ShowCreateInfobaseDraftDialogAsync(cluster);
+        }
+    }
+
     private async Task<bool> RefreshServicesAsync()
     {
         RefreshButton.IsEnabled = false;
@@ -496,6 +504,225 @@ public sealed partial class MainPage : Page
         Clipboard.SetContent(package);
     }
 
+    private async Task ShowCreateInfobaseDraftDialogAsync(OneCClusterViewModel cluster)
+    {
+        var infobaseNameTextBox = new TextBox
+        {
+            Width = 300,
+            Height = 34
+        };
+        var descriptionTextBox = new TextBox
+        {
+            Width = 300,
+            Height = 34
+        };
+        var securityLevelComboBox = CreateComboBox(
+            null,
+            "выключено",
+            "только соединение",
+            "постоянно");
+        var dbServerTextBox = new TextBox
+        {
+            Width = 300,
+            Height = 34
+        };
+        var dbmsComboBox = CreateComboBox(
+            null,
+            "MS SQL Server",
+            "PostgreSQL",
+            "IBM DB2",
+            "Oracle Database");
+        var dbNameTextBox = new TextBox
+        {
+            Width = 300,
+            Height = 34
+        };
+        var dbUserTextBox = new TextBox
+        {
+            Width = 300,
+            Height = 34
+        };
+        var dbPasswordBox = new PasswordBox
+        {
+            Width = 300,
+            Height = 34
+        };
+        var licenseDistributionComboBox = CreateComboBox(
+            null,
+            "Да",
+            "Нет");
+        var localeComboBox = CreateComboBox(
+            null,
+            "русский (Россия)");
+        var dateOffsetComboBox = CreateComboBox(
+            null,
+            "0",
+            "2000");
+        var createDatabaseCheckBox = new CheckBox
+        {
+            HorizontalAlignment = HorizontalAlignment.Left,
+            MinWidth = 0,
+            Padding = new Thickness(0)
+        };
+        var scheduledJobsDenyCheckBox = new CheckBox
+        {
+            HorizontalAlignment = HorizontalAlignment.Left,
+            MinWidth = 0,
+            Padding = new Thickness(0)
+        };
+        var draftCommand = string.Empty;
+
+        void UpdateCommandPreview()
+        {
+            draftCommand = BuildInfobaseCreateDraftCommand(
+                cluster,
+                _administrationToolDiagnostics?.AdministrationServerAddress ?? "localhost:1545",
+                infobaseNameTextBox.Text,
+                null,
+                null,
+                GetDbmsOptionValue(dbmsComboBox),
+                dbServerTextBox.Text,
+                dbNameTextBox.Text,
+                dbUserTextBox.Text,
+                dbPasswordBox.Password,
+                GetLocaleOptionValue(localeComboBox),
+                GetSelectedText(dateOffsetComboBox),
+                GetSecurityLevelOptionValue(securityLevelComboBox),
+                scheduledJobsDenyCheckBox.IsChecked == true ? "on" : "off",
+                GetLicenseDistributionOptionValue(licenseDistributionComboBox),
+                descriptionTextBox.Text,
+                createDatabaseCheckBox.IsChecked == true);
+        }
+
+        infobaseNameTextBox.TextChanged += (_, _) => UpdateCommandPreview();
+        descriptionTextBox.TextChanged += (_, _) => UpdateCommandPreview();
+        securityLevelComboBox.SelectionChanged += (_, _) => UpdateCommandPreview();
+        dbServerTextBox.TextChanged += (_, _) => UpdateCommandPreview();
+        dbmsComboBox.SelectionChanged += (_, _) => UpdateCommandPreview();
+        dbNameTextBox.TextChanged += (_, _) => UpdateCommandPreview();
+        dbUserTextBox.TextChanged += (_, _) => UpdateCommandPreview();
+        dbPasswordBox.PasswordChanged += (_, _) => UpdateCommandPreview();
+        licenseDistributionComboBox.SelectionChanged += (_, _) => UpdateCommandPreview();
+        localeComboBox.SelectionChanged += (_, _) => UpdateCommandPreview();
+        dateOffsetComboBox.SelectionChanged += (_, _) => UpdateCommandPreview();
+        createDatabaseCheckBox.Checked += (_, _) => UpdateCommandPreview();
+        createDatabaseCheckBox.Unchecked += (_, _) => UpdateCommandPreview();
+        scheduledJobsDenyCheckBox.Checked += (_, _) => UpdateCommandPreview();
+        scheduledJobsDenyCheckBox.Unchecked += (_, _) => UpdateCommandPreview();
+        UpdateCommandPreview();
+
+        var formGrid = new Grid
+        {
+            ColumnSpacing = 12,
+            RowSpacing = 5,
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = new GridLength(240) },
+                new ColumnDefinition { Width = new GridLength(300) }
+            }
+        };
+
+        var row = 0;
+        AddDialogFormRow(formGrid, row++, "Имя:", infobaseNameTextBox);
+        AddDialogFormRow(formGrid, row++, "Описание:", descriptionTextBox);
+        AddDialogFormRow(formGrid, row++, "Защищенное соединение:", securityLevelComboBox);
+        AddDialogFormRow(formGrid, row++, "Сервер баз данных:", dbServerTextBox);
+        AddDialogFormRow(formGrid, row++, "Тип СУБД:", dbmsComboBox);
+        AddDialogFormRow(formGrid, row++, "База данных:", dbNameTextBox);
+        AddDialogFormRow(formGrid, row++, "Пользователь сервера БД:", dbUserTextBox);
+        AddDialogFormRow(formGrid, row++, "Пароль пользователя БД:", dbPasswordBox);
+        AddDialogFormRow(
+            formGrid,
+            row++,
+            "Разрешить выдачу лицензий\nсервером 1С:Предприятия:",
+            licenseDistributionComboBox);
+        AddDialogFormRow(formGrid, row++, "Язык (Страна):", localeComboBox);
+        AddDialogFormRow(formGrid, row++, "Смещение дат:", dateOffsetComboBox);
+        AddDialogCheckBoxRow(
+            formGrid,
+            row++,
+            "Создать базу данных в\nслучае ее отсутствия",
+            createDatabaseCheckBox);
+        AddDialogCheckBoxRow(
+            formGrid,
+            row,
+            "Установить блокировку\nрегламентных заданий",
+            scheduledJobsDenyCheckBox);
+
+        var okButton = new Button
+        {
+            Content = "OK",
+            Width = 100,
+            Background = GetThemeBrush("AccentFillColorDefaultBrush", 255, 0, 120, 212),
+            BorderBrush = GetThemeBrush("AccentFillColorDefaultBrush", 255, 0, 120, 212),
+            Foreground = GetThemeBrush("TextOnAccentFillColorPrimaryBrush", 255, 255, 255, 255)
+        };
+        var cancelButton = new Button
+        {
+            Content = "Отмена",
+            Width = 100
+        };
+        var footer = new StackPanel
+        {
+            Margin = new Thickness(0, 12, 0, 0),
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Orientation = Orientation.Horizontal,
+            Spacing = 8,
+            Children =
+            {
+                okButton,
+                cancelButton
+            }
+        };
+
+        var content = new StackPanel
+        {
+            Width = 590,
+            Spacing = 0,
+            Children =
+            {
+                new Border
+                {
+                    Padding = new Thickness(12),
+                    Background = GetThemeBrush("CardBackgroundFillColorDefaultBrush", 255, 255, 255, 255),
+                    BorderBrush = GetThemeBrush("CardStrokeColorDefaultBrush", 64, 0, 0, 0),
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(6),
+                    Child = new StackPanel
+                    {
+                        Spacing = 12,
+                        Children =
+                        {
+                            CreateDialogSectionTitle("Параметры информационной базы"),
+                            formGrid
+                        }
+                    }
+                },
+                footer
+            }
+        };
+
+        ContentDialog? dialog = null;
+        okButton.Click += (_, _) =>
+        {
+            SetClipboardText(draftCommand);
+            StatusText.Text = "Черновик команды создания базы был скопирован, rac не запускался";
+            dialog?.Hide();
+        };
+        cancelButton.Click += (_, _) => dialog?.Hide();
+
+        dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = "Новая информационная база",
+            Content = content,
+        };
+        dialog.Resources["ContentDialogMaxWidth"] = 700d;
+        dialog.Resources["ContentDialogMinWidth"] = 650d;
+
+        await dialog.ShowAsync();
+    }
+
     private async Task StartTemporaryRasAsync()
     {
         var diagnostics = _administrationToolDiagnostics;
@@ -697,5 +924,239 @@ public sealed partial class MainPage : Page
             OneCServiceControlAction.Restart => "Служба была перезапущена",
             _ => "Действие было выполнено"
         };
+    }
+
+    private static TextBlock CreateDialogSectionTitle(string text)
+    {
+        return new TextBlock
+        {
+            Text = text,
+            Foreground = GetThemeBrush("TextFillColorPrimaryBrush", 255, 32, 32, 32),
+            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+            FontSize = 15,
+            LineHeight = 20
+        };
+    }
+
+    private static Microsoft.UI.Xaml.Media.Brush GetThemeBrush(
+        string resourceName,
+        byte alpha,
+        byte red,
+        byte green,
+        byte blue)
+    {
+        if (Microsoft.UI.Xaml.Application.Current.Resources.TryGetValue(resourceName, out var resource)
+            && resource is Microsoft.UI.Xaml.Media.Brush brush)
+        {
+            return brush;
+        }
+
+        return new Microsoft.UI.Xaml.Media.SolidColorBrush(
+            Microsoft.UI.ColorHelper.FromArgb(alpha, red, green, blue));
+    }
+
+    private static void AddDialogFormRow(Grid grid, int row, string labelText, FrameworkElement control)
+    {
+        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        control.HorizontalAlignment = HorizontalAlignment.Stretch;
+        control.VerticalAlignment = VerticalAlignment.Center;
+
+        var label = new TextBlock
+        {
+            Text = labelText,
+            FontSize = 14,
+            Foreground = GetThemeBrush("TextFillColorPrimaryBrush", 255, 32, 32, 32),
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Center,
+            LineHeight = 18,
+            TextAlignment = TextAlignment.Right,
+            TextWrapping = TextWrapping.WrapWholeWords
+        };
+
+        Grid.SetRow(label, row);
+        Grid.SetRow(control, row);
+        Grid.SetColumn(control, 1);
+
+        grid.Children.Add(label);
+        grid.Children.Add(control);
+    }
+
+    private static void AddDialogCheckBoxRow(Grid grid, int row, string labelText, CheckBox checkBox)
+    {
+        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+        var label = new TextBlock
+        {
+            Text = labelText,
+            FontSize = 14,
+            Foreground = GetThemeBrush("TextFillColorPrimaryBrush", 255, 32, 32, 32),
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Center,
+            LineHeight = 18,
+            TextAlignment = TextAlignment.Right,
+            TextWrapping = TextWrapping.WrapWholeWords
+        };
+
+        Grid.SetRow(label, row);
+        Grid.SetRow(checkBox, row);
+        Grid.SetColumn(checkBox, 1);
+
+        grid.Children.Add(label);
+        grid.Children.Add(checkBox);
+    }
+
+    private static ComboBox CreateComboBox(string? header, params string[] items)
+    {
+        var comboBox = new ComboBox
+        {
+            Width = 300,
+            Height = 34,
+            MinWidth = 0
+        };
+
+        if (!string.IsNullOrWhiteSpace(header))
+        {
+            comboBox.Header = header;
+        }
+
+        foreach (var item in items)
+        {
+            comboBox.Items.Add(item);
+        }
+
+        comboBox.SelectedIndex = 0;
+        return comboBox;
+    }
+
+    private static string GetSelectedText(ComboBox comboBox)
+    {
+        return comboBox.SelectedItem as string ?? string.Empty;
+    }
+
+    private static string GetDbmsOptionValue(ComboBox comboBox)
+    {
+        return GetSelectedText(comboBox) switch
+        {
+            "MS SQL Server" => "MSSQLServer",
+            "PostgreSQL" => "PostgreSQL",
+            "IBM DB2" => "IBMDB2",
+            "Oracle Database" => "OracleDatabase",
+            _ => "MSSQLServer"
+        };
+    }
+
+    private static string GetLocaleOptionValue(ComboBox comboBox)
+    {
+        return GetSelectedText(comboBox) switch
+        {
+            "русский (Россия)" => "ru_RU",
+            _ => "ru_RU"
+        };
+    }
+
+    private static string GetSecurityLevelOptionValue(ComboBox comboBox)
+    {
+        return GetSelectedText(comboBox) switch
+        {
+            "только соединение" => "1",
+            "постоянно" => "2",
+            _ => "0"
+        };
+    }
+
+    private static string GetLicenseDistributionOptionValue(ComboBox comboBox)
+    {
+        return GetSelectedText(comboBox) == "Нет" ? "deny" : "allow";
+    }
+
+    private static string BuildInfobaseCreateDraftCommand(
+        OneCClusterViewModel cluster,
+        string administrationServerAddress,
+        string? infobaseName,
+        string? clusterUser,
+        string? clusterPassword,
+        string? dbms,
+        string? dbServer,
+        string? dbName,
+        string? dbUser,
+        string? dbPassword,
+        string? locale,
+        string? dateOffset,
+        string? securityLevel,
+        string? scheduledJobsDeny,
+        string? licenseDistribution,
+        string? description,
+        bool createDatabase)
+    {
+        var arguments = new List<string>
+        {
+            "rac.exe",
+            administrationServerAddress,
+            "infobase",
+            "create",
+            $"--cluster={cluster.UuidText}"
+        };
+
+        AddOptionalQuotedOption(arguments, "--cluster-user", clusterUser);
+        AddOptionalQuotedOption(arguments, "--cluster-pwd", clusterPassword);
+
+        if (createDatabase)
+        {
+            arguments.Add("--create-database");
+        }
+
+        AddQuotedOption(arguments, "--name", infobaseName, "<имя базы>");
+        arguments.Add($"--dbms={NormalizeOptionValue(dbms, "MSSQLServer")}");
+        AddQuotedOption(arguments, "--db-server", dbServer, "<сервер БД>");
+        AddQuotedOption(arguments, "--db-name", dbName, "<имя БД>");
+        arguments.Add($"--locale={NormalizeOptionValue(locale, "ru_RU")}");
+        AddOptionalQuotedOption(arguments, "--db-user", dbUser);
+        AddOptionalQuotedOption(arguments, "--db-pwd", dbPassword);
+        AddOptionalPlainOption(arguments, "--date-offset", dateOffset);
+        AddOptionalPlainOption(arguments, "--security-level", securityLevel);
+        AddOptionalPlainOption(arguments, "--scheduled-jobs-deny", scheduledJobsDeny);
+        AddOptionalPlainOption(arguments, "--license-distribution", licenseDistribution);
+
+        if (!string.IsNullOrWhiteSpace(description))
+        {
+            AddQuotedOption(arguments, "--descr", description, "<описание>");
+        }
+
+        return string.Join(" ", arguments);
+    }
+
+    private static void AddQuotedOption(
+        List<string> arguments,
+        string optionName,
+        string? value,
+        string placeholder)
+    {
+        arguments.Add($"{optionName}={QuoteCommandValue(NormalizeOptionValue(value, placeholder))}");
+    }
+
+    private static void AddOptionalQuotedOption(List<string> arguments, string optionName, string? value)
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            arguments.Add($"{optionName}={QuoteCommandValue(value.Trim())}");
+        }
+    }
+
+    private static void AddOptionalPlainOption(List<string> arguments, string optionName, string? value)
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            arguments.Add($"{optionName}={value.Trim()}");
+        }
+    }
+
+    private static string NormalizeOptionValue(string? value, string fallback)
+    {
+        return string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
+    }
+
+    private static string QuoteCommandValue(string value)
+    {
+        return $"\"{value.Replace("\"", "\\\"", StringComparison.Ordinal)}\"";
     }
 }

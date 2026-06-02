@@ -493,58 +493,248 @@
                                 <ItemsRepeater.ItemTemplate>
                                     <DataTemplate>
                                         <Border
-                                            Padding="0,10"
+                                            Padding="0,12"
                                             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                                             BorderThickness="0,1,0,0">
-                                            <Grid ColumnSpacing="16">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="2*" />
-                                                    <ColumnDefinition Width="1.1*" />
-                                                    <ColumnDefinition Width="1.4*" />
-                                                    <ColumnDefinition Width="1.2*" />
-                                                </Grid.ColumnDefinitions>
+                                            <StackPanel Spacing="12">
+                                                <Grid ColumnSpacing="16">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="360" />
+                                                        <ColumnDefinition Width="170" />
+                                                        <ColumnDefinition Width="120" />
+                                                        <ColumnDefinition Width="150" />
+                                                    </Grid.ColumnDefinitions>
 
-                                                <StackPanel Spacing="4">
-                                                    <TextBlock
-                                                        Style="{StaticResource SectionTitleTextBlockStyle}"
-                                                        Text="{Binding NameText}"
-                                                        TextTrimming="CharacterEllipsis" />
-                                                    <TextBlock
-                                                        Style="{StaticResource MetadataMonoTextBlockStyle}"
-                                                        Text="{Binding UuidText}"
-                                                        TextTrimming="CharacterEllipsis" />
-                                                </StackPanel>
+                                                    <StackPanel Spacing="4">
+                                                        <TextBlock
+                                                            Style="{StaticResource SectionTitleTextBlockStyle}"
+                                                            Text="{Binding NameText}"
+                                                            TextTrimming="CharacterEllipsis" />
+                                                        <TextBlock
+                                                            Style="{StaticResource MetadataMonoTextBlockStyle}"
+                                                            Text="{Binding UuidText}"
+                                                            TextTrimming="CharacterEllipsis" />
+                                                    </StackPanel>
 
-                                                <StackPanel Grid.Column="1" Spacing="4">
-                                                    <TextBlock
-                                                        Style="{StaticResource ColumnLabelTextBlockStyle}"
-                                                        Text="Адрес" />
-                                                    <TextBlock
-                                                        LineHeight="20"
-                                                        Text="{Binding AddressText}"
-                                                        TextTrimming="CharacterEllipsis" />
-                                                </StackPanel>
+                                                    <StackPanel Grid.Column="1" Spacing="4">
+                                                        <TextBlock
+                                                            Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                            Text="Адрес" />
+                                                        <TextBlock
+                                                            LineHeight="20"
+                                                            Text="{Binding AddressText}"
+                                                            TextTrimming="CharacterEllipsis" />
+                                                    </StackPanel>
 
-                                                <StackPanel Grid.Column="2" Spacing="4">
-                                                    <TextBlock
-                                                        Style="{StaticResource ColumnLabelTextBlockStyle}"
-                                                        Text="Безопасность" />
-                                                    <TextBlock
-                                                        LineHeight="20"
-                                                        Text="{Binding SecurityLevelText}"
-                                                        TextTrimming="CharacterEllipsis" />
-                                                </StackPanel>
+                                                    <StackPanel Grid.Column="2" Spacing="4">
+                                                        <TextBlock
+                                                            Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                            Text="Безопасность" />
+                                                        <TextBlock
+                                                            LineHeight="20"
+                                                            Text="{Binding SecurityLevelText}"
+                                                            TextTrimming="CharacterEllipsis" />
+                                                    </StackPanel>
 
-                                                <StackPanel Grid.Column="3" Spacing="4">
-                                                    <TextBlock
-                                                        Style="{StaticResource ColumnLabelTextBlockStyle}"
-                                                        Text="Балансировка" />
-                                                    <TextBlock
-                                                        LineHeight="20"
-                                                        Text="{Binding LoadBalancingModeText}"
-                                                        TextTrimming="CharacterEllipsis" />
+                                                    <StackPanel Grid.Column="3" Spacing="4">
+                                                        <TextBlock
+                                                            Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                            Text="Балансировка" />
+                                                        <TextBlock
+                                                            LineHeight="20"
+                                                            Text="{Binding LoadBalancingModeText}"
+                                                            TextTrimming="CharacterEllipsis" />
+                                                    </StackPanel>
+                                                </Grid>
+
+                                                <TextBlock
+                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                    LineHeight="20"
+                                                    Text="{Binding DetailsMessageText}"
+                                                    TextWrapping="WrapWholeWords"
+                                                    Visibility="{Binding DetailsMessageVisibility}" />
+
+                                                <StackPanel Spacing="14">
+                                                    <StackPanel Spacing="8">
+                                                        <StackPanel Spacing="2">
+                                                            <TextBlock
+                                                                Style="{StaticResource SectionTitleTextBlockStyle}"
+                                                                Text="Рабочие серверы" />
+                                                            <TextBlock
+                                                                Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                                Text="{Binding ServersSummaryText}" />
+                                                        </StackPanel>
+
+                                                        <ItemsRepeater
+                                                            ItemsSource="{Binding Servers}"
+                                                            Visibility="{Binding ServersVisibility}">
+                                                            <ItemsRepeater.ItemTemplate>
+                                                                <DataTemplate>
+                                                                    <Border
+                                                                        Padding="0,8"
+                                                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                                                        BorderThickness="0,1,0,0">
+                                                                        <Grid ColumnSpacing="12">
+                                                                            <Grid.ColumnDefinitions>
+                                                                                <ColumnDefinition Width="340" />
+                                                                                <ColumnDefinition Width="170" />
+                                                                                <ColumnDefinition Width="180" />
+                                                                                <ColumnDefinition Width="190" />
+                                                                            </Grid.ColumnDefinitions>
+
+                                                                            <StackPanel Spacing="4">
+                                                                                <TextBlock
+                                                                                    Style="{StaticResource SectionTitleTextBlockStyle}"
+                                                                                    Text="{Binding NameText}"
+                                                                                    TextTrimming="CharacterEllipsis" />
+                                                                                <TextBlock
+                                                                                    Style="{StaticResource MetadataMonoTextBlockStyle}"
+                                                                                    Text="{Binding UuidText}"
+                                                                                    TextTrimming="CharacterEllipsis" />
+                                                                            </StackPanel>
+
+                                                                            <StackPanel Grid.Column="1" Spacing="4">
+                                                                                <TextBlock
+                                                                                    Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                                                    Text="Агент" />
+                                                                                <TextBlock
+                                                                                    LineHeight="20"
+                                                                                    Text="{Binding AgentAddressText}"
+                                                                                    TextTrimming="CharacterEllipsis" />
+                                                                            </StackPanel>
+
+                                                                            <StackPanel Grid.Column="2" Spacing="4">
+                                                                                <TextBlock
+                                                                                    Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                                                    Text="Порты" />
+                                                                                <TextBlock
+                                                                                    LineHeight="20"
+                                                                                    Text="{Binding PortsText}"
+                                                                                    TextWrapping="WrapWholeWords" />
+                                                                            </StackPanel>
+
+                                                                            <StackPanel Grid.Column="3" Spacing="4">
+                                                                                <TextBlock
+                                                                                    Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                                                    Text="Назначение" />
+                                                                                <TextBlock
+                                                                                    LineHeight="20"
+                                                                                    Text="{Binding UsageText}"
+                                                                                    TextWrapping="WrapWholeWords" />
+                                                                                <TextBlock
+                                                                                    Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                                                    Text="{Binding LimitsText}"
+                                                                                    TextWrapping="WrapWholeWords" />
+                                                                            </StackPanel>
+                                                                        </Grid>
+                                                                    </Border>
+                                                                </DataTemplate>
+                                                            </ItemsRepeater.ItemTemplate>
+                                                        </ItemsRepeater>
+                                                    </StackPanel>
+
+                                                    <StackPanel Spacing="8">
+                                                        <Grid ColumnSpacing="12">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*" />
+                                                                <ColumnDefinition Width="Auto" />
+                                                            </Grid.ColumnDefinitions>
+
+                                                            <StackPanel Spacing="2">
+                                                                <TextBlock
+                                                                    Style="{StaticResource SectionTitleTextBlockStyle}"
+                                                                    Text="Информационные базы" />
+                                                                <TextBlock
+                                                                    Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                                    Text="{Binding InfobasesSummaryText}" />
+                                                            </StackPanel>
+
+                                                            <Button
+                                                                Grid.Column="1"
+                                                                AutomationProperties.Name="Создать информационную базу"
+                                                                Click="OpenCreateInfobaseDialogButton_Click"
+                                                                Tag="{Binding}">
+                                                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                                                    <SymbolIcon Symbol="Add" />
+                                                                    <TextBlock Text="Создать базу" />
+                                                                </StackPanel>
+                                                            </Button>
+                                                        </Grid>
+
+                                                        <Border
+                                                            Padding="14"
+                                                            Background="{ThemeResource LayerFillColorDefaultBrush}"
+                                                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                                            BorderThickness="1"
+                                                            CornerRadius="6"
+                                                            Visibility="{Binding InfobaseEmptyStateVisibility}">
+                                                            <StackPanel Spacing="4">
+                                                                <TextBlock
+                                                                    FontWeight="SemiBold"
+                                                                    LineHeight="20"
+                                                                    Text="Баз пока нет" />
+                                                                <TextBlock
+                                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                    LineHeight="20"
+                                                                    Text="Новая информационная база будет создана в выбранном кластере."
+                                                                    TextWrapping="WrapWholeWords" />
+                                                            </StackPanel>
+                                                        </Border>
+
+                                                        <ItemsRepeater
+                                                            ItemsSource="{Binding Infobases}"
+                                                            Visibility="{Binding InfobasesVisibility}">
+                                                            <ItemsRepeater.ItemTemplate>
+                                                                <DataTemplate>
+                                                                    <Border
+                                                                        Padding="0,8"
+                                                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                                                        BorderThickness="0,1,0,0">
+                                                                        <Grid ColumnSpacing="12">
+                                                                            <Grid.ColumnDefinitions>
+                                                                                <ColumnDefinition Width="340" />
+                                                                                <ColumnDefinition Width="240" />
+                                                                                <ColumnDefinition Width="180" />
+                                                                            </Grid.ColumnDefinitions>
+
+                                                                            <StackPanel Spacing="4">
+                                                                                <TextBlock
+                                                                                    Style="{StaticResource SectionTitleTextBlockStyle}"
+                                                                                    Text="{Binding NameText}"
+                                                                                    TextTrimming="CharacterEllipsis" />
+                                                                                <TextBlock
+                                                                                    Style="{StaticResource MetadataMonoTextBlockStyle}"
+                                                                                    Text="{Binding UuidText}"
+                                                                                    TextTrimming="CharacterEllipsis" />
+                                                                            </StackPanel>
+
+                                                                            <StackPanel Grid.Column="1" Spacing="4">
+                                                                                <TextBlock
+                                                                                    Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                                                    Text="База данных" />
+                                                                                <TextBlock
+                                                                                    LineHeight="20"
+                                                                                    Text="{Binding DatabaseText}"
+                                                                                    TextWrapping="WrapWholeWords" />
+                                                                            </StackPanel>
+
+                                                                            <StackPanel Grid.Column="2" Spacing="4">
+                                                                                <TextBlock
+                                                                                    Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                                                    Text="Ограничения" />
+                                                                                <TextBlock
+                                                                                    LineHeight="20"
+                                                                                    Text="{Binding RestrictionsText}"
+                                                                                    TextWrapping="WrapWholeWords" />
+                                                                            </StackPanel>
+                                                                        </Grid>
+                                                                    </Border>
+                                                                </DataTemplate>
+                                                            </ItemsRepeater.ItemTemplate>
+                                                        </ItemsRepeater>
+                                                    </StackPanel>
                                                 </StackPanel>
-                                            </Grid>
+                                            </StackPanel>
                                         </Border>
                                     </DataTemplate>
                                 </ItemsRepeater.ItemTemplate>
