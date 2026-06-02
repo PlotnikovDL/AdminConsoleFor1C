@@ -8,4 +8,9 @@ public interface IOneCClusterInventory
         string racPath,
         string administrationServerAddress,
         CancellationToken cancellationToken = default);
+
+    Task<OneCClusterCommandResult> CreateInfobaseAsync(
+        string racPath,
+        OneCInfobaseCreateRequest request,
+        CancellationToken cancellationToken = default);
 }

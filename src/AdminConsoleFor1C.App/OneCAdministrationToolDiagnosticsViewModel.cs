@@ -21,6 +21,7 @@ public sealed class OneCAdministrationToolDiagnosticsViewModel
         _processes = processes;
 
         TargetVersion = GetTargetVersion();
+        AgentHost = Environment.MachineName;
         AgentPort = GetAgentPort();
         RacTool = GetPreferredTool(OneCAdministrationToolKind.Rac);
         RasTool = GetPreferredTool(OneCAdministrationToolKind.Ras);
@@ -30,9 +31,11 @@ public sealed class OneCAdministrationToolDiagnosticsViewModel
 
     public string? TargetVersion { get; }
 
+    public string AgentHost { get; }
+
     public int AgentPort { get; }
 
-    public string AgentAddress => $"localhost:{AgentPort}";
+    public string AgentAddress => $"{AgentHost}:{AgentPort}";
 
     public OneCAdministrationToolInfo? RacTool { get; }
 

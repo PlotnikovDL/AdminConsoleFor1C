@@ -570,47 +570,6 @@ public sealed partial class MainPage : Page
             MinWidth = 0,
             Padding = new Thickness(0)
         };
-        var draftCommand = string.Empty;
-
-        void UpdateCommandPreview()
-        {
-            draftCommand = BuildInfobaseCreateDraftCommand(
-                cluster,
-                _administrationToolDiagnostics?.AdministrationServerAddress ?? "localhost:1545",
-                infobaseNameTextBox.Text,
-                null,
-                null,
-                GetDbmsOptionValue(dbmsComboBox),
-                dbServerTextBox.Text,
-                dbNameTextBox.Text,
-                dbUserTextBox.Text,
-                dbPasswordBox.Password,
-                GetLocaleOptionValue(localeComboBox),
-                GetSelectedText(dateOffsetComboBox),
-                GetSecurityLevelOptionValue(securityLevelComboBox),
-                scheduledJobsDenyCheckBox.IsChecked == true ? "on" : "off",
-                GetLicenseDistributionOptionValue(licenseDistributionComboBox),
-                descriptionTextBox.Text,
-                createDatabaseCheckBox.IsChecked == true);
-        }
-
-        infobaseNameTextBox.TextChanged += (_, _) => UpdateCommandPreview();
-        descriptionTextBox.TextChanged += (_, _) => UpdateCommandPreview();
-        securityLevelComboBox.SelectionChanged += (_, _) => UpdateCommandPreview();
-        dbServerTextBox.TextChanged += (_, _) => UpdateCommandPreview();
-        dbmsComboBox.SelectionChanged += (_, _) => UpdateCommandPreview();
-        dbNameTextBox.TextChanged += (_, _) => UpdateCommandPreview();
-        dbUserTextBox.TextChanged += (_, _) => UpdateCommandPreview();
-        dbPasswordBox.PasswordChanged += (_, _) => UpdateCommandPreview();
-        licenseDistributionComboBox.SelectionChanged += (_, _) => UpdateCommandPreview();
-        localeComboBox.SelectionChanged += (_, _) => UpdateCommandPreview();
-        dateOffsetComboBox.SelectionChanged += (_, _) => UpdateCommandPreview();
-        createDatabaseCheckBox.Checked += (_, _) => UpdateCommandPreview();
-        createDatabaseCheckBox.Unchecked += (_, _) => UpdateCommandPreview();
-        scheduledJobsDenyCheckBox.Checked += (_, _) => UpdateCommandPreview();
-        scheduledJobsDenyCheckBox.Unchecked += (_, _) => UpdateCommandPreview();
-        UpdateCommandPreview();
-
         var formGrid = new Grid
         {
             ColumnSpacing = 12,
@@ -649,6 +608,13 @@ public sealed partial class MainPage : Page
             "Установить блокировку\nрегламентных заданий",
             scheduledJobsDenyCheckBox);
 
+        var validationTextBlock = new TextBlock
+        {
+            Foreground = GetThemeBrush("SystemFillColorCriticalBrush", 255, 196, 43, 28),
+            LineHeight = 20,
+            TextWrapping = TextWrapping.WrapWholeWords,
+            Visibility = Visibility.Collapsed
+        };
         var okButton = new Button
         {
             Content = "OK",
@@ -675,41 +641,133 @@ public sealed partial class MainPage : Page
             }
         };
 
+        var formCard = new Border
+        {
+            Padding = new Thickness(12),
+            Background = GetThemeBrush("CardBackgroundFillColorDefaultBrush", 255, 255, 255, 255),
+            BorderBrush = GetThemeBrush("CardStrokeColorDefaultBrush", 64, 0, 0, 0),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(6),
+            Child = new StackPanel
+            {
+                Spacing = 12,
+                Children =
+                {
+                    CreateDialogSectionTitle("Параметры информационной базы"),
+                    formGrid,
+                    validationTextBlock
+                }
+            }
+        };
+        var confirmationContent = new StackPanel
+        {
+            Spacing = 8
+        };
+        var confirmationCard = new Border
+        {
+            Padding = new Thickness(12),
+            Background = GetThemeBrush("CardBackgroundFillColorDefaultBrush", 255, 255, 255, 255),
+            BorderBrush = GetThemeBrush("CardStrokeColorDefaultBrush", 64, 0, 0, 0),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(6),
+            Visibility = Visibility.Collapsed,
+            Child = new StackPanel
+            {
+                Spacing = 12,
+                Children =
+                {
+                    CreateDialogSectionTitle("Проверьте параметры"),
+                    confirmationContent
+                }
+            }
+        };
         var content = new StackPanel
         {
             Width = 590,
             Spacing = 0,
             Children =
             {
-                new Border
-                {
-                    Padding = new Thickness(12),
-                    Background = GetThemeBrush("CardBackgroundFillColorDefaultBrush", 255, 255, 255, 255),
-                    BorderBrush = GetThemeBrush("CardStrokeColorDefaultBrush", 64, 0, 0, 0),
-                    BorderThickness = new Thickness(1),
-                    CornerRadius = new CornerRadius(6),
-                    Child = new StackPanel
-                    {
-                        Spacing = 12,
-                        Children =
-                        {
-                            CreateDialogSectionTitle("Параметры информационной базы"),
-                            formGrid
-                        }
-                    }
-                },
+                formCard,
+                confirmationCard,
                 footer
             }
         };
 
         ContentDialog? dialog = null;
+        var isConfirmationStep = false;
+        OneCInfobaseCreateRequest? pendingRequest = null;
+        OneCInfobaseCreateRequest? requestToCreate = null;
         okButton.Click += (_, _) =>
         {
-            SetClipboardText(draftCommand);
-            StatusText.Text = "Черновик команды создания базы был скопирован, rac не запускался";
+            if (isConfirmationStep)
+            {
+                if (pendingRequest is null)
+                {
+                    return;
+                }
+
+                requestToCreate = pendingRequest;
+                dialog?.Hide();
+                return;
+            }
+
+            var request = CreateInfobaseCreateRequest(
+                cluster,
+                infobaseNameTextBox.Text,
+                descriptionTextBox.Text,
+                GetSecurityLevelOptionValue(securityLevelComboBox),
+                dbServerTextBox.Text,
+                GetDbmsOptionValue(dbmsComboBox),
+                dbNameTextBox.Text,
+                dbUserTextBox.Text,
+                dbPasswordBox.Password,
+                GetLicenseDistributionOptionValue(licenseDistributionComboBox),
+                GetLocaleOptionValue(localeComboBox),
+                GetSelectedText(dateOffsetComboBox),
+                createDatabaseCheckBox.IsChecked == true,
+                scheduledJobsDenyCheckBox.IsChecked == true,
+                out var validationMessage);
+
+            if (request is null)
+            {
+                validationTextBlock.Text = validationMessage;
+                validationTextBlock.Visibility = Visibility.Visible;
+                return;
+            }
+
+            validationTextBlock.Visibility = Visibility.Collapsed;
+            pendingRequest = request;
+            FillCreateInfobaseConfirmationContent(confirmationContent, request);
+
+            isConfirmationStep = true;
+            formCard.Visibility = Visibility.Collapsed;
+            confirmationCard.Visibility = Visibility.Visible;
+            okButton.Content = "Создать";
+            if (dialog is not null)
+            {
+                dialog.Title = "Создать информационную базу?";
+            }
+        };
+        cancelButton.Click += (_, _) =>
+        {
+            if (isConfirmationStep)
+            {
+                pendingRequest = null;
+                isConfirmationStep = false;
+                confirmationContent.Children.Clear();
+                confirmationCard.Visibility = Visibility.Collapsed;
+                formCard.Visibility = Visibility.Visible;
+                okButton.Content = "OK";
+                if (dialog is not null)
+                {
+                    dialog.Title = "Новая информационная база";
+                }
+
+                return;
+            }
+
             dialog?.Hide();
         };
-        cancelButton.Click += (_, _) => dialog?.Hide();
 
         dialog = new ContentDialog
         {
@@ -721,6 +779,181 @@ public sealed partial class MainPage : Page
         dialog.Resources["ContentDialogMinWidth"] = 650d;
 
         await dialog.ShowAsync();
+        if (requestToCreate is not null)
+        {
+            await ExecuteCreateInfobaseAsync(requestToCreate);
+        }
+    }
+
+    private OneCInfobaseCreateRequest? CreateInfobaseCreateRequest(
+        OneCClusterViewModel cluster,
+        string name,
+        string description,
+        string securityLevel,
+        string dbServer,
+        string dbms,
+        string dbName,
+        string dbUser,
+        string dbPassword,
+        string licenseDistribution,
+        string locale,
+        string dateOffset,
+        bool createDatabase,
+        bool scheduledJobsDeny,
+        out string validationMessage)
+    {
+        var requiredErrors = new List<string>();
+        var normalizedName = NormalizeFormValue(name);
+        var normalizedDbServer = NormalizeFormValue(dbServer);
+        var normalizedDbName = NormalizeFormValue(dbName);
+        var clusterUuid = NormalizeFormValue(cluster.UuidText);
+
+        if (string.IsNullOrWhiteSpace(clusterUuid) || clusterUuid == "—")
+        {
+            requiredErrors.Add("кластер");
+        }
+
+        if (string.IsNullOrWhiteSpace(normalizedName))
+        {
+            requiredErrors.Add("имя");
+        }
+
+        if (string.IsNullOrWhiteSpace(normalizedDbServer))
+        {
+            requiredErrors.Add("сервер баз данных");
+        }
+
+        if (string.IsNullOrWhiteSpace(normalizedDbName))
+        {
+            requiredErrors.Add("база данных");
+        }
+
+        if (requiredErrors.Count > 0)
+        {
+            validationMessage = $"Заполните: {string.Join(", ", requiredErrors)}.";
+            return null;
+        }
+
+        validationMessage = string.Empty;
+        return new OneCInfobaseCreateRequest
+        {
+            AdministrationServerAddress = _administrationToolDiagnostics?.AdministrationServerAddress ?? "localhost:1545",
+            ClusterUuid = clusterUuid!,
+            Name = normalizedName!,
+            Description = NormalizeFormValue(description),
+            SecurityLevel = NormalizeFormValue(securityLevel),
+            DbServer = normalizedDbServer!,
+            Dbms = dbms,
+            DbName = normalizedDbName!,
+            DbUser = NormalizeFormValue(dbUser),
+            DbPassword = NormalizeFormValue(dbPassword),
+            LicenseDistribution = NormalizeFormValue(licenseDistribution),
+            Locale = locale,
+            DateOffset = NormalizeFormValue(dateOffset),
+            CreateDatabase = createDatabase,
+            ScheduledJobsDeny = scheduledJobsDeny ? "on" : "off"
+        };
+    }
+
+    private static void FillCreateInfobaseConfirmationContent(
+        StackPanel content,
+        OneCInfobaseCreateRequest request)
+    {
+        content.Children.Clear();
+        content.Children.Add(new TextBlock
+        {
+            Text = request.Name,
+            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+            LineHeight = 20
+        });
+        content.Children.Add(new TextBlock
+        {
+            Text = $"СУБД: {GetDbmsDisplayName(request.Dbms)}{Environment.NewLine}Сервер БД: {request.DbServer}{Environment.NewLine}База данных: {request.DbName}",
+            LineHeight = 20,
+            TextWrapping = TextWrapping.WrapWholeWords
+        });
+
+        if (string.Equals(request.DbServer, request.DbName, StringComparison.OrdinalIgnoreCase))
+        {
+            content.Children.Add(new TextBlock
+            {
+                Text = "Имя базы данных совпадает с именем сервера. Проверьте, что это именно имя базы, например tradeCRM.",
+                Foreground = GetThemeBrush("SystemFillColorCautionBrush", 255, 157, 93, 0),
+                LineHeight = 20,
+                TextWrapping = TextWrapping.WrapWholeWords
+            });
+        }
+
+        content.Children.Add(new TextBlock
+        {
+            Text = request.CreateDatabase
+                ? "Если базы данных нет, приложение передаст параметр создания базы в СУБД."
+                : "Параметр создания базы данных в СУБД не будет передан.",
+            Foreground = GetThemeBrush("TextFillColorSecondaryBrush", 255, 96, 96, 96),
+            LineHeight = 20,
+            TextWrapping = TextWrapping.WrapWholeWords
+        });
+    }
+
+    private async Task ExecuteCreateInfobaseAsync(OneCInfobaseCreateRequest request)
+    {
+        var diagnostics = _administrationToolDiagnostics;
+        if (diagnostics?.RacTool is null)
+        {
+            StatusText.Text = "rac.exe не найден";
+            ErrorInfoBar.Title = "Не удалось создать информационную базу";
+            ErrorInfoBar.Message = "rac.exe не найден";
+            ErrorInfoBar.IsOpen = true;
+            return;
+        }
+
+        SetClusterCommandRunning(true);
+        ErrorInfoBar.IsOpen = false;
+        StatusText.Text = "Создание информационной базы...";
+
+        try
+        {
+            var result = await _clusterInventory.CreateInfobaseAsync(diagnostics.RacTool.FilePath, request);
+            if (!result.IsSuccess)
+            {
+                ErrorInfoBar.Title = "Не удалось создать информационную базу";
+                ErrorInfoBar.Message = BuildCreateInfobaseErrorMessage(result);
+                ErrorInfoBar.IsOpen = true;
+                StatusText.Text = "Информационная база не была создана";
+                return;
+            }
+
+            if (await RefreshServicesAsync())
+            {
+                StatusText.Text = $"Информационная база \"{request.Name}\" была создана";
+            }
+        }
+        catch (Exception exception)
+        {
+            ErrorInfoBar.Title = "Не удалось создать информационную базу";
+            ErrorInfoBar.Message = exception.Message;
+            ErrorInfoBar.IsOpen = true;
+            StatusText.Text = "Информационная база не была создана";
+        }
+        finally
+        {
+            SetClusterCommandRunning(false);
+        }
+    }
+
+    private static string BuildCreateInfobaseErrorMessage(OneCClusterCommandResult result)
+    {
+        if (result.Message.Contains(
+            "принадлежности клиентского и серверного процессов одному компьютеру",
+            StringComparison.OrdinalIgnoreCase))
+        {
+            return string.Join(
+                Environment.NewLine,
+                result.Message,
+                "1С не смогла сопоставить локальный клиент, RAS и сервер 1С как один компьютер. Проверьте, что RAS подключен к агенту по имени компьютера, а не через localhost. После изменения перезапустите временный RAS и повторите создание.");
+        }
+
+        return result.Message;
     }
 
     private async Task StartTemporaryRasAsync()
@@ -1033,6 +1266,11 @@ public sealed partial class MainPage : Page
         return comboBox.SelectedItem as string ?? string.Empty;
     }
 
+    private static string? NormalizeFormValue(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
+
     private static string GetDbmsOptionValue(ComboBox comboBox)
     {
         return GetSelectedText(comboBox) switch
@@ -1042,6 +1280,17 @@ public sealed partial class MainPage : Page
             "IBM DB2" => "IBMDB2",
             "Oracle Database" => "OracleDatabase",
             _ => "MSSQLServer"
+        };
+    }
+
+    private static string GetDbmsDisplayName(string dbms)
+    {
+        return dbms switch
+        {
+            "MSSQLServer" => "MS SQL Server",
+            "IBMDB2" => "IBM DB2",
+            "OracleDatabase" => "Oracle Database",
+            _ => dbms
         };
     }
 
@@ -1067,96 +1316,5 @@ public sealed partial class MainPage : Page
     private static string GetLicenseDistributionOptionValue(ComboBox comboBox)
     {
         return GetSelectedText(comboBox) == "Нет" ? "deny" : "allow";
-    }
-
-    private static string BuildInfobaseCreateDraftCommand(
-        OneCClusterViewModel cluster,
-        string administrationServerAddress,
-        string? infobaseName,
-        string? clusterUser,
-        string? clusterPassword,
-        string? dbms,
-        string? dbServer,
-        string? dbName,
-        string? dbUser,
-        string? dbPassword,
-        string? locale,
-        string? dateOffset,
-        string? securityLevel,
-        string? scheduledJobsDeny,
-        string? licenseDistribution,
-        string? description,
-        bool createDatabase)
-    {
-        var arguments = new List<string>
-        {
-            "rac.exe",
-            administrationServerAddress,
-            "infobase",
-            "create",
-            $"--cluster={cluster.UuidText}"
-        };
-
-        AddOptionalQuotedOption(arguments, "--cluster-user", clusterUser);
-        AddOptionalQuotedOption(arguments, "--cluster-pwd", clusterPassword);
-
-        if (createDatabase)
-        {
-            arguments.Add("--create-database");
-        }
-
-        AddQuotedOption(arguments, "--name", infobaseName, "<имя базы>");
-        arguments.Add($"--dbms={NormalizeOptionValue(dbms, "MSSQLServer")}");
-        AddQuotedOption(arguments, "--db-server", dbServer, "<сервер БД>");
-        AddQuotedOption(arguments, "--db-name", dbName, "<имя БД>");
-        arguments.Add($"--locale={NormalizeOptionValue(locale, "ru_RU")}");
-        AddOptionalQuotedOption(arguments, "--db-user", dbUser);
-        AddOptionalQuotedOption(arguments, "--db-pwd", dbPassword);
-        AddOptionalPlainOption(arguments, "--date-offset", dateOffset);
-        AddOptionalPlainOption(arguments, "--security-level", securityLevel);
-        AddOptionalPlainOption(arguments, "--scheduled-jobs-deny", scheduledJobsDeny);
-        AddOptionalPlainOption(arguments, "--license-distribution", licenseDistribution);
-
-        if (!string.IsNullOrWhiteSpace(description))
-        {
-            AddQuotedOption(arguments, "--descr", description, "<описание>");
-        }
-
-        return string.Join(" ", arguments);
-    }
-
-    private static void AddQuotedOption(
-        List<string> arguments,
-        string optionName,
-        string? value,
-        string placeholder)
-    {
-        arguments.Add($"{optionName}={QuoteCommandValue(NormalizeOptionValue(value, placeholder))}");
-    }
-
-    private static void AddOptionalQuotedOption(List<string> arguments, string optionName, string? value)
-    {
-        if (!string.IsNullOrWhiteSpace(value))
-        {
-            arguments.Add($"{optionName}={QuoteCommandValue(value.Trim())}");
-        }
-    }
-
-    private static void AddOptionalPlainOption(List<string> arguments, string optionName, string? value)
-    {
-        if (!string.IsNullOrWhiteSpace(value))
-        {
-            arguments.Add($"{optionName}={value.Trim()}");
-        }
-    }
-
-    private static string NormalizeOptionValue(string? value, string fallback)
-    {
-        return string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
-    }
-
-    private static string QuoteCommandValue(string value)
-    {
-        return $"\"{value.Replace("\"", "\\\"", StringComparison.Ordinal)}\"";
     }
 }

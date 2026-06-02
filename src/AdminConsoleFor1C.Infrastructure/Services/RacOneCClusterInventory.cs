@@ -9,6 +9,7 @@ namespace AdminConsoleFor1C.Infrastructure.Services;
 public sealed class RacOneCClusterInventory : IOneCClusterInventory
 {
     private static readonly TimeSpan CommandTimeout = TimeSpan.FromSeconds(6);
+    private static readonly TimeSpan CreateInfobaseCommandTimeout = TimeSpan.FromMinutes(2);
 
     static RacOneCClusterInventory()
     {
@@ -93,6 +94,57 @@ public sealed class RacOneCClusterInventory : IOneCClusterInventory
         }
     }
 
+    public async Task<OneCClusterCommandResult> CreateInfobaseAsync(
+        string racPath,
+        OneCInfobaseCreateRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var arguments = BuildCreateInfobaseArguments(request);
+        var commandText = BuildSafeCommandText(racPath, arguments);
+        if (string.IsNullOrWhiteSpace(racPath) || !File.Exists(racPath))
+        {
+            return new OneCClusterCommandResult
+            {
+                CommandText = commandText,
+                IsSuccess = false,
+                Message = "rac.exe не найден"
+            };
+        }
+
+        try
+        {
+            var command = await RunRacAsync(racPath, arguments, CreateInfobaseCommandTimeout, cancellationToken);
+            var combinedOutput = CombineOutput(command.Output, command.Error);
+
+            return new OneCClusterCommandResult
+            {
+                CommandText = commandText,
+                IsSuccess = command.ExitCode == 0,
+                Message = command.ExitCode == 0
+                    ? NormalizeMessage(combinedOutput, "Информационная база была создана")
+                    : NormalizeMessage(combinedOutput, "Информационная база не была создана")
+            };
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return new OneCClusterCommandResult
+            {
+                CommandText = commandText,
+                IsSuccess = false,
+                Message = "Команда rac не ответила за отведенное время"
+            };
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
+        {
+            return new OneCClusterCommandResult
+            {
+                CommandText = commandText,
+                IsSuccess = false,
+                Message = exception.Message
+            };
+        }
+    }
+
     private static async Task<(IReadOnlyList<OneCClusterServerInfo> Items, string? Message)> GetClusterServersAsync(
         string racPath,
         string administrationServerAddress,
@@ -161,8 +213,17 @@ public sealed class RacOneCClusterInventory : IOneCClusterInventory
         IReadOnlyList<string> arguments,
         CancellationToken cancellationToken)
     {
+        return await RunRacAsync(racPath, arguments, CommandTimeout, cancellationToken);
+    }
+
+    private static async Task<RacCommandResult> RunRacAsync(
+        string racPath,
+        IReadOnlyList<string> arguments,
+        TimeSpan commandTimeout,
+        CancellationToken cancellationToken)
+    {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeout.CancelAfter(CommandTimeout);
+        timeout.CancelAfter(commandTimeout);
 
         using var process = StartRac(racPath, arguments);
         var outputTask = process.StandardOutput.ReadToEndAsync(timeout.Token);
@@ -207,6 +268,68 @@ public sealed class RacOneCClusterInventory : IOneCClusterInventory
             : Path.GetFileName(racPath);
 
         return $"{executableName} {string.Join(' ', arguments)}";
+    }
+
+    private static string BuildSafeCommandText(string racPath, IReadOnlyList<string> arguments)
+    {
+        var safeArguments = arguments
+            .Select(static argument => argument.StartsWith("--db-pwd=", StringComparison.OrdinalIgnoreCase)
+                || argument.StartsWith("--cluster-pwd=", StringComparison.OrdinalIgnoreCase)
+                    ? $"{argument[..argument.IndexOf('=', StringComparison.Ordinal)]}=***"
+                    : QuoteCommandArgument(argument));
+
+        return BuildCommandText(racPath, safeArguments.ToList());
+    }
+
+    private static List<string> BuildCreateInfobaseArguments(OneCInfobaseCreateRequest request)
+    {
+        var arguments = new List<string>
+        {
+            request.AdministrationServerAddress,
+            "infobase",
+            "create",
+            $"--cluster={request.ClusterUuid}"
+        };
+
+        if (request.CreateDatabase)
+        {
+            arguments.Add("--create-database");
+        }
+
+        AddRequiredOption(arguments, "--name", request.Name);
+        AddRequiredOption(arguments, "--dbms", request.Dbms);
+        AddRequiredOption(arguments, "--db-server", request.DbServer);
+        AddRequiredOption(arguments, "--db-name", request.DbName);
+        AddRequiredOption(arguments, "--locale", request.Locale);
+        AddOptionalOption(arguments, "--db-user", request.DbUser);
+        AddOptionalOption(arguments, "--db-pwd", request.DbPassword);
+        AddOptionalOption(arguments, "--descr", request.Description);
+        AddOptionalOption(arguments, "--date-offset", request.DateOffset);
+        AddOptionalOption(arguments, "--security-level", request.SecurityLevel);
+        AddOptionalOption(arguments, "--scheduled-jobs-deny", request.ScheduledJobsDeny);
+        AddOptionalOption(arguments, "--license-distribution", request.LicenseDistribution);
+
+        return arguments;
+    }
+
+    private static void AddRequiredOption(List<string> arguments, string name, string value)
+    {
+        arguments.Add($"{name}={value.Trim()}");
+    }
+
+    private static void AddOptionalOption(List<string> arguments, string name, string? value)
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            arguments.Add($"{name}={value.Trim()}");
+        }
+    }
+
+    private static string QuoteCommandArgument(string argument)
+    {
+        return argument.Any(char.IsWhiteSpace)
+            ? $"\"{argument.Replace("\"", "\\\"", StringComparison.Ordinal)}\""
+            : argument;
     }
 
     private static Encoding GetOemEncoding()
