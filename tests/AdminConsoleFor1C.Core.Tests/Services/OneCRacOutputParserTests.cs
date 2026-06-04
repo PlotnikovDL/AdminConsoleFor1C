@@ -84,6 +84,9 @@ public sealed class OneCRacOutputParserTests
             ["dbms"] = "MSSQLServer",
             ["db-server"] = "sql01",
             ["db-name"] = "ut",
+            ["db-user"] = "sa",
+            ["security-level"] = "1",
+            ["license-distribution"] = "allow",
             ["sessions-deny"] = "off",
             ["scheduled-jobs-deny"] = "on"
         };
@@ -92,8 +95,13 @@ public sealed class OneCRacOutputParserTests
 
         Assert.Equal("Управление торговлей", infobase.NameText);
         Assert.Equal("Рабочая база", infobase.DescriptionText);
-        Assert.Equal("MSSQLServer, sql01, ut", infobase.DatabaseText);
+        Assert.Contains("СУБД: MS SQL Server", infobase.DatabaseText);
+        Assert.Contains("Сервер: sql01", infobase.DatabaseText);
+        Assert.Contains("База: ut", infobase.DatabaseText);
+        Assert.Contains("Пользователь: sa", infobase.DatabaseText);
+        Assert.Equal("Защищенное соединение: только соединение", infobase.SecurityText);
+        Assert.Contains("Лицензии: выдаются", infobase.RestrictionsText);
         Assert.Contains("Сеансы: разрешены", infobase.RestrictionsText);
-        Assert.Contains("Задания: запрещены", infobase.RestrictionsText);
+        Assert.Contains("Регл. задания: заблокированы", infobase.RestrictionsText);
     }
 }

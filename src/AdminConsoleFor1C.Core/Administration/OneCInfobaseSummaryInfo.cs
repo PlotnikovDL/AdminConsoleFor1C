@@ -14,6 +14,12 @@ public sealed record OneCInfobaseSummaryInfo
 
     public string? DbName { get; init; }
 
+    public string? DbUser { get; init; }
+
+    public string? SecurityLevel { get; init; }
+
+    public string? LicenseDistribution { get; init; }
+
     public string? SessionsDeny { get; init; }
 
     public string? ScheduledJobsDeny { get; init; }
@@ -31,27 +37,54 @@ public sealed record OneCInfobaseSummaryInfo
     {
         get
         {
-            var parts = new[] { Dbms, DbServer, DbName }
-                .Where(static value => !string.IsNullOrWhiteSpace(value));
+            var parts = new List<string>();
+            if (!string.IsNullOrWhiteSpace(Dbms))
+            {
+                parts.Add($"СУБД: {FormatDbms(Dbms)}");
+            }
 
-            var text = string.Join(", ", parts);
+            if (!string.IsNullOrWhiteSpace(DbServer))
+            {
+                parts.Add($"Сервер: {DbServer}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(DbName))
+            {
+                parts.Add($"База: {DbName}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(DbUser))
+            {
+                parts.Add($"Пользователь: {DbUser}");
+            }
+
+            var text = string.Join(Environment.NewLine, parts);
             return string.IsNullOrWhiteSpace(text) ? "—" : text;
         }
     }
+
+    public string SecurityText => string.IsNullOrWhiteSpace(SecurityLevel)
+        ? "—"
+        : $"Защищенное соединение: {FormatSecurityLevel(SecurityLevel)}";
 
     public string RestrictionsText
     {
         get
         {
             var restrictions = new List<string>();
+            if (!string.IsNullOrWhiteSpace(LicenseDistribution))
+            {
+                restrictions.Add($"Лицензии: {FormatLicenseDistribution(LicenseDistribution)}");
+            }
+
             if (!string.IsNullOrWhiteSpace(SessionsDeny))
             {
-                restrictions.Add($"Сеансы: {FormatOnOff(SessionsDeny)}");
+                restrictions.Add($"Сеансы: {FormatDenyFlag(SessionsDeny)}");
             }
 
             if (!string.IsNullOrWhiteSpace(ScheduledJobsDeny))
             {
-                restrictions.Add($"Задания: {FormatOnOff(ScheduledJobsDeny)}");
+                restrictions.Add($"Регл. задания: {FormatDenyFlag(ScheduledJobsDeny)}");
             }
 
             return restrictions.Count == 0 ? "—" : string.Join(Environment.NewLine, restrictions);
@@ -66,6 +99,9 @@ public sealed record OneCInfobaseSummaryInfo
         properties.TryGetValue("dbms", out var dbms);
         properties.TryGetValue("db-server", out var dbServer);
         properties.TryGetValue("db-name", out var dbName);
+        properties.TryGetValue("db-user", out var dbUser);
+        properties.TryGetValue("security-level", out var securityLevel);
+        properties.TryGetValue("license-distribution", out var licenseDistribution);
         properties.TryGetValue("sessions-deny", out var sessionsDeny);
         properties.TryGetValue("scheduled-jobs-deny", out var scheduledJobsDeny);
 
@@ -77,17 +113,53 @@ public sealed record OneCInfobaseSummaryInfo
             Dbms = NormalizeValue(dbms),
             DbServer = NormalizeValue(dbServer),
             DbName = NormalizeValue(dbName),
+            DbUser = NormalizeValue(dbUser),
+            SecurityLevel = NormalizeValue(securityLevel),
+            LicenseDistribution = NormalizeValue(licenseDistribution),
             SessionsDeny = NormalizeValue(sessionsDeny),
             ScheduledJobsDeny = NormalizeValue(scheduledJobsDeny),
             Properties = properties
         };
     }
 
-    private static string FormatOnOff(string value)
+    private static string FormatDbms(string value)
     {
         return value switch
         {
-            "on" => "запрещены",
+            "MSSQLServer" => "MS SQL Server",
+            "PostgreSQL" => "PostgreSQL",
+            "IBMDB2" => "IBM DB2",
+            "OracleDatabase" => "Oracle Database",
+            _ => value
+        };
+    }
+
+    private static string FormatSecurityLevel(string value)
+    {
+        return value switch
+        {
+            "0" => "выключено",
+            "1" => "только соединение",
+            "2" => "постоянно",
+            _ => value
+        };
+    }
+
+    private static string FormatLicenseDistribution(string value)
+    {
+        return value switch
+        {
+            "allow" => "выдаются",
+            "deny" => "запрещены",
+            _ => value
+        };
+    }
+
+    private static string FormatDenyFlag(string value)
+    {
+        return value switch
+        {
+            "on" => "заблокированы",
             "off" => "разрешены",
             _ => value
         };

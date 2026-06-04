@@ -170,7 +170,7 @@ public sealed class RacOneCClusterInventory : IOneCClusterInventory
         CancellationToken cancellationToken)
     {
         string[] arguments = [administrationServerAddress, "infobase", "summary", "list", $"--cluster={clusterUuid}"];
-        return await GetClusterItemsAsync(
+        var summaries = await GetClusterItemsAsync(
             racPath,
             arguments,
             static output => OneCRacOutputParser.ParseObjects(output)
@@ -179,6 +179,90 @@ public sealed class RacOneCClusterInventory : IOneCClusterInventory
                 .ToList(),
             "Информационные базы не были прочитаны",
             cancellationToken);
+
+        if (summaries.Message is not null || summaries.Items.Count == 0)
+        {
+            return summaries;
+        }
+
+        var detailedInfobases = new List<OneCInfobaseSummaryInfo>(summaries.Items.Count);
+        var detailMessages = new List<string>();
+        foreach (var summary in summaries.Items)
+        {
+            var details = await GetInfobaseDetailsAsync(
+                racPath,
+                administrationServerAddress,
+                clusterUuid,
+                summary,
+                cancellationToken);
+
+            detailedInfobases.Add(details.Item);
+            if (!string.IsNullOrWhiteSpace(details.Message))
+            {
+                detailMessages.Add(details.Message);
+            }
+        }
+
+        return (detailedInfobases, detailMessages.Count == 0 ? null : string.Join(Environment.NewLine, detailMessages));
+    }
+
+    private static async Task<(OneCInfobaseSummaryInfo Item, string? Message)> GetInfobaseDetailsAsync(
+        string racPath,
+        string administrationServerAddress,
+        string clusterUuid,
+        OneCInfobaseSummaryInfo summary,
+        CancellationToken cancellationToken)
+    {
+        string[] arguments =
+        [
+            administrationServerAddress,
+            "infobase",
+            "info",
+            $"--cluster={clusterUuid}",
+            $"--infobase={summary.Uuid}"
+        ];
+
+        try
+        {
+            var command = await RunRacAsync(racPath, arguments, cancellationToken);
+            if (command.ExitCode != 0)
+            {
+                return (
+                    summary,
+                    NormalizeMessage(
+                        CombineOutput(command.Output, command.Error),
+                        $"Подробности базы {summary.NameText} не были прочитаны"));
+            }
+
+            var details = OneCRacOutputParser.ParseObjects(command.Output).FirstOrDefault();
+            if (details is null)
+            {
+                return (summary, $"Подробности базы {summary.NameText} не были найдены");
+            }
+
+            return (OneCInfobaseSummaryInfo.FromProperties(MergeProperties(summary.Properties, details)), null);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return (summary, $"Подробности базы {summary.NameText} не были прочитаны: команда rac не ответила за отведенное время");
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
+        {
+            return (summary, $"Подробности базы {summary.NameText} не были прочитаны: {exception.Message}");
+        }
+    }
+
+    private static IReadOnlyDictionary<string, string> MergeProperties(
+        IReadOnlyDictionary<string, string> summary,
+        IReadOnlyDictionary<string, string> details)
+    {
+        var merged = new Dictionary<string, string>(summary, StringComparer.OrdinalIgnoreCase);
+        foreach (var pair in details)
+        {
+            merged[pair.Key] = pair.Value;
+        }
+
+        return merged;
     }
 
     private static async Task<(IReadOnlyList<T> Items, string? Message)> GetClusterItemsAsync<T>(
