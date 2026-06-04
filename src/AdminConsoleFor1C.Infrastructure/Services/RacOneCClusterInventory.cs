@@ -55,18 +55,27 @@ public sealed class RacOneCClusterInventory : IOneCClusterInventory
             {
                 var servers = await GetClusterServersAsync(racPath, administrationServerAddress, cluster.Uuid, cancellationToken);
                 var infobases = await GetClusterInfobasesAsync(racPath, administrationServerAddress, cluster.Uuid, cancellationToken);
-                var detailsMessage = CombineDetailsMessages(servers.Message, infobases.Message);
+                var processLicenses = await GetClusterProcessLicensesAsync(racPath, administrationServerAddress, cluster.Uuid, cancellationToken);
+                var sessionLicenses = await GetClusterSessionLicensesAsync(racPath, administrationServerAddress, cluster.Uuid, cancellationToken);
+                var detailsMessage = CombineDetailsMessages(
+                    servers.Message,
+                    infobases.Message,
+                    processLicenses.Message,
+                    sessionLicenses.Message);
 
                 detailedClusters.Add(cluster with
                 {
                     Servers = servers.Items,
                     Infobases = infobases.Items,
+                    ProcessLicenses = processLicenses.Items,
+                    SessionLicenses = sessionLicenses.Items,
                     DetailsMessage = detailsMessage
                 });
             }
 
             var serverCount = detailedClusters.Sum(static cluster => cluster.Servers.Count);
             var infobaseCount = detailedClusters.Sum(static cluster => cluster.Infobases.Count);
+            var occupiedLicensesText = BuildOccupiedLicensesText(detailedClusters);
 
             return new OneCClusterInventoryResult
             {
@@ -75,7 +84,7 @@ public sealed class RacOneCClusterInventory : IOneCClusterInventory
                 IsAvailable = true,
                 Message = clusters.Count == 0
                     ? "Кластеры не найдены"
-                    : $"Найдено кластеров: {clusters.Count}, серверов: {serverCount}, баз: {infobaseCount}",
+                    : $"Найдено кластеров: {clusters.Count}, серверов: {serverCount}, баз: {infobaseCount}, {occupiedLicensesText}",
                 Clusters = detailedClusters
             };
         }
@@ -265,6 +274,56 @@ public sealed class RacOneCClusterInventory : IOneCClusterInventory
         }
 
         return (detailedInfobases, detailMessages.Count == 0 ? null : string.Join(Environment.NewLine, detailMessages));
+    }
+
+    private static async Task<(IReadOnlyList<OneCOccupiedLicenseInfo> Items, string? Message)> GetClusterProcessLicensesAsync(
+        string racPath,
+        string administrationServerAddress,
+        string clusterUuid,
+        CancellationToken cancellationToken)
+    {
+        string[] arguments =
+        [
+            administrationServerAddress,
+            "process",
+            "list",
+            $"--cluster={clusterUuid}",
+            "--licenses"
+        ];
+
+        return await GetClusterItemsAsync(
+            racPath,
+            arguments,
+            static output => OneCRacOutputParser.ParseObjects(output)
+                .Select(static properties => OneCOccupiedLicenseInfo.FromProperties(properties, OneCLicenseOwnerKind.Process))
+                .ToList(),
+            "Занятые серверные лицензии не были прочитаны",
+            cancellationToken);
+    }
+
+    private static async Task<(IReadOnlyList<OneCOccupiedLicenseInfo> Items, string? Message)> GetClusterSessionLicensesAsync(
+        string racPath,
+        string administrationServerAddress,
+        string clusterUuid,
+        CancellationToken cancellationToken)
+    {
+        string[] arguments =
+        [
+            administrationServerAddress,
+            "session",
+            "list",
+            $"--cluster={clusterUuid}",
+            "--licenses"
+        ];
+
+        return await GetClusterItemsAsync(
+            racPath,
+            arguments,
+            static output => OneCRacOutputParser.ParseObjects(output)
+                .Select(static properties => OneCOccupiedLicenseInfo.FromProperties(properties, OneCLicenseOwnerKind.Session))
+                .ToList(),
+            "Занятые пользовательские лицензии не были прочитаны",
+            cancellationToken);
     }
 
     private static async Task<(OneCInfobaseSummaryInfo Item, string? Message)> GetInfobaseDetailsAsync(
@@ -539,6 +598,49 @@ public sealed class RacOneCClusterInventory : IOneCClusterInventory
             .Take(2);
 
         return string.Join(". ", lines);
+    }
+
+    private static string BuildOccupiedLicensesText(IReadOnlyList<OneCClusterInfo> clusters)
+    {
+        var usages = clusters
+            .SelectMany(static cluster => cluster.OccupiedLicenseUsages)
+            .ToList();
+
+        if (usages.Count == 0)
+        {
+            return "лицензии не заняты";
+        }
+
+        var parts = new List<string>();
+        var clientUsages = usages
+            .Where(static usage => usage.OwnerKind == OneCLicenseOwnerKind.Session)
+            .ToList();
+        var serverUsages = usages
+            .Where(static usage => usage.OwnerKind == OneCLicenseOwnerKind.Process)
+            .ToList();
+
+        if (clientUsages.Count > 0)
+        {
+            var sessionCount = clusters.Sum(static cluster => cluster.SessionLicenses.Count);
+            parts.Add($"клиентские места: {FormatUsage(clientUsages)}, сеансов: {sessionCount}");
+        }
+
+        if (serverUsages.Count > 0)
+        {
+            parts.Add($"серверные лицензии: {FormatUsage(serverUsages)}");
+        }
+
+        return string.Join(", ", parts);
+    }
+
+    private static string FormatUsage(IReadOnlyList<OneCLicenseUsageInfo> usages)
+    {
+        var occupied = usages.Sum(static usage => usage.OccupiedSeats);
+        var capacity = usages.Any(static usage => usage.Capacity is null)
+            ? null
+            : usages.Sum(static usage => usage.Capacity);
+
+        return capacity is null ? occupied.ToString() : $"{occupied}/{capacity}";
     }
 
     private static string? CombineDetailsMessages(params string?[] messages)

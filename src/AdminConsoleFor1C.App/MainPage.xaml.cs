@@ -127,9 +127,10 @@ public sealed partial class MainPage : Page
 
     private void InfobaseSessionsToggleSwitch_Loaded(object sender, RoutedEventArgs e)
     {
-        if (sender is ToggleSwitch toggleSwitch)
+        if (sender is ToggleSwitch { Tag: OneCInfobaseSummaryInfo infobase } toggleSwitch)
         {
             toggleSwitch.Toggled -= InfobaseSessionsToggleSwitch_Toggled;
+            toggleSwitch.IsOn = infobase.AreSessionsAllowed;
             toggleSwitch.Toggled += InfobaseSessionsToggleSwitch_Toggled;
         }
     }
@@ -144,9 +145,10 @@ public sealed partial class MainPage : Page
 
     private void InfobaseScheduledJobsToggleSwitch_Loaded(object sender, RoutedEventArgs e)
     {
-        if (sender is ToggleSwitch toggleSwitch)
+        if (sender is ToggleSwitch { Tag: OneCInfobaseSummaryInfo infobase } toggleSwitch)
         {
             toggleSwitch.Toggled -= InfobaseScheduledJobsToggleSwitch_Toggled;
+            toggleSwitch.IsOn = infobase.AreScheduledJobsAllowed;
             toggleSwitch.Toggled += InfobaseScheduledJobsToggleSwitch_Toggled;
         }
     }

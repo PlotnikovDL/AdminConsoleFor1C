@@ -110,4 +110,153 @@ public sealed class OneCRacOutputParserTests
         Assert.True(infobase.AreSessionsAllowed);
         Assert.False(infobase.AreScheduledJobsAllowed);
     }
+
+    [Fact]
+    public void FromProperties_ReturnsOccupiedProcessLicenseInfo()
+    {
+        var properties = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["process"] = "66666666-6666-6666-6666-666666666666",
+            ["pid"] = "1648",
+            ["server"] = "SERVER-1C",
+            ["port"] = "1560",
+            ["license"] = "\"Сервер, SERVER-1C, 1560, 8000314159 1 1\"",
+            ["license-file"] = "\"C:\\ProgramData\\1C\\licenses\\20100521112156.lic\""
+        };
+
+        var license = OneCOccupiedLicenseInfo.FromProperties(properties, OneCLicenseOwnerKind.Process);
+
+        Assert.Equal("Сервер", license.OwnerKindText);
+        Assert.Equal("PID 1648", license.OwnerText);
+        Assert.Contains("сервер SERVER-1C", license.ContextText);
+        Assert.Contains("порт 1560", license.ContextText);
+        Assert.Contains("8000314159", license.LicenseText);
+        Assert.Contains("20100521112156.lic", license.LicenseFileText);
+    }
+
+    [Fact]
+    public void FromProperties_ReturnsOccupiedSessionLicenseInfo()
+    {
+        var properties = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["session"] = "77777777-7777-7777-7777-777777777777",
+            ["session-id"] = "5",
+            ["user-name"] = "\"Ivan\"",
+            ["host"] = "DESKTOP-ROY",
+            ["app-id"] = "1CV8C",
+            ["client-license"] = "\"Клиент, 4648, 8000453822 20 20\""
+        };
+
+        var license = OneCOccupiedLicenseInfo.FromProperties(properties, OneCLicenseOwnerKind.Session);
+
+        Assert.Equal("Пользователь", license.OwnerKindText);
+        Assert.Equal("Ivan, сеанс 5", license.OwnerText);
+        Assert.Contains("DESKTOP-ROY", license.ContextText);
+        Assert.Contains("1CV8C", license.ContextText);
+        Assert.Contains("8000453822", license.LicenseText);
+    }
+
+    [Fact]
+    public void Create_ReturnsSingleSeatUsageForLocalClientLicense()
+    {
+        var licenses = Enumerable.Range(1, 5)
+            .Select(index => OneCOccupiedLicenseInfo.FromProperties(
+                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["session"] = $"session-{index}",
+                    ["user-name"] = "\"DefUser\"",
+                    ["host"] = "DESKTOP-ROY",
+                    ["app-id"] = "1CV8C",
+                    ["series"] = "\"ORGL8\"",
+                    ["issued-by-server"] = "no",
+                    ["license-type"] = "HASP",
+                    ["net"] = "no",
+                    ["max-users-all"] = "1",
+                    ["max-users-cur"] = "1",
+                    ["rmngr-pid"] = (30000 + index).ToString(),
+                    ["short-presentation"] = "\"Клиент, ORGL8 Лок 1\"",
+                    ["full-presentation"] = $"\"Клиент, {30000 + index}, ORGL8 Локальный 1\""
+                },
+                OneCLicenseOwnerKind.Session))
+            .ToList();
+
+        var usages = OneCLicenseUsageInfo.Create([], licenses);
+        var usage = Assert.Single(usages);
+
+        Assert.Equal("Клиентская", usage.OwnerKindText);
+        Assert.Equal("ORGL8", usage.SourceText);
+        Assert.Equal("HASP, локальная", usage.LicenseKindText);
+        Assert.Equal("на компьютер", usage.ConsumptionModeText);
+        Assert.Equal("1/1", usage.UsageText);
+        Assert.Equal(1, usage.OccupiedSeats);
+        Assert.Equal(5, usage.ConsumerCount);
+        Assert.Equal("5 сеансов используют 1 место", usage.ExplanationText);
+        Assert.Contains("Пользователи: DefUser", usage.ConsumersDetailText);
+        Assert.Contains("Компьютеры: DESKTOP-ROY", usage.ConsumersDetailText);
+    }
+
+    [Fact]
+    public void Create_ReturnsSessionUsageForNetworkClientLicense()
+    {
+        var licenses = Enumerable.Range(1, 5)
+            .Select(index => OneCOccupiedLicenseInfo.FromProperties(
+                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["session"] = $"session-{index}",
+                    ["user-name"] = "\"DefUser\"",
+                    ["host"] = "DESKTOP-ROY",
+                    ["app-id"] = "1CV8C",
+                    ["series"] = "\"8101787554\"",
+                    ["issued-by-server"] = "yes",
+                    ["license-type"] = "soft",
+                    ["net"] = "yes",
+                    ["max-users-all"] = "100",
+                    ["max-users-cur"] = "95",
+                    ["rmngr-address"] = "\"SERVER-1C\"",
+                    ["rmngr-port"] = "1564",
+                    ["rmngr-pid"] = (40000 + index).ToString(),
+                    ["short-presentation"] = "\"Клиент, 8101787554 100 95\""
+                },
+                OneCLicenseOwnerKind.Session))
+            .ToList();
+
+        var usages = OneCLicenseUsageInfo.Create([], licenses);
+        var usage = Assert.Single(usages);
+
+        Assert.Equal("Клиентская", usage.OwnerKindText);
+        Assert.Equal("8101787554", usage.SourceText);
+        Assert.Equal("программная, сетевая", usage.LicenseKindText);
+        Assert.Equal("на сеанс", usage.ConsumptionModeText);
+        Assert.Equal("5/100", usage.UsageText);
+        Assert.Equal(5, usage.OccupiedSeats);
+        Assert.Equal(5, usage.ConsumerCount);
+        Assert.Equal("5 сеансов занимают 5 мест", usage.ExplanationText);
+    }
+
+    [Fact]
+    public void OccupiedLicensesSummaryText_ReturnsSeatsAndSessions()
+    {
+        var licenses = Enumerable.Range(1, 5)
+            .Select(index => OneCOccupiedLicenseInfo.FromProperties(
+                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["session"] = $"session-{index}",
+                    ["user-name"] = "\"DefUser\"",
+                    ["host"] = "DESKTOP-ROY",
+                    ["series"] = "\"ORGL8\"",
+                    ["issued-by-server"] = "no",
+                    ["license-type"] = "HASP",
+                    ["net"] = "no",
+                    ["max-users-all"] = "1"
+                },
+                OneCLicenseOwnerKind.Session))
+            .ToList();
+        var cluster = new OneCClusterInfo
+        {
+            Uuid = "cluster-1",
+            SessionLicenses = licenses
+        };
+
+        Assert.Equal("Клиентские места: 1/1, сеансов: 5", cluster.OccupiedLicensesSummaryText);
+    }
 }

@@ -18,6 +18,13 @@ public sealed record OneCClusterInfo
 
     public IReadOnlyList<OneCInfobaseSummaryInfo> Infobases { get; init; } = [];
 
+    public IReadOnlyList<OneCOccupiedLicenseInfo> ProcessLicenses { get; init; } = [];
+
+    public IReadOnlyList<OneCOccupiedLicenseInfo> SessionLicenses { get; init; } = [];
+
+    public IReadOnlyList<OneCLicenseUsageInfo> OccupiedLicenseUsages =>
+        OneCLicenseUsageInfo.Create(ProcessLicenses, SessionLicenses);
+
     public string? DetailsMessage { get; init; }
 
     public IReadOnlyDictionary<string, string> Properties { get; init; } =
@@ -53,6 +60,40 @@ public sealed record OneCClusterInfo
         _ => $"{Infobases.Count} информационных баз"
     };
 
+    public int OccupiedLicenseCount => ProcessLicenses.Count + SessionLicenses.Count;
+
+    public string OccupiedLicensesSummaryText
+    {
+        get
+        {
+            var usages = OccupiedLicenseUsages;
+            if (usages.Count == 0)
+            {
+                return "Занятые лицензии не обнаружены";
+            }
+
+            var parts = new List<string>();
+            var clientUsages = usages
+                .Where(static usage => usage.OwnerKind == OneCLicenseOwnerKind.Session)
+                .ToList();
+            var serverUsages = usages
+                .Where(static usage => usage.OwnerKind == OneCLicenseOwnerKind.Process)
+                .ToList();
+
+            if (clientUsages.Count > 0)
+            {
+                parts.Add($"Клиентские места: {FormatUsage(clientUsages)}, сеансов: {SessionLicenses.Count}");
+            }
+
+            if (serverUsages.Count > 0)
+            {
+                parts.Add($"Серверные лицензии: {FormatUsage(serverUsages)}");
+            }
+
+            return string.Join("; ", parts);
+        }
+    }
+
     public static OneCClusterInfo FromProperties(IReadOnlyDictionary<string, string> properties)
     {
         properties.TryGetValue("cluster", out var uuid);
@@ -85,5 +126,15 @@ public sealed record OneCClusterInfo
         return trimmed.Length >= 2 && trimmed.StartsWith('"') && trimmed.EndsWith('"')
             ? trimmed[1..^1]
             : trimmed;
+    }
+
+    private static string FormatUsage(IReadOnlyList<OneCLicenseUsageInfo> usages)
+    {
+        var occupied = usages.Sum(static usage => usage.OccupiedSeats);
+        var capacity = usages.Any(static usage => usage.Capacity is null)
+            ? null
+            : usages.Sum(static usage => usage.Capacity);
+
+        return capacity is null ? occupied.ToString() : $"{occupied}/{capacity}";
     }
 }
