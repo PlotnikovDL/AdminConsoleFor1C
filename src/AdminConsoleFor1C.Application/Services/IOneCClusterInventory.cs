@@ -13,4 +13,9 @@ public interface IOneCClusterInventory
         string racPath,
         OneCInfobaseCreateRequest request,
         CancellationToken cancellationToken = default);
+
+    Task<OneCClusterCommandResult> UpdateInfobaseRestrictionsAsync(
+        string racPath,
+        OneCInfobaseRestrictionsUpdateRequest request,
+        CancellationToken cancellationToken = default);
 }

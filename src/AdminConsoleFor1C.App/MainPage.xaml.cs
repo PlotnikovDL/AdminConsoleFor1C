@@ -125,6 +125,112 @@ public sealed partial class MainPage : Page
         }
     }
 
+    private void InfobaseSessionsToggleSwitch_Loaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is ToggleSwitch toggleSwitch)
+        {
+            toggleSwitch.Toggled -= InfobaseSessionsToggleSwitch_Toggled;
+            toggleSwitch.Toggled += InfobaseSessionsToggleSwitch_Toggled;
+        }
+    }
+
+    private void InfobaseSessionsToggleSwitch_Unloaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is ToggleSwitch toggleSwitch)
+        {
+            toggleSwitch.Toggled -= InfobaseSessionsToggleSwitch_Toggled;
+        }
+    }
+
+    private void InfobaseScheduledJobsToggleSwitch_Loaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is ToggleSwitch toggleSwitch)
+        {
+            toggleSwitch.Toggled -= InfobaseScheduledJobsToggleSwitch_Toggled;
+            toggleSwitch.Toggled += InfobaseScheduledJobsToggleSwitch_Toggled;
+        }
+    }
+
+    private void InfobaseScheduledJobsToggleSwitch_Unloaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is ToggleSwitch toggleSwitch)
+        {
+            toggleSwitch.Toggled -= InfobaseScheduledJobsToggleSwitch_Toggled;
+        }
+    }
+
+    private async void InfobaseSessionsToggleSwitch_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (sender is ToggleSwitch { Tag: OneCInfobaseSummaryInfo infobase } toggleSwitch)
+        {
+            var desiredAllowed = toggleSwitch.IsOn;
+            if (desiredAllowed == infobase.AreSessionsAllowed)
+            {
+                return;
+            }
+
+            var targetValue = desiredAllowed ? "off" : "on";
+            var title = desiredAllowed
+                ? "Разрешить новые сеансы?"
+                : "Запретить новые сеансы?";
+            var description = desiredAllowed
+                ? "Пользователи снова смогут открывать новые сеансы этой информационной базы."
+                : "Пользователи не смогут открывать новые сеансы. Уже открытые сеансы не будут завершены автоматически.";
+
+            var isUpdated = await ExecuteInfobaseRestrictionsUpdateAsync(
+                infobase,
+                sessionsDeny: targetValue,
+                scheduledJobsDeny: null,
+                title,
+                description,
+                completedText: desiredAllowed
+                    ? "Новые сеансы были разрешены"
+                    : "Новые сеансы были запрещены");
+            if (!isUpdated)
+            {
+                toggleSwitch.Toggled -= InfobaseSessionsToggleSwitch_Toggled;
+                toggleSwitch.IsOn = infobase.AreSessionsAllowed;
+                toggleSwitch.Toggled += InfobaseSessionsToggleSwitch_Toggled;
+            }
+        }
+    }
+
+    private async void InfobaseScheduledJobsToggleSwitch_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (sender is ToggleSwitch { Tag: OneCInfobaseSummaryInfo infobase } toggleSwitch)
+        {
+            var desiredAllowed = toggleSwitch.IsOn;
+            if (desiredAllowed == infobase.AreScheduledJobsAllowed)
+            {
+                return;
+            }
+
+            var targetValue = desiredAllowed ? "off" : "on";
+            var title = desiredAllowed
+                ? "Разрешить регламентные задания?"
+                : "Блокировать регламентные задания?";
+            var description = desiredAllowed
+                ? "Фоновые и регламентные задания снова смогут выполняться для этой информационной базы."
+                : "Регламентные задания будут заблокированы для этой информационной базы.";
+
+            var isUpdated = await ExecuteInfobaseRestrictionsUpdateAsync(
+                infobase,
+                sessionsDeny: null,
+                scheduledJobsDeny: targetValue,
+                title,
+                description,
+                completedText: desiredAllowed
+                    ? "Регламентные задания были разрешены"
+                    : "Регламентные задания были заблокированы");
+            if (!isUpdated)
+            {
+                toggleSwitch.Toggled -= InfobaseScheduledJobsToggleSwitch_Toggled;
+                toggleSwitch.IsOn = infobase.AreScheduledJobsAllowed;
+                toggleSwitch.Toggled += InfobaseScheduledJobsToggleSwitch_Toggled;
+            }
+        }
+    }
+
     private async Task<bool> RefreshServicesAsync()
     {
         RefreshButton.IsEnabled = false;
@@ -956,6 +1062,103 @@ public sealed partial class MainPage : Page
         return result.Message;
     }
 
+    private async Task<bool> ExecuteInfobaseRestrictionsUpdateAsync(
+        OneCInfobaseSummaryInfo infobase,
+        string? sessionsDeny,
+        string? scheduledJobsDeny,
+        string title,
+        string description,
+        string completedText)
+    {
+        var diagnostics = _administrationToolDiagnostics;
+        if (diagnostics?.RacTool is null)
+        {
+            StatusText.Text = "rac.exe не найден";
+            ErrorInfoBar.Title = "Не удалось обновить информационную базу";
+            ErrorInfoBar.Message = "rac.exe не найден";
+            ErrorInfoBar.IsOpen = true;
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(infobase.ClusterUuid) || string.IsNullOrWhiteSpace(infobase.Uuid))
+        {
+            StatusText.Text = "Информационная база не была обновлена";
+            ErrorInfoBar.Title = "Не удалось обновить информационную базу";
+            ErrorInfoBar.Message = "Не удалось определить кластер или идентификатор информационной базы.";
+            ErrorInfoBar.IsOpen = true;
+            return false;
+        }
+
+        if (!await ConfirmInfobaseRestrictionsUpdateAsync(infobase, title, description))
+        {
+            return false;
+        }
+
+        var request = new OneCInfobaseRestrictionsUpdateRequest
+        {
+            AdministrationServerAddress = diagnostics.AdministrationServerAddress,
+            ClusterUuid = infobase.ClusterUuid,
+            InfobaseUuid = infobase.Uuid,
+            InfobaseName = infobase.NameText,
+            SessionsDeny = sessionsDeny,
+            ScheduledJobsDeny = scheduledJobsDeny
+        };
+
+        SetClusterCommandRunning(true);
+        ErrorInfoBar.IsOpen = false;
+        StatusText.Text = "Обновление информационной базы...";
+
+        try
+        {
+            var result = await _clusterInventory.UpdateInfobaseRestrictionsAsync(diagnostics.RacTool.FilePath, request);
+            if (!result.IsSuccess)
+            {
+                ErrorInfoBar.Title = "Не удалось обновить информационную базу";
+                ErrorInfoBar.Message = result.Message;
+                ErrorInfoBar.IsOpen = true;
+                StatusText.Text = "Информационная база не была обновлена";
+                return false;
+            }
+
+            if (await RefreshServicesAsync())
+            {
+                StatusText.Text = $"{completedText}: {infobase.NameText}";
+            }
+
+            return true;
+        }
+        catch (Exception exception)
+        {
+            ErrorInfoBar.Title = "Не удалось обновить информационную базу";
+            ErrorInfoBar.Message = exception.Message;
+            ErrorInfoBar.IsOpen = true;
+            StatusText.Text = "Информационная база не была обновлена";
+            return false;
+        }
+        finally
+        {
+            SetClusterCommandRunning(false);
+        }
+    }
+
+    private async Task<bool> ConfirmInfobaseRestrictionsUpdateAsync(
+        OneCInfobaseSummaryInfo infobase,
+        string title,
+        string description)
+    {
+        var dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = title,
+            Content = $"{infobase.NameText}{Environment.NewLine}{Environment.NewLine}{description}",
+            PrimaryButtonText = "Выполнить",
+            CloseButtonText = "Отмена",
+            DefaultButton = ContentDialogButton.Close
+        };
+
+        return await dialog.ShowAsync() == ContentDialogResult.Primary;
+    }
+
     private async Task StartTemporaryRasAsync()
     {
         var diagnostics = _administrationToolDiagnostics;
@@ -1035,6 +1238,8 @@ public sealed partial class MainPage : Page
 
     private void SetClusterCommandRunning(bool isRunning)
     {
+        ClustersCard.IsHitTestVisible = !isRunning;
+        ClustersCard.Opacity = isRunning ? 0.65 : 1;
         StartTemporaryRasButton.IsEnabled = !isRunning;
         StopTemporaryRasButton.IsEnabled = !isRunning;
         RefreshButton.IsEnabled = !isRunning;

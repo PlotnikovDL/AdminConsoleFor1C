@@ -578,7 +578,7 @@
                                                                             <Grid.ColumnDefinitions>
                                                                                 <ColumnDefinition Width="340" />
                                                                                 <ColumnDefinition Width="170" />
-                                                                                <ColumnDefinition Width="180" />
+                                                                                <ColumnDefinition Width="220" />
                                                                                 <ColumnDefinition Width="190" />
                                                                             </Grid.ColumnDefinitions>
 
@@ -695,7 +695,7 @@
                                                                                 <ColumnDefinition Width="1.4*" />
                                                                                 <ColumnDefinition Width="1.5*" />
                                                                                 <ColumnDefinition Width="1.1*" />
-                                                                                <ColumnDefinition Width="1.1*" />
+                                                                                <ColumnDefinition Width="220" />
                                                                             </Grid.ColumnDefinitions>
 
                                                                             <StackPanel Spacing="4">
@@ -727,21 +727,75 @@
                                                                             <StackPanel Grid.Column="2" Spacing="4">
                                                                                 <TextBlock
                                                                                     Style="{StaticResource ColumnLabelTextBlockStyle}"
-                                                                                    Text="Ограничения" />
-                                                                                <TextBlock
-                                                                                    LineHeight="20"
-                                                                                    Text="{Binding RestrictionsText}"
-                                                                                    TextWrapping="WrapWholeWords" />
-                                                                            </StackPanel>
-
-                                                                            <StackPanel Grid.Column="3" Spacing="4">
-                                                                                <TextBlock
-                                                                                    Style="{StaticResource ColumnLabelTextBlockStyle}"
                                                                                     Text="Безопасность" />
                                                                                 <TextBlock
                                                                                     LineHeight="20"
-                                                                                    Text="{Binding SecurityText}"
+                                                                                    Text="{Binding SecurityAndLicensingText}"
                                                                                     TextWrapping="WrapWholeWords" />
+                                                                            </StackPanel>
+
+                                                                            <StackPanel Grid.Column="3" Spacing="10">
+                                                                                <TextBlock
+                                                                                    Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                                                    Text="Управление" />
+                                                                                <Grid
+                                                                                    MinHeight="40"
+                                                                                    ColumnSpacing="12">
+                                                                                    <Grid.ColumnDefinitions>
+                                                                                        <ColumnDefinition Width="*" />
+                                                                                        <ColumnDefinition Width="Auto" />
+                                                                                    </Grid.ColumnDefinitions>
+                                                                                    <StackPanel
+                                                                                        VerticalAlignment="Center"
+                                                                                        Spacing="2">
+                                                                                        <TextBlock
+                                                                                            FontWeight="SemiBold"
+                                                                                            Text="Вход пользователей" />
+                                                                                        <TextBlock
+                                                                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                                            Text="{Binding SessionsAccessText}" />
+                                                                                    </StackPanel>
+                                                                                    <ToggleSwitch
+                                                                                        Grid.Column="1"
+                                                                                        MinWidth="0"
+                                                                                        HorizontalAlignment="Right"
+                                                                                        VerticalAlignment="Center"
+                                                                                        IsOn="{Binding AreSessionsAllowed, Mode=OneWay}"
+                                                                                        OffContent=""
+                                                                                        OnContent=""
+                                                                                        Tag="{Binding}"
+                                                                                        Loaded="InfobaseSessionsToggleSwitch_Loaded"
+                                                                                        Unloaded="InfobaseSessionsToggleSwitch_Unloaded" />
+                                                                                </Grid>
+                                                                                <Grid
+                                                                                    MinHeight="40"
+                                                                                    ColumnSpacing="12">
+                                                                                    <Grid.ColumnDefinitions>
+                                                                                        <ColumnDefinition Width="*" />
+                                                                                        <ColumnDefinition Width="Auto" />
+                                                                                    </Grid.ColumnDefinitions>
+                                                                                    <StackPanel
+                                                                                        VerticalAlignment="Center"
+                                                                                        Spacing="2">
+                                                                                        <TextBlock
+                                                                                            FontWeight="SemiBold"
+                                                                                            Text="Регламентные задания" />
+                                                                                        <TextBlock
+                                                                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                                            Text="{Binding ScheduledJobsAccessText}" />
+                                                                                    </StackPanel>
+                                                                                    <ToggleSwitch
+                                                                                        Grid.Column="1"
+                                                                                        MinWidth="0"
+                                                                                        HorizontalAlignment="Right"
+                                                                                        VerticalAlignment="Center"
+                                                                                        IsOn="{Binding AreScheduledJobsAllowed, Mode=OneWay}"
+                                                                                        OffContent=""
+                                                                                        OnContent=""
+                                                                                        Tag="{Binding}"
+                                                                                        Loaded="InfobaseScheduledJobsToggleSwitch_Loaded"
+                                                                                        Unloaded="InfobaseScheduledJobsToggleSwitch_Unloaded" />
+                                                                                </Grid>
                                                                             </StackPanel>
                                                                         </Grid>
                                                                     </Border>

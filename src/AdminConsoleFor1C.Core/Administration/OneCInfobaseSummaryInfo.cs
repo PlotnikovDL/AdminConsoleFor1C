@@ -4,6 +4,8 @@ public sealed record OneCInfobaseSummaryInfo
 {
     public required string Uuid { get; init; }
 
+    public string? ClusterUuid { get; init; }
+
     public string? Name { get; init; }
 
     public string? Description { get; init; }
@@ -31,7 +33,21 @@ public sealed record OneCInfobaseSummaryInfo
 
     public string UuidText => string.IsNullOrWhiteSpace(Uuid) ? "—" : Uuid;
 
+    public string ClusterUuidText => string.IsNullOrWhiteSpace(ClusterUuid) ? "—" : ClusterUuid;
+
     public string DescriptionText => string.IsNullOrWhiteSpace(Description) ? "—" : Description;
+
+    public bool AreSessionsDenied => string.Equals(SessionsDeny, "on", StringComparison.OrdinalIgnoreCase);
+
+    public bool AreScheduledJobsDenied => string.Equals(ScheduledJobsDeny, "on", StringComparison.OrdinalIgnoreCase);
+
+    public bool AreSessionsAllowed => !AreSessionsDenied;
+
+    public bool AreScheduledJobsAllowed => !AreScheduledJobsDenied;
+
+    public string SessionsAccessText => AreSessionsAllowed ? "Разрешен" : "Запрещен";
+
+    public string ScheduledJobsAccessText => AreScheduledJobsAllowed ? "Выполняются" : "Заблокированы";
 
     public string DatabaseText
     {
@@ -67,6 +83,29 @@ public sealed record OneCInfobaseSummaryInfo
         ? "—"
         : $"Защищенное соединение: {FormatSecurityLevel(SecurityLevel)}";
 
+    public string LicenseText => string.IsNullOrWhiteSpace(LicenseDistribution)
+        ? "Лицензии: —"
+        : $"Лицензии: {FormatLicenseDistribution(LicenseDistribution)}";
+
+    public string SecurityAndLicensingText
+    {
+        get
+        {
+            var parts = new List<string>();
+            if (!string.IsNullOrWhiteSpace(SecurityText) && SecurityText != "—")
+            {
+                parts.Add(SecurityText);
+            }
+
+            if (!string.IsNullOrWhiteSpace(LicenseText) && LicenseText != "Лицензии: —")
+            {
+                parts.Add(LicenseText);
+            }
+
+            return parts.Count == 0 ? "—" : string.Join(Environment.NewLine, parts);
+        }
+    }
+
     public string RestrictionsText
     {
         get
@@ -79,12 +118,12 @@ public sealed record OneCInfobaseSummaryInfo
 
             if (!string.IsNullOrWhiteSpace(SessionsDeny))
             {
-                restrictions.Add($"Сеансы: {FormatDenyFlag(SessionsDeny)}");
+                restrictions.Add($"Вход пользователей: {FormatSessionsDenyFlag(SessionsDeny)}");
             }
 
             if (!string.IsNullOrWhiteSpace(ScheduledJobsDeny))
             {
-                restrictions.Add($"Регл. задания: {FormatDenyFlag(ScheduledJobsDeny)}");
+                restrictions.Add($"Регламентные задания: {FormatScheduledJobsDenyFlag(ScheduledJobsDeny)}");
             }
 
             return restrictions.Count == 0 ? "—" : string.Join(Environment.NewLine, restrictions);
@@ -94,6 +133,7 @@ public sealed record OneCInfobaseSummaryInfo
     public static OneCInfobaseSummaryInfo FromProperties(IReadOnlyDictionary<string, string> properties)
     {
         properties.TryGetValue("infobase", out var uuid);
+        properties.TryGetValue("cluster", out var clusterUuid);
         properties.TryGetValue("name", out var name);
         properties.TryGetValue("descr", out var description);
         properties.TryGetValue("dbms", out var dbms);
@@ -108,6 +148,7 @@ public sealed record OneCInfobaseSummaryInfo
         return new OneCInfobaseSummaryInfo
         {
             Uuid = NormalizeValue(uuid) ?? string.Empty,
+            ClusterUuid = NormalizeValue(clusterUuid),
             Name = NormalizeValue(name),
             Description = NormalizeValue(description),
             Dbms = NormalizeValue(dbms),
@@ -155,12 +196,22 @@ public sealed record OneCInfobaseSummaryInfo
         };
     }
 
-    private static string FormatDenyFlag(string value)
+    private static string FormatSessionsDenyFlag(string value)
+    {
+        return value switch
+        {
+            "on" => "запрещен",
+            "off" => "разрешен",
+            _ => value
+        };
+    }
+
+    private static string FormatScheduledJobsDenyFlag(string value)
     {
         return value switch
         {
             "on" => "заблокированы",
-            "off" => "разрешены",
+            "off" => "выполняются",
             _ => value
         };
     }

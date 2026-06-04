@@ -79,6 +79,7 @@ public sealed class OneCRacOutputParserTests
         var properties = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             ["infobase"] = "44444444-4444-4444-4444-444444444444",
+            ["cluster"] = "55555555-5555-5555-5555-555555555555",
             ["name"] = "\"Управление торговлей\"",
             ["descr"] = "\"Рабочая база\"",
             ["dbms"] = "MSSQLServer",
@@ -94,14 +95,19 @@ public sealed class OneCRacOutputParserTests
         var infobase = OneCInfobaseSummaryInfo.FromProperties(properties);
 
         Assert.Equal("Управление торговлей", infobase.NameText);
+        Assert.Equal("55555555-5555-5555-5555-555555555555", infobase.ClusterUuidText);
         Assert.Equal("Рабочая база", infobase.DescriptionText);
         Assert.Contains("СУБД: MS SQL Server", infobase.DatabaseText);
         Assert.Contains("Сервер: sql01", infobase.DatabaseText);
         Assert.Contains("База: ut", infobase.DatabaseText);
         Assert.Contains("Пользователь: sa", infobase.DatabaseText);
         Assert.Equal("Защищенное соединение: только соединение", infobase.SecurityText);
+        Assert.Contains("Защищенное соединение: только соединение", infobase.SecurityAndLicensingText);
+        Assert.Contains("Лицензии: выдаются", infobase.SecurityAndLicensingText);
         Assert.Contains("Лицензии: выдаются", infobase.RestrictionsText);
-        Assert.Contains("Сеансы: разрешены", infobase.RestrictionsText);
-        Assert.Contains("Регл. задания: заблокированы", infobase.RestrictionsText);
+        Assert.Contains("Вход пользователей: разрешен", infobase.RestrictionsText);
+        Assert.Contains("Регламентные задания: заблокированы", infobase.RestrictionsText);
+        Assert.True(infobase.AreSessionsAllowed);
+        Assert.False(infobase.AreScheduledJobsAllowed);
     }
 }

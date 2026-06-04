@@ -10,6 +10,7 @@ public sealed class RacOneCClusterInventory : IOneCClusterInventory
 {
     private static readonly TimeSpan CommandTimeout = TimeSpan.FromSeconds(6);
     private static readonly TimeSpan CreateInfobaseCommandTimeout = TimeSpan.FromMinutes(2);
+    private static readonly TimeSpan UpdateInfobaseCommandTimeout = TimeSpan.FromSeconds(20);
 
     static RacOneCClusterInventory()
     {
@@ -145,6 +146,63 @@ public sealed class RacOneCClusterInventory : IOneCClusterInventory
         }
     }
 
+    public async Task<OneCClusterCommandResult> UpdateInfobaseRestrictionsAsync(
+        string racPath,
+        OneCInfobaseRestrictionsUpdateRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var arguments = BuildUpdateInfobaseRestrictionsArguments(request);
+        var commandText = BuildSafeCommandText(racPath, arguments);
+        if (string.IsNullOrWhiteSpace(racPath) || !File.Exists(racPath))
+        {
+            return new OneCClusterCommandResult
+            {
+                CommandText = commandText,
+                IsSuccess = false,
+                Message = "rac.exe не найден"
+            };
+        }
+
+        try
+        {
+            var command = await RunRacAsync(racPath, arguments, UpdateInfobaseCommandTimeout, cancellationToken);
+            var combinedOutput = CombineOutput(command.Output, command.Error);
+            if (command.ExitCode != 0 && IsTransientTcpDisconnect(combinedOutput))
+            {
+                await Task.Delay(800, cancellationToken);
+                command = await RunRacAsync(racPath, arguments, UpdateInfobaseCommandTimeout, cancellationToken);
+                combinedOutput = CombineOutput(command.Output, command.Error);
+            }
+
+            return new OneCClusterCommandResult
+            {
+                CommandText = commandText,
+                IsSuccess = command.ExitCode == 0,
+                Message = command.ExitCode == 0
+                    ? NormalizeMessage(combinedOutput, "Параметры информационной базы были обновлены")
+                    : NormalizeMessage(combinedOutput, "Параметры информационной базы не были обновлены")
+            };
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return new OneCClusterCommandResult
+            {
+                CommandText = commandText,
+                IsSuccess = false,
+                Message = "Команда rac не ответила за отведенное время"
+            };
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
+        {
+            return new OneCClusterCommandResult
+            {
+                CommandText = commandText,
+                IsSuccess = false,
+                Message = exception.Message
+            };
+        }
+    }
+
     private static async Task<(IReadOnlyList<OneCClusterServerInfo> Items, string? Message)> GetClusterServersAsync(
         string racPath,
         string administrationServerAddress,
@@ -185,9 +243,12 @@ public sealed class RacOneCClusterInventory : IOneCClusterInventory
             return summaries;
         }
 
-        var detailedInfobases = new List<OneCInfobaseSummaryInfo>(summaries.Items.Count);
+        var infobases = summaries.Items
+            .Select(infobase => infobase with { ClusterUuid = clusterUuid })
+            .ToList();
+        var detailedInfobases = new List<OneCInfobaseSummaryInfo>(infobases.Count);
         var detailMessages = new List<string>();
-        foreach (var summary in summaries.Items)
+        foreach (var summary in infobases)
         {
             var details = await GetInfobaseDetailsAsync(
                 racPath,
@@ -240,7 +301,7 @@ public sealed class RacOneCClusterInventory : IOneCClusterInventory
                 return (summary, $"Подробности базы {summary.NameText} не были найдены");
             }
 
-            return (OneCInfobaseSummaryInfo.FromProperties(MergeProperties(summary.Properties, details)), null);
+            return (OneCInfobaseSummaryInfo.FromProperties(MergeProperties(summary.Properties, details, clusterUuid)), null);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
@@ -261,6 +322,19 @@ public sealed class RacOneCClusterInventory : IOneCClusterInventory
         {
             merged[pair.Key] = pair.Value;
         }
+
+        return merged;
+    }
+
+    private static IReadOnlyDictionary<string, string> MergeProperties(
+        IReadOnlyDictionary<string, string> summary,
+        IReadOnlyDictionary<string, string> details,
+        string clusterUuid)
+    {
+        var merged = new Dictionary<string, string>(MergeProperties(summary, details), StringComparer.OrdinalIgnoreCase)
+        {
+            ["cluster"] = clusterUuid
+        };
 
         return merged;
     }
@@ -365,6 +439,13 @@ public sealed class RacOneCClusterInventory : IOneCClusterInventory
         return BuildCommandText(racPath, safeArguments.ToList());
     }
 
+    private static bool IsTransientTcpDisconnect(string output)
+    {
+        return output.Contains("10054", StringComparison.OrdinalIgnoreCase)
+            || output.Contains("принудительно разорвал", StringComparison.OrdinalIgnoreCase)
+            || output.Contains("forcibly closed", StringComparison.OrdinalIgnoreCase);
+    }
+
     private static List<string> BuildCreateInfobaseArguments(OneCInfobaseCreateRequest request)
     {
         var arguments = new List<string>
@@ -392,6 +473,23 @@ public sealed class RacOneCClusterInventory : IOneCClusterInventory
         AddOptionalOption(arguments, "--security-level", request.SecurityLevel);
         AddOptionalOption(arguments, "--scheduled-jobs-deny", request.ScheduledJobsDeny);
         AddOptionalOption(arguments, "--license-distribution", request.LicenseDistribution);
+
+        return arguments;
+    }
+
+    private static List<string> BuildUpdateInfobaseRestrictionsArguments(OneCInfobaseRestrictionsUpdateRequest request)
+    {
+        var arguments = new List<string>
+        {
+            request.AdministrationServerAddress,
+            "infobase",
+            "update",
+            $"--cluster={request.ClusterUuid}",
+            $"--infobase={request.InfobaseUuid}"
+        };
+
+        AddOptionalOption(arguments, "--sessions-deny", request.SessionsDeny);
+        AddOptionalOption(arguments, "--scheduled-jobs-deny", request.ScheduledJobsDeny);
 
         return arguments;
     }
