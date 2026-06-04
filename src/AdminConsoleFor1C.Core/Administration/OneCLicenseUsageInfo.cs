@@ -201,7 +201,7 @@ public sealed record OneCLicenseUsageInfo
     {
         if (ownerKind == OneCLicenseOwnerKind.Process)
         {
-            return "сервер использует лицензию";
+            return "серверная";
         }
 
         return isComputerConsumption ? "на компьютер" : "на сеанс";

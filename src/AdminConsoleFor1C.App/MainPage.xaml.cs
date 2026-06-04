@@ -32,11 +32,13 @@ public sealed partial class MainPage : Page
         InitializeComponent();
         ServiceTreeRepeater.ItemsSource = _nodes;
         AdministrationToolsCard.DataContext = new OneCAdministrationToolDiagnosticsViewModel([], [], []);
-        ClustersCard.DataContext = new OneCClusterDiagnosticsViewModel(
+        var initialClusterDiagnostics = new OneCClusterDiagnosticsViewModel(
             CreateUnavailableClusterResult("localhost:1545", "Данные еще не обновлены"),
             "localhost:1540",
             canStartTemporaryRas: false,
             canStopTemporaryRas: false);
+        ClustersCard.DataContext = initialClusterDiagnostics;
+        LicensesCard.DataContext = initialClusterDiagnostics;
         Loaded += MainPage_Loaded;
     }
 
@@ -262,6 +264,7 @@ public sealed partial class MainPage : Page
             _administrationToolDiagnostics = administrationToolDiagnostics;
             AdministrationToolsCard.DataContext = administrationToolDiagnostics;
             ClustersCard.DataContext = clusterDiagnostics;
+            LicensesCard.DataContext = clusterDiagnostics;
 
             _nodes.Clear();
             foreach (var node in nodes)
@@ -1242,6 +1245,8 @@ public sealed partial class MainPage : Page
     {
         ClustersCard.IsHitTestVisible = !isRunning;
         ClustersCard.Opacity = isRunning ? 0.65 : 1;
+        LicensesCard.IsHitTestVisible = !isRunning;
+        LicensesCard.Opacity = isRunning ? 0.65 : 1;
         StartTemporaryRasButton.IsEnabled = !isRunning;
         StopTemporaryRasButton.IsEnabled = !isRunning;
         RefreshButton.IsEnabled = !isRunning;

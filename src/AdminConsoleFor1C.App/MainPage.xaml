@@ -240,6 +240,7 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
@@ -377,7 +378,7 @@
 
                     <Border
                         x:Name="ClustersCard"
-                        Grid.Row="1"
+                        Grid.Row="2"
                         Padding="16"
                         Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                         BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
@@ -634,124 +635,6 @@
                                                     </StackPanel>
 
                                                     <StackPanel Spacing="8">
-                                                        <StackPanel Spacing="2">
-                                                            <TextBlock
-                                                                Style="{StaticResource SectionTitleTextBlockStyle}"
-                                                                Text="Занятые лицензии" />
-                                                            <TextBlock
-                                                                Style="{StaticResource ColumnLabelTextBlockStyle}"
-                                                                Text="{Binding OccupiedLicensesSummaryText}" />
-                                                        </StackPanel>
-
-                                                        <Border
-                                                            Padding="14"
-                                                            Background="{ThemeResource LayerFillColorDefaultBrush}"
-                                                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                                                            BorderThickness="1"
-                                                            CornerRadius="6"
-                                                            Visibility="{Binding OccupiedLicensesEmptyStateVisibility}">
-                                                            <StackPanel Spacing="4">
-                                                                <TextBlock
-                                                                    FontWeight="SemiBold"
-                                                                    LineHeight="20"
-                                                                    Text="Занятые лицензии не обнаружены" />
-                                                                <TextBlock
-                                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                                    LineHeight="20"
-                                                                    Text="rac не вернул лицензии, занятые рабочими процессами или пользовательскими сеансами."
-                                                                    TextWrapping="WrapWholeWords" />
-                                                            </StackPanel>
-                                                        </Border>
-
-                                                        <ItemsRepeater
-                                                            ItemsSource="{Binding OccupiedLicenseUsages}"
-                                                            Visibility="{Binding OccupiedLicenseUsagesVisibility}">
-                                                            <ItemsRepeater.ItemTemplate>
-                                                                <DataTemplate>
-                                                                    <Border
-                                                                        Padding="0,10"
-                                                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                                                                        BorderThickness="0,1,0,0">
-                                                                        <Grid ColumnSpacing="16">
-                                                                            <Grid.ColumnDefinitions>
-                                                                                <ColumnDefinition Width="140" />
-                                                                                <ColumnDefinition Width="120" />
-                                                                                <ColumnDefinition Width="320" />
-                                                                                <ColumnDefinition Width="150" />
-                                                                                <ColumnDefinition Width="*" />
-                                                                            </Grid.ColumnDefinitions>
-
-                                                                            <StackPanel Spacing="4">
-                                                                                <TextBlock
-                                                                                    Style="{StaticResource SectionTitleTextBlockStyle}"
-                                                                                    Text="{Binding OwnerKindText}" />
-                                                                                <TextBlock
-                                                                                    Style="{StaticResource ColumnLabelTextBlockStyle}"
-                                                                                    Text="{Binding LicenseKindText}"
-                                                                                    TextWrapping="WrapWholeWords" />
-                                                                            </StackPanel>
-
-                                                                            <StackPanel Grid.Column="1" Spacing="2">
-                                                                                <TextBlock
-                                                                                    Style="{StaticResource ColumnLabelTextBlockStyle}"
-                                                                                    Text="Расход" />
-                                                                                <TextBlock
-                                                                                    FontSize="20"
-                                                                                    FontWeight="SemiBold"
-                                                                                    LineHeight="26"
-                                                                                    Text="{Binding UsageText}" />
-                                                                                <TextBlock
-                                                                                    Style="{StaticResource ColumnLabelTextBlockStyle}"
-                                                                                    Text="{Binding UsageCaptionText}" />
-                                                                            </StackPanel>
-
-                                                                            <StackPanel Grid.Column="2" Spacing="4">
-                                                                                <TextBlock
-                                                                                    Style="{StaticResource ColumnLabelTextBlockStyle}"
-                                                                                    Text="Потребители" />
-                                                                                <TextBlock
-                                                                                    LineHeight="20"
-                                                                                    Text="{Binding ConsumersText}" />
-                                                                                <TextBlock
-                                                                                    Style="{StaticResource ColumnLabelTextBlockStyle}"
-                                                                                    Text="{Binding ConsumersDetailText}"
-                                                                                    TextWrapping="WrapWholeWords" />
-                                                                            </StackPanel>
-
-                                                                            <StackPanel Grid.Column="3" Spacing="4">
-                                                                                <TextBlock
-                                                                                    Style="{StaticResource ColumnLabelTextBlockStyle}"
-                                                                                    Text="Режим" />
-                                                                                <TextBlock
-                                                                                    LineHeight="20"
-                                                                                    Text="{Binding ConsumptionModeText}" />
-                                                                                <TextBlock
-                                                                                    Style="{StaticResource ColumnLabelTextBlockStyle}"
-                                                                                    Text="{Binding ExplanationText}"
-                                                                                    TextWrapping="WrapWholeWords" />
-                                                                            </StackPanel>
-
-                                                                            <StackPanel Grid.Column="4" Spacing="4">
-                                                                                <TextBlock
-                                                                                    Style="{StaticResource ColumnLabelTextBlockStyle}"
-                                                                                    Text="Источник" />
-                                                                                <TextBlock
-                                                                                    LineHeight="20"
-                                                                                    Text="{Binding SourceText}"
-                                                                                    TextTrimming="CharacterEllipsis" />
-                                                                                <TextBlock
-                                                                                    Style="{StaticResource MetadataMonoTextBlockStyle}"
-                                                                                    Text="{Binding SourceDetailText}"
-                                                                                    TextTrimming="CharacterEllipsis" />
-                                                                            </StackPanel>
-                                                                        </Grid>
-                                                                    </Border>
-                                                                </DataTemplate>
-                                                            </ItemsRepeater.ItemTemplate>
-                                                        </ItemsRepeater>
-                                                    </StackPanel>
-
-                                                    <StackPanel Spacing="8">
                                                         <Grid ColumnSpacing="12">
                                                             <Grid.ColumnDefinitions>
                                                                 <ColumnDefinition Width="*" />
@@ -929,8 +812,176 @@
                     </Border>
 
                     <Border
+                        x:Name="LicensesCard"
+                        Grid.Row="1"
+                        Padding="16"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="6">
+                        <StackPanel Spacing="12">
+                            <StackPanel Spacing="2">
+                                <TextBlock
+                                    FontSize="16"
+                                    FontWeight="SemiBold"
+                                    Text="Лицензии" />
+                                <TextBlock
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                    LineHeight="20"
+                                    Text="{Binding LicenseSummaryText}"
+                                    TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+
+                            <Border
+                                Padding="14"
+                                Background="{ThemeResource LayerFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                Visibility="{Binding LicensesEmptyStateVisibility}">
+                                <StackPanel Spacing="4">
+                                    <TextBlock
+                                        FontWeight="SemiBold"
+                                        LineHeight="20"
+                                        Text="Занятые лицензии не обнаружены" />
+                                    <TextBlock
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                        LineHeight="20"
+                                        Text="rac не вернул лицензии, занятые рабочими процессами или пользовательскими сеансами."
+                                        TextWrapping="WrapWholeWords" />
+                                </StackPanel>
+                            </Border>
+
+                            <ItemsRepeater
+                                ItemsSource="{Binding LicenseClusters}"
+                                Visibility="{Binding LicenseClustersVisibility}">
+                                <ItemsRepeater.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border
+                                            Padding="0,12"
+                                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                            BorderThickness="0,1,0,0">
+                                            <StackPanel Spacing="10">
+                                                <Grid ColumnSpacing="12">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <StackPanel Spacing="2">
+                                                        <TextBlock
+                                                            Style="{StaticResource SectionTitleTextBlockStyle}"
+                                                            Text="{Binding NameText}"
+                                                            TextTrimming="CharacterEllipsis" />
+                                                        <TextBlock
+                                                            Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                            Text="{Binding AddressText}"
+                                                            TextTrimming="CharacterEllipsis" />
+                                                    </StackPanel>
+
+                                                    <TextBlock
+                                                        Grid.Column="1"
+                                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                        LineHeight="20"
+                                                        Text="{Binding OccupiedLicensesSummaryText}"
+                                                        TextTrimming="CharacterEllipsis" />
+                                                </Grid>
+
+                                                <ItemsRepeater ItemsSource="{Binding OccupiedLicenseUsages}">
+                                                    <ItemsRepeater.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Border
+                                                                Padding="0,10"
+                                                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                                                BorderThickness="0,1,0,0">
+                                                                <Grid ColumnSpacing="16">
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="140" />
+                                                                        <ColumnDefinition Width="120" />
+                                                                        <ColumnDefinition Width="320" />
+                                                                        <ColumnDefinition Width="150" />
+                                                                        <ColumnDefinition Width="*" />
+                                                                    </Grid.ColumnDefinitions>
+
+                                                                    <StackPanel Spacing="4">
+                                                                        <TextBlock
+                                                                            Style="{StaticResource SectionTitleTextBlockStyle}"
+                                                                            Text="{Binding OwnerKindText}" />
+                                                                        <TextBlock
+                                                                            Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                                            Text="{Binding LicenseKindText}"
+                                                                            TextWrapping="WrapWholeWords" />
+                                                                    </StackPanel>
+
+                                                                    <StackPanel Grid.Column="1" Spacing="2">
+                                                                        <TextBlock
+                                                                            Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                                            Text="Расход" />
+                                                                        <TextBlock
+                                                                            FontSize="20"
+                                                                            FontWeight="SemiBold"
+                                                                            LineHeight="26"
+                                                                            Text="{Binding UsageText}" />
+                                                                        <TextBlock
+                                                                            Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                                            Text="{Binding UsageCaptionText}" />
+                                                                    </StackPanel>
+
+                                                                    <StackPanel Grid.Column="2" Spacing="4">
+                                                                        <TextBlock
+                                                                            Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                                            Text="Потребители" />
+                                                                        <TextBlock
+                                                                            LineHeight="20"
+                                                                            Text="{Binding ConsumersText}" />
+                                                                        <TextBlock
+                                                                            Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                                            Text="{Binding ConsumersDetailText}"
+                                                                            TextWrapping="WrapWholeWords" />
+                                                                    </StackPanel>
+
+                                                                    <StackPanel Grid.Column="3" Spacing="4">
+                                                                        <TextBlock
+                                                                            Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                                            Text="Режим" />
+                                                                        <TextBlock
+                                                                            LineHeight="20"
+                                                                            Text="{Binding ConsumptionModeText}" />
+                                                                        <TextBlock
+                                                                            Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                                            Text="{Binding ExplanationText}"
+                                                                            TextWrapping="WrapWholeWords" />
+                                                                    </StackPanel>
+
+                                                                    <StackPanel Grid.Column="4" Spacing="4">
+                                                                        <TextBlock
+                                                                            Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                                            Text="Источник" />
+                                                                        <TextBlock
+                                                                            LineHeight="20"
+                                                                            Text="{Binding SourceText}"
+                                                                            TextTrimming="CharacterEllipsis" />
+                                                                        <TextBlock
+                                                                            Style="{StaticResource MetadataMonoTextBlockStyle}"
+                                                                            Text="{Binding SourceDetailText}"
+                                                                            TextTrimming="CharacterEllipsis" />
+                                                                    </StackPanel>
+                                                                </Grid>
+                                                            </Border>
+                                                        </DataTemplate>
+                                                    </ItemsRepeater.ItemTemplate>
+                                                </ItemsRepeater>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsRepeater.ItemTemplate>
+                            </ItemsRepeater>
+                        </StackPanel>
+                    </Border>
+
+                    <Border
                         x:Name="ComponentDetailsCard"
-                        Grid.Row="2"
+                        Grid.Row="3"
                         Padding="20"
                         Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                         BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"

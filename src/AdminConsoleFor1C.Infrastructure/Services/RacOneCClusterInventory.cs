@@ -75,7 +75,6 @@ public sealed class RacOneCClusterInventory : IOneCClusterInventory
 
             var serverCount = detailedClusters.Sum(static cluster => cluster.Servers.Count);
             var infobaseCount = detailedClusters.Sum(static cluster => cluster.Infobases.Count);
-            var occupiedLicensesText = BuildOccupiedLicensesText(detailedClusters);
 
             return new OneCClusterInventoryResult
             {
@@ -84,7 +83,7 @@ public sealed class RacOneCClusterInventory : IOneCClusterInventory
                 IsAvailable = true,
                 Message = clusters.Count == 0
                     ? "Кластеры не найдены"
-                    : $"Найдено кластеров: {clusters.Count}, серверов: {serverCount}, баз: {infobaseCount}, {occupiedLicensesText}",
+                    : $"Найдено кластеров: {clusters.Count}, серверов: {serverCount}, баз: {infobaseCount}",
                 Clusters = detailedClusters
             };
         }
@@ -598,49 +597,6 @@ public sealed class RacOneCClusterInventory : IOneCClusterInventory
             .Take(2);
 
         return string.Join(". ", lines);
-    }
-
-    private static string BuildOccupiedLicensesText(IReadOnlyList<OneCClusterInfo> clusters)
-    {
-        var usages = clusters
-            .SelectMany(static cluster => cluster.OccupiedLicenseUsages)
-            .ToList();
-
-        if (usages.Count == 0)
-        {
-            return "лицензии не заняты";
-        }
-
-        var parts = new List<string>();
-        var clientUsages = usages
-            .Where(static usage => usage.OwnerKind == OneCLicenseOwnerKind.Session)
-            .ToList();
-        var serverUsages = usages
-            .Where(static usage => usage.OwnerKind == OneCLicenseOwnerKind.Process)
-            .ToList();
-
-        if (clientUsages.Count > 0)
-        {
-            var sessionCount = clusters.Sum(static cluster => cluster.SessionLicenses.Count);
-            parts.Add($"клиентские места: {FormatUsage(clientUsages)}, сеансов: {sessionCount}");
-        }
-
-        if (serverUsages.Count > 0)
-        {
-            parts.Add($"серверные лицензии: {FormatUsage(serverUsages)}");
-        }
-
-        return string.Join(", ", parts);
-    }
-
-    private static string FormatUsage(IReadOnlyList<OneCLicenseUsageInfo> usages)
-    {
-        var occupied = usages.Sum(static usage => usage.OccupiedSeats);
-        var capacity = usages.Any(static usage => usage.Capacity is null)
-            ? null
-            : usages.Sum(static usage => usage.Capacity);
-
-        return capacity is null ? occupied.ToString() : $"{occupied}/{capacity}";
     }
 
     private static string? CombineDetailsMessages(params string?[] messages)
