@@ -58,6 +58,23 @@
     <ProjectReference Include="..\AdminConsoleFor1C.Infrastructure\AdminConsoleFor1C.Infrastructure.csproj" />
   </ItemGroup>
 
+  <Target Name="BuildElevatedWorker" BeforeTargets="CopyElevatedWorkerOutput">
+    <MSBuild
+      Projects="..\AdminConsoleFor1C.ElevatedWorker\AdminConsoleFor1C.ElevatedWorker.csproj"
+      Targets="Build"
+      Properties="Configuration=$(Configuration)" />
+  </Target>
+
+  <Target Name="CopyElevatedWorkerOutput" AfterTargets="Build">
+    <ItemGroup>
+      <ElevatedWorkerOutput Include="..\AdminConsoleFor1C.ElevatedWorker\bin\$(Configuration)\net10.0\**\*.*" />
+    </ItemGroup>
+    <Copy
+      SourceFiles="@(ElevatedWorkerOutput)"
+      DestinationFiles="@(ElevatedWorkerOutput->'$(OutDir)ElevatedWorker\%(RecursiveDir)%(Filename)%(Extension)')"
+      SkipUnchangedFiles="true" />
+  </Target>
+
   <!--
     Defining the "HasPackageAndPublishMenuAddedByProject" property here allows the Solution
     Explorer "Package and Publish" context menu entry to be enabled for this project even if

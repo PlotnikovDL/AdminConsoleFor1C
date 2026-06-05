@@ -31,7 +31,7 @@ public sealed partial class MainPage : Page
     private readonly IOneCAdministrationToolInventory _administrationToolInventory = new WindowsOneCAdministrationToolInventory();
     private readonly IOneCClusterInventory _clusterInventory = new RacOneCClusterInventory();
     private readonly IOneCAdministrationServerLauncher _administrationServerLauncher = new RasOneCAdministrationServerLauncher();
-    private readonly IOneCServiceController _serviceController = new WindowsOneCServiceController();
+    private readonly IOneCServiceController _serviceController = new ElevatedWorkerOneCServiceController();
     private readonly ObservableCollection<OneCServiceProcessNode> _nodes = [];
     private OneCAdministrationToolDiagnosticsViewModel? _administrationToolDiagnostics;
     private OneCServiceProcessNode? _selectedNode;
@@ -1545,7 +1545,7 @@ public sealed partial class MainPage : Page
         }
 
         builder
-            .Append(" displayname= %DisplayName% depend= Dnscache/Tcpip/Tcpip6/lanmanworkstation/lanmanserver")
+            .Append(" displayname= %DisplayName% depend= Tcpip/Dnscache/lanmanworkstation/lanmanserver")
             .AppendLine()
             .AppendLine("set CreateExitCode=%ERRORLEVEL%")
             .AppendLine("if not \"%CreateExitCode%\"==\"0\" exit /b %CreateExitCode%")
@@ -2273,9 +2273,13 @@ public sealed partial class MainPage : Page
         catch (Exception exception) when (IsAccessDenied(exception))
         {
             ErrorInfoBar.Title = "Не хватает прав администратора";
-            ErrorInfoBar.Message = "Запустите приложение от имени администратора или используйте будущий режим повышенных действий.";
+            ErrorInfoBar.Message = "Подтвердите запрос прав администратора или запустите приложение от имени администратора.";
             ErrorInfoBar.IsOpen = true;
             StatusText.Text = "Действие не выполнено";
+        }
+        catch (OperationCanceledException)
+        {
+            StatusText.Text = "Действие было отменено";
         }
         catch (Exception exception)
         {
