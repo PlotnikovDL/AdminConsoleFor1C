@@ -54,7 +54,6 @@ public sealed class OneCServerAgentSetupViewModel
             var portPlan = runningProcess is null
                 ? GetPortPlan(usedPorts)
                 : OneCServerAgentPortPlan.FromProcess(runningProcess);
-            AddPorts(usedPorts, portPlan);
             candidates.Add(new OneCServerAgentSetupCandidateViewModel(
                 ragentTool,
                 portPlan,
@@ -153,6 +152,14 @@ public sealed class OneCServerAgentSetupViewModel
             }
         }
 
+        foreach (var directory in GetKnownServiceDataDirectories(agentPort))
+        {
+            if (Directory.Exists(directory))
+            {
+                return directory;
+            }
+        }
+
         return Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
             "1C",
@@ -161,12 +168,29 @@ public sealed class OneCServerAgentSetupViewModel
             agentPort.ToString(CultureInfo.InvariantCulture));
     }
 
+    private static IEnumerable<string> GetKnownServiceDataDirectories(int agentPort)
+    {
+        var directoryName = agentPort.ToString(CultureInfo.InvariantCulture);
+        var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+        if (!string.IsNullOrWhiteSpace(programFiles))
+        {
+            yield return Path.Combine(programFiles, "1cv8", "srvinfo", directoryName);
+        }
+
+        var programFilesX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+        if (!string.IsNullOrWhiteSpace(programFilesX86)
+            && !string.Equals(programFilesX86, programFiles, StringComparison.OrdinalIgnoreCase))
+        {
+            yield return Path.Combine(programFilesX86, "1cv8", "srvinfo", directoryName);
+        }
+    }
+
     private static OneCServerAgentPortPlan GetPortPlan(HashSet<int> usedPorts)
     {
         for (var instanceIndex = 1; instanceIndex < 100; instanceIndex++)
         {
             var candidate = OneCServerAgentPortPlan.Create(instanceIndex);
-            if (candidate.GetAllPorts().All(port => !usedPorts.Contains(port)))
+            if (candidate.GetServerAgentServicePorts().All(port => !usedPorts.Contains(port)))
             {
                 return candidate;
             }
@@ -200,14 +224,6 @@ public sealed class OneCServerAgentSetupViewModel
         }
 
         return usedPorts;
-    }
-
-    private static void AddPorts(HashSet<int> usedPorts, OneCServerAgentPortPlan portPlan)
-    {
-        foreach (var port in portPlan.GetAllPorts())
-        {
-            usedPorts.Add(port);
-        }
     }
 
     private static void AddPort(HashSet<int> usedPorts, int? port)
@@ -438,11 +454,10 @@ public sealed record OneCServerAgentPortPlan(
             && int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out end);
     }
 
-    public IEnumerable<int> GetAllPorts()
+    public IEnumerable<int> GetServerAgentServicePorts()
     {
         yield return AgentPort;
         yield return ClusterPort;
-        yield return RasPort;
         yield return DebugServerPort;
 
         for (var port = ProcessRangeStart; port <= ProcessRangeEnd; port++)

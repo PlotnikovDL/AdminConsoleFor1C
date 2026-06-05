@@ -683,7 +683,25 @@ public sealed partial class MainPage : Page
         {
             Width = 420,
             Height = 34,
+            IsSpellCheckEnabled = false,
             Text = candidate.SuggestedServiceDataDirectory
+        };
+        var existingDataDirectoryTextBlock = new TextBlock
+        {
+            Foreground = GetThemeBrush("SystemFillColorCautionBrush", 255, 157, 93, 0),
+            LineHeight = 18,
+            Text = "Каталог данных уже содержит файлы. Если это каталог старой службы, могут восстановиться прежние настройки и список информационных баз.",
+            TextWrapping = TextWrapping.WrapWholeWords,
+            Visibility = Visibility.Collapsed
+        };
+        var dataDirectoryPanel = new StackPanel
+        {
+            Spacing = 4,
+            Children =
+            {
+                dataDirectoryTextBox,
+                existingDataDirectoryTextBlock
+            }
         };
         var agentPortTextBox = CreatePortTextBox(candidate.AgentPortText);
         var clusterPortTextBox = CreatePortTextBox(candidate.ClusterPortText);
@@ -691,6 +709,7 @@ public sealed partial class MainPage : Page
         {
             Width = 420,
             Height = 34,
+            IsSpellCheckEnabled = false,
             Text = candidate.ProcessRangeText
         };
         var debugModeComboBox = CreateServiceDialogComboBox(
@@ -748,15 +767,6 @@ public sealed partial class MainPage : Page
                 servicePasswordStatusTextBlock
             }
         };
-        var commandPreviewTextBox = new TextBox
-        {
-            AcceptsReturn = true,
-            FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Cascadia Mono"),
-            FontSize = 12,
-            Height = 108,
-            IsReadOnly = true,
-            TextWrapping = TextWrapping.Wrap
-        };
         var validationTextBlock = new TextBlock
         {
             Foreground = GetThemeBrush("SystemFillColorCriticalBrush", 255, 196, 43, 28),
@@ -787,7 +797,9 @@ public sealed partial class MainPage : Page
         var row = 0;
         AddDialogFormRow(formGrid, row++, "Имя службы Windows:", serviceNameTextBox);
         AddDialogFormRow(formGrid, row++, "ragent.exe:", ragentPathTextBox);
-        AddDialogFormRow(formGrid, row++, "Каталог данных:", dataDirectoryTextBox);
+        var dataDirectoryLabel = AddDialogFormRow(formGrid, row++, "Каталог данных:", dataDirectoryPanel);
+        dataDirectoryLabel.VerticalAlignment = VerticalAlignment.Top;
+        dataDirectoryLabel.Margin = new Thickness(0, 7, 0, 0);
         AddDialogFormRow(formGrid, row++, "Порт агента:", agentPortTextBox);
         AddDialogFormRow(formGrid, row++, "Порт кластера:", clusterPortTextBox);
         AddDialogFormRow(formGrid, row++, "Диапазон процессов:", processRangeTextBox);
@@ -830,32 +842,20 @@ public sealed partial class MainPage : Page
                 }
             }
         };
-        var commandExpander = new Expander
-        {
-            Header = "Команда регистрации",
-            HorizontalAlignment = HorizontalAlignment.Stretch,
-            IsExpanded = false,
-            Content = new Border
-            {
-                Padding = new Thickness(12),
-                Child = commandPreviewTextBox
-            }
-        };
         var contentPanel = new StackPanel
         {
             Width = 680,
             Spacing = 12,
             Children =
             {
-                formCard,
-                commandExpander
+                formCard
             }
         };
         var content = new ScrollViewer
         {
             Content = contentPanel,
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
-            MaxHeight = 620,
+            MaxHeight = Math.Clamp(XamlRoot.Size.Height - 110, 420, 920),
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto
         };
 
@@ -943,12 +943,13 @@ public sealed partial class MainPage : Page
                 && draft is not null)
             {
                 serviceNameTextBox.Text = draft.ExpectedServiceName;
-                commandPreviewTextBox.Text = draft.CommandText;
             }
-            else
-            {
-                commandPreviewTextBox.Text = string.Empty;
-            }
+        }
+
+        void UpdateDataDirectoryInfo()
+        {
+            var showInfo = HasExistingDataDirectoryContent(dataDirectoryTextBox.Text);
+            existingDataDirectoryTextBlock.Visibility = showInfo ? Visibility.Visible : Visibility.Collapsed;
         }
 
         void UpdateServiceAccountControls()
@@ -989,7 +990,11 @@ public sealed partial class MainPage : Page
             validationTextBlock.Visibility = Visibility.Collapsed;
         }
 
-        dataDirectoryTextBox.TextChanged += (_, _) => UpdatePreview();
+        dataDirectoryTextBox.TextChanged += (_, _) =>
+        {
+            UpdateDataDirectoryInfo();
+            UpdatePreview();
+        };
         agentPortTextBox.TextChanged += (_, _) => UpdatePreview();
         clusterPortTextBox.TextChanged += (_, _) => UpdatePreview();
         processRangeTextBox.TextChanged += (_, _) => UpdatePreview();
@@ -1045,17 +1050,17 @@ public sealed partial class MainPage : Page
 
         UpdateDebugControls();
         UpdateServiceAccountControls();
+        UpdateDataDirectoryInfo();
         UpdatePreview();
 
         dialog = new ContentDialog
         {
             XamlRoot = XamlRoot,
-            Title = "Создание службы агента 1С",
+            Title = "Создание службы агента сервера 1С",
             Content = content,
             CloseButtonText = "Закрыть",
             DefaultButton = ContentDialogButton.Primary,
-            PrimaryButtonText = "Зарегистрировать",
-            SecondaryButtonText = "Копировать команду"
+            PrimaryButtonText = "Зарегистрировать"
         };
         dialog.Resources["ContentDialogMaxWidth"] = 820d;
         dialog.Resources["ContentDialogMinWidth"] = 740d;
@@ -1083,34 +1088,6 @@ public sealed partial class MainPage : Page
             HideValidation();
             draftToRegister = draft;
         };
-        dialog.SecondaryButtonClick += (_, args) =>
-        {
-            args.Cancel = true;
-            if (!TryGetServiceCredentials(true, out var serviceUser, out var servicePassword, out var validationMessage)
-                || !TryCreateServerAgentServiceRegistrationDraft(
-                    candidate,
-                    dataDirectoryTextBox.Text,
-                    agentPortTextBox.Text,
-                    clusterPortTextBox.Text,
-                    processRangeTextBox.Text,
-                    GetSelectedText(debugModeComboBox),
-                    debugServerPortTextBox.Text,
-                    serviceUser,
-                    servicePassword,
-                    out var draft,
-                    out validationMessage))
-            {
-                ShowValidation(validationMessage);
-                return;
-            }
-
-            if (draft is not null)
-            {
-                HideValidation();
-                CopyToClipboard(draft.CommandText, "Команда регистрации службы");
-            }
-        };
-
         await dialog.ShowAsync();
         if (draftToRegister is not null)
         {
@@ -1311,9 +1288,32 @@ public sealed partial class MainPage : Page
             Width = 420,
             MinHeight = 34,
             IsReadOnly = true,
+            IsSpellCheckEnabled = false,
             Text = text,
             TextWrapping = TextWrapping.Wrap
         };
+    }
+
+    private static bool HasExistingDataDirectoryContent(string? path)
+    {
+        var normalizedPath = NormalizeFormValue(path);
+        if (string.IsNullOrWhiteSpace(normalizedPath) || !Directory.Exists(normalizedPath))
+        {
+            return false;
+        }
+
+        try
+        {
+            return Directory.EnumerateFileSystemEntries(normalizedPath).Any();
+        }
+        catch (Exception exception) when (exception is UnauthorizedAccessException
+            or IOException
+            or ArgumentException
+            or NotSupportedException
+            or PathTooLongException)
+        {
+            return true;
+        }
     }
 
     private static TextBox CreatePortTextBox(string text)
@@ -1322,6 +1322,7 @@ public sealed partial class MainPage : Page
         {
             Width = 420,
             Height = 34,
+            IsSpellCheckEnabled = false,
             Text = text
         };
     }
@@ -1332,6 +1333,7 @@ public sealed partial class MainPage : Page
         {
             Width = 420,
             Height = 34,
+            IsSpellCheckEnabled = false,
             PlaceholderText = placeholderText
         };
     }
