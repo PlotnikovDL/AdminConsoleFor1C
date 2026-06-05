@@ -26,6 +26,7 @@ public sealed class WindowsOneCAdministrationToolInventory : IOneCAdministration
 
             AddToolIfExists(toolsByPath, directory, OneCAdministrationToolKind.Rac);
             AddToolIfExists(toolsByPath, directory, OneCAdministrationToolKind.Ras);
+            AddToolIfExists(toolsByPath, directory, OneCAdministrationToolKind.Ragent);
         }
 
         return toolsByPath.Values
@@ -90,6 +91,7 @@ public sealed class WindowsOneCAdministrationToolInventory : IOneCAdministration
         {
             OneCAdministrationToolKind.Rac => "rac.exe",
             OneCAdministrationToolKind.Ras => "ras.exe",
+            OneCAdministrationToolKind.Ragent => "ragent.exe",
             _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null)
         };
     }

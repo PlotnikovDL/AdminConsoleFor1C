@@ -12,6 +12,7 @@ public sealed record OneCAdministrationToolInfo
     {
         OneCAdministrationToolKind.Rac => "rac.exe",
         OneCAdministrationToolKind.Ras => "ras.exe",
+        OneCAdministrationToolKind.Ragent => "ragent.exe",
         _ => "tool.exe"
     };
 
@@ -19,6 +20,7 @@ public sealed record OneCAdministrationToolInfo
     {
         OneCAdministrationToolKind.Rac => "Утилита командной строки",
         OneCAdministrationToolKind.Ras => "Сервер администрирования",
+        OneCAdministrationToolKind.Ragent => "Агент сервера",
         _ => "Инструмент"
     };
 

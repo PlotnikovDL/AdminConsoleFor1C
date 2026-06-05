@@ -25,6 +25,12 @@ public sealed class OneCAdministrationToolDiagnosticsViewModel
         AgentPort = GetAgentPort();
         RacTool = GetPreferredTool(OneCAdministrationToolKind.Rac);
         RasTool = GetPreferredTool(OneCAdministrationToolKind.Ras);
+        RagentTools = _tools
+            .Where(static tool => tool.Kind == OneCAdministrationToolKind.Ragent)
+            .OrderByDescending(static tool => ParseVersion(tool.Version))
+            .ThenBy(static tool => tool.FilePath, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        RagentTool = GetPreferredTool(OneCAdministrationToolKind.Ragent);
         RasService = _services.FirstOrDefault(static service => service.Kind == OneCServiceKind.AdministrationServer);
         RasProcess = _processes.FirstOrDefault(static process => process.Kind == OneCProcessKind.AdministrationServer);
     }
@@ -41,9 +47,16 @@ public sealed class OneCAdministrationToolDiagnosticsViewModel
 
     public OneCAdministrationToolInfo? RasTool { get; }
 
+    public IReadOnlyList<OneCAdministrationToolInfo> RagentTools { get; }
+
+    public OneCAdministrationToolInfo? RagentTool { get; }
+
     public OneCServiceInfo? RasService { get; }
 
     public OneCProcessInfo? RasProcess { get; }
+
+    public bool IsServerAgentRunning => _processes.Any(static process => process.Kind == OneCProcessKind.ServerAgent)
+        || _services.Any(static service => service.Kind == OneCServiceKind.ServerAgent && service.State == "Running");
 
     public int AdministrationServerPort => RasProcess?.AdministrationServerPort
         ?? RasService?.AdministrationServerPort

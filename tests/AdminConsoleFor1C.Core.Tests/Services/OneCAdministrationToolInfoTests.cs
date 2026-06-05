@@ -32,4 +32,19 @@ public sealed class OneCAdministrationToolInfoTests
         Assert.Equal("Сервер администрирования", tool.KindDisplayName);
         Assert.Equal("—", tool.VersionText);
     }
+
+    [Fact]
+    public void FileName_ReturnsRagentExecutableName()
+    {
+        var tool = new OneCAdministrationToolInfo
+        {
+            Kind = OneCAdministrationToolKind.Ragent,
+            FilePath = @"C:\Program Files\1cv8\8.3.27.2170\bin\ragent.exe",
+            Version = "8.3.27.2170"
+        };
+
+        Assert.Equal("ragent.exe", tool.FileName);
+        Assert.Equal("Агент сервера", tool.KindDisplayName);
+        Assert.Equal("8.3.27.2170", tool.VersionText);
+    }
 }

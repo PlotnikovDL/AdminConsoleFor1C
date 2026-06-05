@@ -1,6 +1,9 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
+using System.Runtime.InteropServices;
+using System.Text;
 using AdminConsoleFor1C.Core.Administration;
 using AdminConsoleFor1C.Application.Services;
 using AdminConsoleFor1C.Core.Services;
@@ -16,6 +19,13 @@ namespace AdminConsoleFor1C.App;
 /// </summary>
 public sealed partial class MainPage : Page
 {
+    private const string ServiceAccountLocalSystem = "LocalSystem";
+    private const string ServiceAccountLocalService = @"NT AUTHORITY\LocalService";
+    private const string ServiceAccountNetworkService = @"NT AUTHORITY\NetworkService";
+    private const string ServiceAccountCustom = "Другой пользователь...";
+    private const int Logon32LogonNetwork = 3;
+    private const int Logon32ProviderDefault = 0;
+
     private readonly IOneCServiceInventory _serviceInventory = new WindowsOneCServiceInventory();
     private readonly IOneCProcessInventory _processInventory = new WindowsOneCProcessInventory();
     private readonly IOneCAdministrationToolInventory _administrationToolInventory = new WindowsOneCAdministrationToolInventory();
@@ -32,6 +42,10 @@ public sealed partial class MainPage : Page
         InitializeComponent();
         ServiceTreeRepeater.ItemsSource = _nodes;
         AdministrationToolsCard.DataContext = new OneCAdministrationToolDiagnosticsViewModel([], [], []);
+        ServerAgentSetupCard.DataContext = new OneCServerAgentSetupViewModel(
+            new OneCAdministrationToolDiagnosticsViewModel([], [], []),
+            [],
+            []);
         var initialClusterDiagnostics = new OneCClusterDiagnosticsViewModel(
             CreateUnavailableClusterResult("localhost:1545", "Данные еще не обновлены"),
             "localhost:1540",
@@ -124,6 +138,14 @@ public sealed partial class MainPage : Page
         if (sender is FrameworkElement { Tag: OneCClusterViewModel cluster })
         {
             await ShowCreateInfobaseDraftDialogAsync(cluster);
+        }
+    }
+
+    private async void ConfigureServerAgentServiceButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: OneCServerAgentSetupCandidateViewModel candidate })
+        {
+            await ShowServerAgentServiceDialogAsync(candidate);
         }
     }
 
@@ -257,12 +279,17 @@ public sealed partial class MainPage : Page
                 tools,
                 services,
                 processes);
+            var serverAgentSetup = new OneCServerAgentSetupViewModel(
+                administrationToolDiagnostics,
+                services,
+                processes);
             var clusterDiagnostics = await GetClusterDiagnosticsAsync(administrationToolDiagnostics);
             var nodes = BuildServiceProcessTree(services, processes);
             var previousServiceName = _selectedNode?.Service?.Name;
 
             _administrationToolDiagnostics = administrationToolDiagnostics;
             AdministrationToolsCard.DataContext = administrationToolDiagnostics;
+            ServerAgentSetupCard.DataContext = serverAgentSetup;
             ClustersCard.DataContext = clusterDiagnostics;
             LicensesCard.DataContext = clusterDiagnostics;
 
@@ -275,7 +302,9 @@ public sealed partial class MainPage : Page
             SelectNode(GetNodeToSelect(previousServiceName));
 
             UpdateEmptyState();
-            StatusText.Text = $"Найдено служб: {services.Count}, процессов: {processes.Count}";
+            StatusText.Text = serverAgentSetup.IsVisible && services.All(static service => service.Kind != OneCServiceKind.ServerAgent)
+                ? "Найдены компоненты сервера 1С без службы Windows"
+                : $"Найдено служб: {services.Count}, процессов: {processes.Count}";
             return true;
         }
         catch (Exception exception)
@@ -296,11 +325,13 @@ public sealed partial class MainPage : Page
     private void UpdateEmptyState()
     {
         var hasItems = _nodes.Count > 0;
+        var hasServerAgentSetup = ServerAgentSetupCard.DataContext is OneCServerAgentSetupViewModel { IsVisible: true };
+        var hasLeftContent = hasItems || hasServerAgentSetup;
 
         ServiceTreeRepeater.Visibility = hasItems ? Visibility.Visible : Visibility.Collapsed;
         ComponentDetailsCard.Visibility = hasItems && _selectedNode is not null ? Visibility.Visible : Visibility.Collapsed;
-        ServicesTable.Visibility = hasItems ? Visibility.Visible : Visibility.Collapsed;
-        EmptyState.Visibility = hasItems ? Visibility.Collapsed : Visibility.Visible;
+        ServicesTable.Visibility = hasLeftContent ? Visibility.Visible : Visibility.Collapsed;
+        EmptyState.Visibility = hasLeftContent ? Visibility.Collapsed : Visibility.Visible;
     }
 
     private OneCServiceProcessNode? GetNodeToSelect(string? previousServiceName)
@@ -402,6 +433,7 @@ public sealed partial class MainPage : Page
         var address = administrationTools.AdministrationServerAddress;
         var canStopTemporaryRas = IsTemporaryRasRunning();
         var canStartTemporaryRas = administrationTools.RasTool is not null
+            && administrationTools.IsServerAgentRunning
             && !IsAdministrationServerRunning(administrationTools)
             && !canStopTemporaryRas;
 
@@ -409,6 +441,15 @@ public sealed partial class MainPage : Page
         {
             return new OneCClusterDiagnosticsViewModel(
                 CreateUnavailableClusterResult(address, "rac.exe не найден"),
+                administrationTools.AgentAddress,
+                canStartTemporaryRas,
+                canStopTemporaryRas);
+        }
+
+        if (!administrationTools.IsServerAgentRunning)
+        {
+            return new OneCClusterDiagnosticsViewModel(
+                CreateUnavailableClusterResult(address, "Агент сервера не запущен"),
                 administrationTools.AgentAddress,
                 canStartTemporaryRas,
                 canStopTemporaryRas);
@@ -614,6 +655,944 @@ public sealed partial class MainPage : Page
         package.SetText(value);
         Clipboard.SetContent(package);
     }
+
+    private async Task ShowServerAgentServiceDialogAsync(OneCServerAgentSetupCandidateViewModel candidate)
+    {
+        var serviceNameTextBox = CreateReadOnlyDialogTextBox(candidate.ExpectedServiceNameText);
+        var ragentPathTextBox = CreateReadOnlyDialogTextBox(candidate.RagentPathText);
+        var dataDirectoryTextBox = new TextBox
+        {
+            Width = 420,
+            Height = 34,
+            Text = candidate.SuggestedServiceDataDirectory
+        };
+        var agentPortTextBox = CreatePortTextBox(candidate.AgentPortText);
+        var clusterPortTextBox = CreatePortTextBox(candidate.ClusterPortText);
+        var processRangeTextBox = new TextBox
+        {
+            Width = 420,
+            Height = 34,
+            Text = candidate.ProcessRangeText
+        };
+        var debugModeComboBox = CreateServiceDialogComboBox(
+            "Выключен",
+            "TCP",
+            "HTTP");
+        var debugServerPortTextBox = CreatePortTextBox(candidate.DebugServerPortText);
+        var serviceUserComboBox = CreateServiceDialogComboBox(GetServiceAccountOptions());
+        serviceUserComboBox.Width = 320;
+        serviceUserComboBox.HorizontalAlignment = HorizontalAlignment.Left;
+        var serviceUserPanel = new Grid
+        {
+            Width = 420,
+            Children =
+            {
+                serviceUserComboBox
+            }
+        };
+        var serviceCustomUserTextBox = CreateOptionalDialogTextBox(@"DOMAIN\user или .\user");
+        serviceCustomUserTextBox.Width = 420;
+        serviceCustomUserTextBox.HorizontalAlignment = HorizontalAlignment.Left;
+        var servicePasswordBox = new PasswordBox
+        {
+            Width = 260,
+            Height = 34,
+            PlaceholderText = "не задавать"
+        };
+        var checkServicePasswordButton = new Button
+        {
+            Content = "Проверить",
+            Height = 34,
+            Width = 132
+        };
+        var servicePasswordStatusTextBlock = new TextBlock
+        {
+            LineHeight = 18,
+            TextWrapping = TextWrapping.WrapWholeWords,
+            Visibility = Visibility.Collapsed
+        };
+        var servicePasswordPanel = new StackPanel
+        {
+            Spacing = 4,
+            Children =
+            {
+                new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    Spacing = 8,
+                    Children =
+                    {
+                        servicePasswordBox,
+                        checkServicePasswordButton
+                    }
+                },
+                servicePasswordStatusTextBlock
+            }
+        };
+        var commandPreviewTextBox = new TextBox
+        {
+            AcceptsReturn = true,
+            FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Cascadia Mono"),
+            FontSize = 12,
+            Height = 108,
+            IsReadOnly = true,
+            TextWrapping = TextWrapping.Wrap
+        };
+        var validationTextBlock = new TextBlock
+        {
+            Foreground = GetThemeBrush("SystemFillColorCriticalBrush", 255, 196, 43, 28),
+            LineHeight = 20,
+            TextWrapping = TextWrapping.WrapWholeWords,
+            Visibility = Visibility.Collapsed
+        };
+        var hintTextBlock = new TextBlock
+        {
+            Foreground = GetThemeBrush("TextFillColorSecondaryBrush", 255, 96, 96, 96),
+            LineHeight = 20,
+            Text = "Сейчас ragent.exe уже запущен без службы. Перед запуском созданной службы этот процесс нужно остановить.",
+            TextWrapping = TextWrapping.WrapWholeWords,
+            Visibility = candidate.IsRunningWithoutService ? Visibility.Visible : Visibility.Collapsed
+        };
+
+        var formGrid = new Grid
+        {
+            ColumnSpacing = 12,
+            RowSpacing = 6,
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = new GridLength(210) },
+                new ColumnDefinition { Width = new GridLength(420) }
+            }
+        };
+
+        var row = 0;
+        AddDialogFormRow(formGrid, row++, "Имя службы Windows:", serviceNameTextBox);
+        AddDialogFormRow(formGrid, row++, "ragent.exe:", ragentPathTextBox);
+        AddDialogFormRow(formGrid, row++, "Каталог данных:", dataDirectoryTextBox);
+        AddDialogFormRow(formGrid, row++, "Порт агента:", agentPortTextBox);
+        AddDialogFormRow(formGrid, row++, "Порт кластера:", clusterPortTextBox);
+        AddDialogFormRow(formGrid, row++, "Диапазон процессов:", processRangeTextBox);
+        AddDialogFormRow(formGrid, row++, "Режим отладки:", debugModeComboBox);
+        var debugServerPortLabel = AddDialogFormRow(formGrid, row, "Порт сервера отладки:", debugServerPortTextBox);
+
+        var serviceAccountGrid = new Grid
+        {
+            ColumnSpacing = 12,
+            RowSpacing = 6,
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = new GridLength(210) },
+                new ColumnDefinition { Width = new GridLength(420) }
+            }
+        };
+        var serviceAccountRow = 0;
+        AddDialogFormRow(serviceAccountGrid, serviceAccountRow++, "Пользователь службы:", serviceUserPanel);
+        var serviceCustomUserLabel = AddDialogFormRow(serviceAccountGrid, serviceAccountRow++, "Имя пользователя:", serviceCustomUserTextBox);
+        var servicePasswordLabel = AddDialogFormRow(serviceAccountGrid, serviceAccountRow, "Пароль пользователя:", servicePasswordPanel);
+
+        var formCard = new Border
+        {
+            Padding = new Thickness(12),
+            Background = GetThemeBrush("CardBackgroundFillColorDefaultBrush", 255, 255, 255, 255),
+            BorderBrush = GetThemeBrush("CardStrokeColorDefaultBrush", 64, 0, 0, 0),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(6),
+            Child = new StackPanel
+            {
+                Spacing = 12,
+                Children =
+                {
+                    CreateDialogSectionTitle("Параметры службы Windows"),
+                    hintTextBlock,
+                    formGrid,
+                    CreateDialogSectionTitle("Учетная запись службы Windows"),
+                    serviceAccountGrid,
+                    validationTextBlock
+                }
+            }
+        };
+        var commandExpander = new Expander
+        {
+            Header = "Команда регистрации",
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            IsExpanded = false,
+            Content = new Border
+            {
+                Padding = new Thickness(12),
+                Child = commandPreviewTextBox
+            }
+        };
+        var contentPanel = new StackPanel
+        {
+            Width = 680,
+            Spacing = 12,
+            Children =
+            {
+                formCard,
+                commandExpander
+            }
+        };
+        var content = new ScrollViewer
+        {
+            Content = contentPanel,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+            MaxHeight = 620,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto
+        };
+
+        ContentDialog? dialog = null;
+        ServerAgentServiceRegistrationDraft? draftToRegister = null;
+
+        bool IsCustomServiceAccountSelected()
+        {
+            return string.Equals(GetSelectedText(serviceUserComboBox), ServiceAccountCustom, StringComparison.Ordinal);
+        }
+
+        bool IsNamedServiceAccountSelected()
+        {
+            return !IsBuiltInServiceAccount(GetSelectedText(serviceUserComboBox));
+        }
+
+        void SetServicePasswordStatus(string message, bool isSuccess)
+        {
+            servicePasswordStatusTextBlock.Foreground = isSuccess
+                ? GetThemeBrush("SystemFillColorSuccessBrush", 255, 16, 124, 65)
+                : GetThemeBrush("SystemFillColorCriticalBrush", 255, 196, 43, 28);
+            servicePasswordStatusTextBlock.Text = message;
+            servicePasswordStatusTextBlock.Visibility = Visibility.Visible;
+        }
+
+        void ClearServicePasswordStatus()
+        {
+            servicePasswordStatusTextBlock.Text = string.Empty;
+            servicePasswordStatusTextBlock.Visibility = Visibility.Collapsed;
+        }
+
+        bool TryGetServiceCredentials(
+            bool validatePassword,
+            out string serviceUser,
+            out string servicePassword,
+            out string validationMessage)
+        {
+            validationMessage = string.Empty;
+            servicePassword = servicePasswordBox.Password;
+            if (!IsCustomServiceAccountSelected())
+            {
+                serviceUser = GetSelectedText(serviceUserComboBox);
+                if (validatePassword
+                    && IsNamedServiceAccountSelected()
+                    && string.IsNullOrWhiteSpace(servicePassword))
+                {
+                    validationMessage = "Укажите пароль пользователя службы.";
+                    return false;
+                }
+
+                return true;
+            }
+
+            serviceUser = NormalizeFormValue(serviceCustomUserTextBox.Text) ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(serviceUser))
+            {
+                validationMessage = "Укажите имя пользователя службы.";
+                return false;
+            }
+
+            if (validatePassword && string.IsNullOrWhiteSpace(servicePassword))
+            {
+                validationMessage = "Укажите пароль пользователя службы.";
+                return false;
+            }
+
+            return true;
+        }
+
+        void UpdatePreview()
+        {
+            if (TryGetServiceCredentials(false, out var serviceUser, out var servicePassword, out _)
+                && TryCreateServerAgentServiceRegistrationDraft(
+                    candidate,
+                    dataDirectoryTextBox.Text,
+                    agentPortTextBox.Text,
+                    clusterPortTextBox.Text,
+                    processRangeTextBox.Text,
+                    GetSelectedText(debugModeComboBox),
+                    debugServerPortTextBox.Text,
+                    serviceUser,
+                    servicePassword,
+                    out var draft,
+                    out _)
+                && draft is not null)
+            {
+                serviceNameTextBox.Text = draft.ExpectedServiceName;
+                commandPreviewTextBox.Text = draft.CommandText;
+            }
+            else
+            {
+                commandPreviewTextBox.Text = string.Empty;
+            }
+        }
+
+        void UpdateServiceAccountControls()
+        {
+            var isCustom = IsCustomServiceAccountSelected();
+            var requiresPassword = IsNamedServiceAccountSelected();
+            var customUserVisibility = isCustom ? Visibility.Visible : Visibility.Collapsed;
+            var passwordVisibility = requiresPassword ? Visibility.Visible : Visibility.Collapsed;
+            serviceCustomUserLabel.Visibility = customUserVisibility;
+            serviceCustomUserTextBox.Visibility = customUserVisibility;
+            servicePasswordLabel.Visibility = passwordVisibility;
+            servicePasswordPanel.Visibility = passwordVisibility;
+            serviceCustomUserTextBox.IsEnabled = isCustom;
+            servicePasswordBox.IsEnabled = requiresPassword;
+            servicePasswordBox.PlaceholderText = requiresPassword ? "пароль Windows" : "не задавать";
+            checkServicePasswordButton.IsEnabled = requiresPassword;
+
+            if (!requiresPassword)
+            {
+                servicePasswordBox.Password = string.Empty;
+                ClearServicePasswordStatus();
+            }
+
+            if (!isCustom)
+            {
+                serviceCustomUserTextBox.Text = string.Empty;
+            }
+        }
+
+        void ShowValidation(string message)
+        {
+            validationTextBlock.Text = message;
+            validationTextBlock.Visibility = Visibility.Visible;
+        }
+
+        void HideValidation()
+        {
+            validationTextBlock.Visibility = Visibility.Collapsed;
+        }
+
+        dataDirectoryTextBox.TextChanged += (_, _) => UpdatePreview();
+        agentPortTextBox.TextChanged += (_, _) => UpdatePreview();
+        clusterPortTextBox.TextChanged += (_, _) => UpdatePreview();
+        processRangeTextBox.TextChanged += (_, _) => UpdatePreview();
+        debugServerPortTextBox.TextChanged += (_, _) => UpdatePreview();
+        serviceUserComboBox.SelectionChanged += (_, _) =>
+        {
+            UpdateServiceAccountControls();
+            UpdatePreview();
+        };
+        serviceCustomUserTextBox.TextChanged += (_, _) =>
+        {
+            ClearServicePasswordStatus();
+            UpdatePreview();
+        };
+        servicePasswordBox.PasswordChanged += (_, _) =>
+        {
+            ClearServicePasswordStatus();
+            UpdatePreview();
+        };
+        checkServicePasswordButton.Click += async (_, _) =>
+        {
+            if (!TryGetServiceCredentials(true, out var serviceUser, out var servicePassword, out var validationMessage))
+            {
+                SetServicePasswordStatus(validationMessage, isSuccess: false);
+                return;
+            }
+
+            checkServicePasswordButton.IsEnabled = false;
+            SetServicePasswordStatus("Проверка...", isSuccess: true);
+            var result = await Task.Run(() => TryValidateWindowsCredentials(
+                serviceUser,
+                servicePassword,
+                out var message)
+                    ? (IsSuccess: true, Message: message)
+                    : (IsSuccess: false, Message: message));
+            SetServicePasswordStatus(result.Message, result.IsSuccess);
+            checkServicePasswordButton.IsEnabled = IsNamedServiceAccountSelected();
+        };
+        debugModeComboBox.SelectionChanged += (_, _) =>
+        {
+            UpdateDebugControls();
+            UpdatePreview();
+        };
+
+        void UpdateDebugControls()
+        {
+            var isDebugEnabled = GetSelectedText(debugModeComboBox) != "Выключен";
+            var visibility = isDebugEnabled ? Visibility.Visible : Visibility.Collapsed;
+            debugServerPortLabel.Visibility = visibility;
+            debugServerPortTextBox.IsEnabled = isDebugEnabled;
+            debugServerPortTextBox.Visibility = visibility;
+        }
+
+        UpdateDebugControls();
+        UpdateServiceAccountControls();
+        UpdatePreview();
+
+        dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = "Создание службы агента 1С",
+            Content = content,
+            CloseButtonText = "Закрыть",
+            DefaultButton = ContentDialogButton.Primary,
+            PrimaryButtonText = "Зарегистрировать",
+            SecondaryButtonText = "Копировать команду"
+        };
+        dialog.Resources["ContentDialogMaxWidth"] = 820d;
+        dialog.Resources["ContentDialogMinWidth"] = 740d;
+        dialog.PrimaryButtonClick += (_, args) =>
+        {
+            if (!TryGetServiceCredentials(true, out var serviceUser, out var servicePassword, out var validationMessage)
+                || !TryCreateServerAgentServiceRegistrationDraft(
+                    candidate,
+                    dataDirectoryTextBox.Text,
+                    agentPortTextBox.Text,
+                    clusterPortTextBox.Text,
+                    processRangeTextBox.Text,
+                    GetSelectedText(debugModeComboBox),
+                    debugServerPortTextBox.Text,
+                    serviceUser,
+                    servicePassword,
+                    out var draft,
+                    out validationMessage))
+            {
+                ShowValidation(validationMessage);
+                args.Cancel = true;
+                return;
+            }
+
+            HideValidation();
+            draftToRegister = draft;
+        };
+        dialog.SecondaryButtonClick += (_, args) =>
+        {
+            args.Cancel = true;
+            if (!TryGetServiceCredentials(true, out var serviceUser, out var servicePassword, out var validationMessage)
+                || !TryCreateServerAgentServiceRegistrationDraft(
+                    candidate,
+                    dataDirectoryTextBox.Text,
+                    agentPortTextBox.Text,
+                    clusterPortTextBox.Text,
+                    processRangeTextBox.Text,
+                    GetSelectedText(debugModeComboBox),
+                    debugServerPortTextBox.Text,
+                    serviceUser,
+                    servicePassword,
+                    out var draft,
+                    out validationMessage))
+            {
+                ShowValidation(validationMessage);
+                return;
+            }
+
+            if (draft is not null)
+            {
+                HideValidation();
+                CopyToClipboard(draft.CommandText, "Команда регистрации службы");
+            }
+        };
+
+        await dialog.ShowAsync();
+        if (draftToRegister is not null)
+        {
+            await ExecuteRegisterServerAgentServiceAsync(draftToRegister);
+        }
+    }
+
+    private async Task ExecuteRegisterServerAgentServiceAsync(ServerAgentServiceRegistrationDraft draft)
+    {
+        ErrorInfoBar.IsOpen = false;
+        StatusText.Text = "Ожидание подтверждения администратора...";
+
+        try
+        {
+            var scriptPath = WriteRegistrationScript(draft.ScriptText);
+            using var process = Process.Start(new ProcessStartInfo
+            {
+                FileName = "cmd.exe",
+                Arguments = $"/c {QuoteCommandValue(scriptPath)}",
+                UseShellExecute = true,
+                Verb = "runas",
+                WorkingDirectory = Path.GetDirectoryName(scriptPath) ?? string.Empty
+            });
+
+            if (process is null)
+            {
+                StatusText.Text = "Регистрация службы не была запущена";
+                return;
+            }
+
+            StatusText.Text = "Регистрация службы выполняется...";
+            await Task.Run(process.WaitForExit);
+
+            if (process.ExitCode != 0)
+            {
+                ErrorInfoBar.Title = "Не удалось зарегистрировать службу";
+                ErrorInfoBar.Message = $"Команда регистрации завершилась с кодом {process.ExitCode}. Команда была скопирована в буфер обмена.";
+                ErrorInfoBar.IsOpen = true;
+                CopyToClipboard(draft.CommandText, "Команда регистрации службы");
+                return;
+            }
+
+            if (await RefreshServicesAsync())
+            {
+                StatusText.Text = $"Служба была зарегистрирована: {draft.ExpectedServiceName}";
+            }
+        }
+        catch (Win32Exception exception) when (exception.NativeErrorCode == 1223)
+        {
+            StatusText.Text = "Регистрация службы была отменена";
+        }
+        catch (Exception exception)
+        {
+            ErrorInfoBar.Title = "Не удалось зарегистрировать службу";
+            ErrorInfoBar.Message = exception.Message;
+            ErrorInfoBar.IsOpen = true;
+            StatusText.Text = "Регистрация службы не была выполнена";
+        }
+    }
+
+    private static string WriteRegistrationScript(string scriptText)
+    {
+        var tempDirectory = GetRegistrationTempDirectory();
+        Directory.CreateDirectory(tempDirectory);
+
+        var scriptPath = Path.Combine(
+            tempDirectory,
+            $"register-server-agent-{DateTime.Now:yyyyMMdd-HHmmss}.cmd");
+        File.WriteAllText(scriptPath, scriptText, Encoding.UTF8);
+        return scriptPath;
+    }
+
+    private static string GetRegistrationTempDirectory()
+    {
+        try
+        {
+            var localCachePath = Windows.Storage.ApplicationData.Current.LocalCacheFolder.Path;
+            if (!string.IsNullOrWhiteSpace(localCachePath))
+            {
+                return Path.Combine(localCachePath, "AdminConsoleFor1C", "Temp");
+            }
+        }
+        catch (InvalidOperationException)
+        {
+            // Unpackaged fallback.
+        }
+
+        return Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "AdminConsoleFor1C",
+            "Temp");
+    }
+
+    private static bool TryCreateServerAgentServiceRegistrationDraft(
+        OneCServerAgentSetupCandidateViewModel candidate,
+        string dataDirectoryText,
+        string agentPortText,
+        string clusterPortText,
+        string processRangeText,
+        string debugModeText,
+        string debugServerPortText,
+        string serviceUserText,
+        string servicePassword,
+        out ServerAgentServiceRegistrationDraft? draft,
+        out string validationMessage)
+    {
+        draft = null;
+        validationMessage = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(candidate.RagentPathText)
+            || !File.Exists(candidate.RagentPathText))
+        {
+            validationMessage = "Файл ragent.exe не найден.";
+            return false;
+        }
+
+        var dataDirectory = NormalizeFormValue(dataDirectoryText);
+        if (string.IsNullOrWhiteSpace(dataDirectory))
+        {
+            validationMessage = "Укажите каталог данных кластера.";
+            return false;
+        }
+
+        if (!TryReadPort(agentPortText, "Порт агента", out var agentPort, out validationMessage)
+            || !TryReadPort(clusterPortText, "Порт кластера", out var clusterPort, out validationMessage)
+            || !TryReadProcessRange(processRangeText, out var processRangeStart, out var processRangeEnd, out validationMessage))
+        {
+            return false;
+        }
+
+        var debugMode = GetServerAgentDebugModeValue(debugModeText);
+        var debugServerPort = 0;
+        if (debugMode is not null
+            && !TryReadPort(debugServerPortText, "Порт сервера отладки", out debugServerPort, out validationMessage))
+        {
+            return false;
+        }
+
+        if (!ValidateServerAgentPorts(
+                agentPort,
+                clusterPort,
+                processRangeStart,
+                processRangeEnd,
+                debugMode is not null ? debugServerPort : null,
+                out validationMessage))
+        {
+            return false;
+        }
+
+        var serviceUser = NormalizeFormValue(serviceUserText);
+        var normalizedServicePassword = NormalizeFormValue(servicePassword);
+        if (string.IsNullOrWhiteSpace(serviceUser) && !string.IsNullOrWhiteSpace(normalizedServicePassword))
+        {
+            validationMessage = "Пароль пользователя службы можно указать только вместе с пользователем службы.";
+            return false;
+        }
+
+        var processRange = string.Create(
+            CultureInfo.InvariantCulture,
+            $"{processRangeStart}:{processRangeEnd}");
+        var expectedServiceName = GetServerAgentServiceName(candidate.VersionText, agentPort);
+        var expectedServiceDisplayName = expectedServiceName;
+        var serviceDescription = GetServerAgentServiceDescription(
+            candidate.VersionText,
+            agentPort,
+            clusterPort,
+            processRange);
+        var arguments = BuildServerAgentServiceArguments(
+            clusterPort,
+            agentPort,
+            processRange,
+            dataDirectory,
+            debugMode,
+            debugServerPort);
+        var scriptText = BuildServerAgentServiceRegistrationScript(
+            candidate.RagentPathText,
+            arguments,
+            dataDirectory,
+            expectedServiceName,
+            expectedServiceDisplayName,
+            serviceDescription,
+            serviceUser,
+            normalizedServicePassword);
+
+        draft = new ServerAgentServiceRegistrationDraft(
+            candidate.RagentPathText,
+            scriptText,
+            scriptText,
+            expectedServiceName,
+            serviceDescription);
+        return true;
+    }
+
+    private static TextBox CreateReadOnlyDialogTextBox(string text)
+    {
+        return new TextBox
+        {
+            Width = 420,
+            MinHeight = 34,
+            IsReadOnly = true,
+            Text = text,
+            TextWrapping = TextWrapping.Wrap
+        };
+    }
+
+    private static TextBox CreatePortTextBox(string text)
+    {
+        return new TextBox
+        {
+            Width = 420,
+            Height = 34,
+            Text = text
+        };
+    }
+
+    private static TextBox CreateOptionalDialogTextBox(string placeholderText)
+    {
+        return new TextBox
+        {
+            Width = 420,
+            Height = 34,
+            PlaceholderText = placeholderText
+        };
+    }
+
+    private static ComboBox CreateServiceDialogComboBox(params string[] items)
+    {
+        var comboBox = CreateComboBox(null, items);
+        comboBox.Width = 420;
+        return comboBox;
+    }
+
+    private static string[] GetServiceAccountOptions()
+    {
+        var accounts = new List<string>
+        {
+            ServiceAccountLocalSystem,
+            ServiceAccountLocalService,
+            ServiceAccountNetworkService
+        };
+
+        var currentUser = GetCurrentUserServiceAccountName();
+        if (!string.IsNullOrWhiteSpace(currentUser))
+        {
+            accounts.Add(currentUser);
+        }
+
+        accounts.Add(ServiceAccountCustom);
+        return accounts
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
+    private static string? GetCurrentUserServiceAccountName()
+    {
+        var userName = Environment.UserName;
+        if (string.IsNullOrWhiteSpace(userName))
+        {
+            return null;
+        }
+
+        var domainName = Environment.UserDomainName;
+        if (string.IsNullOrWhiteSpace(domainName)
+            || string.Equals(domainName, Environment.MachineName, StringComparison.OrdinalIgnoreCase))
+        {
+            return $@".\{userName}";
+        }
+
+        return $@"{domainName}\{userName}";
+    }
+
+    private static bool IsBuiltInServiceAccount(string accountName)
+    {
+        return string.Equals(accountName, ServiceAccountLocalSystem, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(accountName, @"NT AUTHORITY\SYSTEM", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(accountName, ServiceAccountLocalService, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(accountName, ServiceAccountNetworkService, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool TryReadPort(string text, string fieldName, out int port, out string validationMessage)
+    {
+        validationMessage = string.Empty;
+        if (!int.TryParse(text.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out port)
+            || port is < 1 or > 65535)
+        {
+            validationMessage = $"{fieldName}: укажите порт от 1 до 65535.";
+            return false;
+        }
+
+        return true;
+    }
+
+    private static bool TryReadProcessRange(
+        string text,
+        out int start,
+        out int end,
+        out string validationMessage)
+    {
+        start = 0;
+        end = 0;
+        validationMessage = string.Empty;
+
+        var parts = text.Split([':', '-'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (parts.Length != 2
+            || !int.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out start)
+            || !int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out end)
+            || start is < 1 or > 65535
+            || end is < 1 or > 65535
+            || start > end)
+        {
+            validationMessage = "Диапазон процессов: укажите диапазон портов, например 2560:2591.";
+            return false;
+        }
+
+        return true;
+    }
+
+    private static bool ValidateServerAgentPorts(
+        int agentPort,
+        int clusterPort,
+        int processRangeStart,
+        int processRangeEnd,
+        int? debugServerPort,
+        out string validationMessage)
+    {
+        validationMessage = string.Empty;
+        var namedPorts = new Dictionary<int, string>
+        {
+            [agentPort] = "агента",
+        };
+
+        if (!namedPorts.TryAdd(clusterPort, "кластера"))
+        {
+            validationMessage = "Порт агента и порт кластера должны быть разными.";
+            return false;
+        }
+
+        if (debugServerPort is not null
+            && !namedPorts.TryAdd(debugServerPort.Value, "HTTP-отладки"))
+        {
+            validationMessage = "Порт HTTP-отладки должен отличаться от портов агента и кластера.";
+            return false;
+        }
+
+        foreach (var (port, name) in namedPorts)
+        {
+            if (port >= processRangeStart && port <= processRangeEnd)
+            {
+                validationMessage = $"Порт {name} не должен попадать в диапазон рабочих процессов.";
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static string BuildServerAgentServiceArguments(
+        int clusterPort,
+        int agentPort,
+        string processRange,
+        string dataDirectory,
+        string? debugMode,
+        int debugServerPort)
+    {
+        var builder = new StringBuilder()
+            .Append("/srvc /agent")
+            .Append(" /regport ")
+            .Append(clusterPort.ToString(CultureInfo.InvariantCulture))
+            .Append(" /port ")
+            .Append(agentPort.ToString(CultureInfo.InvariantCulture))
+            .Append(" /range ")
+            .Append(processRange)
+            .Append(" /d ")
+            .Append(QuoteBinPathArgument(dataDirectory));
+
+        if (debugMode is not null)
+        {
+            builder
+                .Append(" /debug ")
+                .Append(debugMode)
+                .Append(" /debugServerPort ")
+                .Append(debugServerPort.ToString(CultureInfo.InvariantCulture));
+        }
+
+        return builder.ToString();
+    }
+
+    private static string GetServerAgentServiceName(string version, int agentPort)
+    {
+        return string.Create(
+            CultureInfo.InvariantCulture,
+            $"1C:Enterprise {GetServerAgentVersionFamily(version)} Server Agent {agentPort} {version}");
+    }
+
+    private static string GetServerAgentServiceDescription(
+        string version,
+        int agentPort,
+        int clusterPort,
+        string processRange)
+    {
+        return string.Create(
+            CultureInfo.InvariantCulture,
+            $"1C:Enterprise {GetServerAgentVersionFamily(version)} Server Agent. Parameters: {version}, ragent port: {agentPort}, rmngr port: {clusterPort}, range: {processRange}.");
+    }
+
+    private static string BuildServerAgentServiceRegistrationScript(
+        string ragentPath,
+        string serviceArguments,
+        string dataDirectory,
+        string serviceName,
+        string displayName,
+        string description,
+        string? serviceUser,
+        string? servicePassword)
+    {
+        var builder = new StringBuilder()
+            .AppendLine("@echo off")
+            .AppendLine("setlocal EnableExtensions")
+            .Append("if not exist ")
+            .Append(QuoteCommandValue(dataDirectory))
+            .Append(" mkdir ")
+            .Append(QuoteCommandValue(dataDirectory))
+            .AppendLine()
+            .Append("set BinPath=\"")
+            .Append(QuoteBinPathArgument(ragentPath))
+            .Append(' ')
+            .Append(serviceArguments)
+            .AppendLine("\"")
+            .Append("set DisplayName=")
+            .Append(QuoteCommandValue(displayName))
+            .AppendLine()
+            .Append("set Description=")
+            .Append(QuoteCommandValue(description))
+            .AppendLine()
+            .Append("sc create ")
+            .Append(QuoteCommandValue(serviceName))
+            .Append(" binPath= %BinPath% start= auto");
+
+        if (!string.IsNullOrWhiteSpace(serviceUser))
+        {
+            builder
+                .Append(" obj= ")
+                .Append(QuoteCommandValue(serviceUser));
+
+            if (!string.IsNullOrWhiteSpace(servicePassword))
+            {
+                builder
+                    .Append(" password= ")
+                    .Append(QuoteCommandValue(servicePassword));
+            }
+        }
+
+        builder
+            .Append(" displayname= %DisplayName% depend= Dnscache/Tcpip/Tcpip6/lanmanworkstation/lanmanserver")
+            .AppendLine()
+            .AppendLine("set CreateExitCode=%ERRORLEVEL%")
+            .AppendLine("if not \"%CreateExitCode%\"==\"0\" exit /b %CreateExitCode%")
+            .Append("sc description ")
+            .Append(QuoteCommandValue(serviceName))
+            .Append(" %Description%")
+            .AppendLine()
+            .AppendLine("set DescriptionExitCode=%ERRORLEVEL%")
+            .AppendLine("exit /b %DescriptionExitCode%");
+
+        return builder.ToString();
+    }
+
+    private static string? GetServerAgentDebugModeValue(string debugModeText)
+    {
+        return debugModeText switch
+        {
+            "TCP" => "-tcp",
+            "HTTP" => "-http",
+            _ => null
+        };
+    }
+
+    private static string GetServerAgentVersionFamily(string version)
+    {
+        var parts = version.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return parts.Length >= 2
+            ? string.Create(CultureInfo.InvariantCulture, $"{parts[0]}.{parts[1]}")
+            : "8";
+    }
+
+    private static string QuoteCommandValue(string value)
+    {
+        return $"\"{value.Replace("\"", "\\\"", StringComparison.Ordinal)}\"";
+    }
+
+    private static string QuoteBinPathArgument(string value)
+    {
+        return $"\\\"{value.Replace("\"", "\\\"", StringComparison.Ordinal)}\\\"";
+    }
+
+    private sealed record ServerAgentServiceRegistrationDraft(
+        string RagentPath,
+        string ScriptText,
+        string CommandText,
+        string ExpectedServiceName,
+        string ServiceDescription);
 
     private async Task ShowCreateInfobaseDraftDialogAsync(OneCClusterViewModel cluster)
     {
@@ -1400,7 +2379,7 @@ public sealed partial class MainPage : Page
             Microsoft.UI.ColorHelper.FromArgb(alpha, red, green, blue));
     }
 
-    private static void AddDialogFormRow(Grid grid, int row, string labelText, FrameworkElement control)
+    private static TextBlock AddDialogFormRow(Grid grid, int row, string labelText, FrameworkElement control)
     {
         grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         control.HorizontalAlignment = HorizontalAlignment.Stretch;
@@ -1424,6 +2403,8 @@ public sealed partial class MainPage : Page
 
         grid.Children.Add(label);
         grid.Children.Add(control);
+
+        return label;
     }
 
     private static void AddDialogCheckBoxRow(Grid grid, int row, string labelText, CheckBox checkBox)
@@ -1478,6 +2459,57 @@ public sealed partial class MainPage : Page
         return comboBox.SelectedItem as string ?? string.Empty;
     }
 
+    private static bool TryValidateWindowsCredentials(string accountName, string password, out string message)
+    {
+        if (string.IsNullOrWhiteSpace(accountName))
+        {
+            message = "Укажите имя пользователя.";
+            return false;
+        }
+
+        var (domain, userName) = SplitWindowsAccountName(accountName);
+        if (string.IsNullOrWhiteSpace(userName))
+        {
+            message = "Укажите пользователя в формате DOMAIN\\user, .\\user или user@domain.";
+            return false;
+        }
+
+        if (LogonUser(
+                userName,
+                domain,
+                password,
+                Logon32LogonNetwork,
+                Logon32ProviderDefault,
+                out var token))
+        {
+            CloseHandle(token);
+            message = "Пароль подходит.";
+            return true;
+        }
+
+        var error = Marshal.GetLastWin32Error();
+        message = $"Пароль не подходит: {new Win32Exception(error).Message}";
+        return false;
+    }
+
+    private static (string? Domain, string UserName) SplitWindowsAccountName(string accountName)
+    {
+        var normalized = accountName.Trim();
+        var separatorIndex = normalized.IndexOf('\\', StringComparison.Ordinal);
+        if (separatorIndex > 0 && separatorIndex < normalized.Length - 1)
+        {
+            var domain = normalized[..separatorIndex];
+            if (string.Equals(domain, ".", StringComparison.Ordinal))
+            {
+                domain = Environment.MachineName;
+            }
+
+            return (domain, normalized[(separatorIndex + 1)..]);
+        }
+
+        return (null, normalized);
+    }
+
     private static string? NormalizeFormValue(string? value)
     {
         return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
@@ -1529,4 +2561,16 @@ public sealed partial class MainPage : Page
     {
         return GetSelectedText(comboBox) == "Нет" ? "deny" : "allow";
     }
+
+    [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+    private static extern bool LogonUser(
+        string lpszUsername,
+        string? lpszDomain,
+        string? lpszPassword,
+        int dwLogonType,
+        int dwLogonProvider,
+        out IntPtr phToken);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool CloseHandle(IntPtr hObject);
 }
