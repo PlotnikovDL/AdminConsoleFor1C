@@ -384,7 +384,11 @@ public sealed partial class MainPage : Page
         var nodes = new List<OneCServiceProcessNode>();
         var assignedProcessIds = new HashSet<uint>();
 
-        foreach (var service in services)
+        foreach (var service in services
+            .OrderBy(static service => string.IsNullOrWhiteSpace(service.Version))
+            .ThenBy(static service => ParseVersion(service.Version))
+            .ThenBy(static service => service.AgentPort ?? int.MaxValue)
+            .ThenBy(static service => service.DisplayNameText, StringComparer.OrdinalIgnoreCase))
         {
             var serviceProcessId = service.ProcessId;
             var serviceProcesses = serviceProcessId is null or 0
@@ -433,6 +437,13 @@ public sealed partial class MainPage : Page
             .Select(static path => path!)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
+    }
+
+    private static Version ParseVersion(string? version)
+    {
+        return Version.TryParse(version, out var parsed)
+            ? parsed
+            : new Version();
     }
 
     private async Task<OneCClusterDiagnosticsViewModel> GetClusterDiagnosticsAsync(
