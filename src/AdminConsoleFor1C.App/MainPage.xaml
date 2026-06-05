@@ -1128,6 +1128,18 @@
                                             <TextBlock Text="Службы Windows" />
                                         </StackPanel>
                                     </Button>
+
+                                    <Button
+                                        AutomationProperties.Name="Удалить службу 1С"
+                                        Click="DeleteServiceButton_Click"
+                                        IsEnabled="{Binding CanDeleteService}"
+                                        Tag="{Binding}"
+                                        ToolTipService.ToolTip="Удалить службу Windows">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <SymbolIcon Symbol="Delete" />
+                                            <TextBlock Text="Удалить..." />
+                                        </StackPanel>
+                                    </Button>
                                 </StackPanel>
 
                                 <ProgressRing

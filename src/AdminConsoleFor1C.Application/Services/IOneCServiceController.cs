@@ -7,4 +7,6 @@ public interface IOneCServiceController
     Task StopAsync(string serviceName, CancellationToken cancellationToken = default);
 
     Task RestartAsync(string serviceName, CancellationToken cancellationToken = default);
+
+    Task DeleteAsync(string serviceName, CancellationToken cancellationToken = default);
 }

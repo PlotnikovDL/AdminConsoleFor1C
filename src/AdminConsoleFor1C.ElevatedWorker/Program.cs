@@ -40,6 +40,7 @@ static ElevatedWorkerCommand ParseCommand(string[] args)
         "start" => OneCServiceControlAction.Start,
         "stop" => OneCServiceControlAction.Stop,
         "restart" => OneCServiceControlAction.Restart,
+        "delete" => OneCServiceControlAction.Delete,
         _ => throw new InvalidOperationException("Неизвестное действие со службой.")
     };
 
@@ -94,6 +95,9 @@ static async Task ExecuteCommandAsync(ElevatedWorkerCommand command)
             break;
         case OneCServiceControlAction.Restart:
             await controller.RestartAsync(command.ServiceName);
+            break;
+        case OneCServiceControlAction.Delete:
+            await controller.DeleteAsync(command.ServiceName);
             break;
         default:
             throw new ArgumentOutOfRangeException(nameof(command), command.Action, null);

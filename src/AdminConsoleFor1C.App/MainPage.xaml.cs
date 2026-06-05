@@ -123,6 +123,14 @@ public sealed partial class MainPage : Page
         }
     }
 
+    private async void DeleteServiceButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: OneCServiceProcessNode node })
+        {
+            await ExecuteServiceCommandAsync(node, OneCServiceControlAction.Delete);
+        }
+    }
+
     private async void StartTemporaryRasButton_Click(object sender, RoutedEventArgs e)
     {
         await StartTemporaryRasAsync();
@@ -2261,6 +2269,9 @@ public sealed partial class MainPage : Page
                 case OneCServiceControlAction.Restart:
                     await _serviceController.RestartAsync(serviceName);
                     break;
+                case OneCServiceControlAction.Delete:
+                    await _serviceController.DeleteAsync(serviceName);
+                    break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(action), action, null);
             }
@@ -2301,19 +2312,57 @@ public sealed partial class MainPage : Page
             return true;
         }
 
+        var serviceDisplayName = node.Service?.DisplayNameText ?? node.Title;
+        var content = action switch
+        {
+            OneCServiceControlAction.Stop or OneCServiceControlAction.Restart =>
+                $"{serviceDisplayName}{Environment.NewLine}{Environment.NewLine}Активные подключения к этому компоненту могут быть прерваны.",
+            OneCServiceControlAction.Delete =>
+                BuildDeleteServiceConfirmationText(node, serviceDisplayName),
+            _ => string.Empty
+        };
+
         var dialog = new ContentDialog
         {
             XamlRoot = XamlRoot,
-            Title = action == OneCServiceControlAction.Stop
-                ? "Остановить службу 1С?"
-                : "Перезапустить службу 1С?",
-            Content = $"{node.Service?.DisplayNameText}{Environment.NewLine}{Environment.NewLine}Активные подключения к этому компоненту могут быть прерваны.",
-            PrimaryButtonText = action == OneCServiceControlAction.Stop ? "Остановить" : "Перезапустить",
+            Title = action switch
+            {
+                OneCServiceControlAction.Stop => "Остановить службу 1С?",
+                OneCServiceControlAction.Restart => "Перезапустить службу 1С?",
+                OneCServiceControlAction.Delete => "Удалить службу 1С?",
+                _ => "Выполнить действие со службой?"
+            },
+            Content = content,
+            PrimaryButtonText = action switch
+            {
+                OneCServiceControlAction.Stop => "Остановить",
+                OneCServiceControlAction.Restart => "Перезапустить",
+                OneCServiceControlAction.Delete => "Удалить",
+                _ => "Выполнить"
+            },
             CloseButtonText = "Отмена",
             DefaultButton = ContentDialogButton.Close
         };
 
         return await dialog.ShowAsync() == ContentDialogResult.Primary;
+    }
+
+    private static string BuildDeleteServiceConfirmationText(
+        OneCServiceProcessNode node,
+        string serviceDisplayName)
+    {
+        var text =
+            $"{serviceDisplayName}{Environment.NewLine}{Environment.NewLine}" +
+            "Будет удалена только запись службы Windows. Файлы платформы 1С и каталог данных не удаляются.";
+
+        if (node.Service?.State == "Running")
+        {
+            text +=
+                $"{Environment.NewLine}{Environment.NewLine}" +
+                "Служба сейчас работает. Приложение сначала остановит её, затем удалит запись службы Windows.";
+        }
+
+        return text;
     }
 
     private void SetServiceCommandRunning(bool isRunning)
@@ -2339,6 +2388,7 @@ public sealed partial class MainPage : Page
             OneCServiceControlAction.Start => "Запуск службы...",
             OneCServiceControlAction.Stop => "Остановка службы...",
             OneCServiceControlAction.Restart => "Перезапуск службы...",
+            OneCServiceControlAction.Delete => "Остановка и удаление службы...",
             _ => "Выполнение действия..."
         };
     }
@@ -2350,6 +2400,7 @@ public sealed partial class MainPage : Page
             OneCServiceControlAction.Start => "Служба была запущена",
             OneCServiceControlAction.Stop => "Служба была остановлена",
             OneCServiceControlAction.Restart => "Служба была перезапущена",
+            OneCServiceControlAction.Delete => "Служба была удалена",
             _ => "Действие было выполнено"
         };
     }

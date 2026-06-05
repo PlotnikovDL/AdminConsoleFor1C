@@ -49,6 +49,8 @@ public sealed class OneCServiceProcessNode : INotifyPropertyChanged
 
     public bool CanRestartService => Service?.State == "Running";
 
+    public bool CanDeleteService => Service is not null;
+
     public bool IsExpanded
     {
         get => _isExpanded;

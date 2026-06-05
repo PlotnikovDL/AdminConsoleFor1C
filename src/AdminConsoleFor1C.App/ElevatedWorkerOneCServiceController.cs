@@ -27,6 +27,11 @@ internal sealed class ElevatedWorkerOneCServiceController : IOneCServiceControll
         return ExecuteAsync(serviceName, OneCServiceControlAction.Restart, cancellationToken);
     }
 
+    public Task DeleteAsync(string serviceName, CancellationToken cancellationToken = default)
+    {
+        return ExecuteAsync(serviceName, OneCServiceControlAction.Delete, cancellationToken);
+    }
+
     private async Task ExecuteAsync(
         string serviceName,
         OneCServiceControlAction action,
@@ -57,6 +62,9 @@ internal sealed class ElevatedWorkerOneCServiceController : IOneCServiceControll
                 break;
             case OneCServiceControlAction.Restart:
                 await _directController.RestartAsync(serviceName, cancellationToken);
+                break;
+            case OneCServiceControlAction.Delete:
+                await _directController.DeleteAsync(serviceName, cancellationToken);
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(action), action, null);
@@ -213,6 +221,7 @@ internal sealed class ElevatedWorkerOneCServiceController : IOneCServiceControll
             OneCServiceControlAction.Start => "start",
             OneCServiceControlAction.Stop => "stop",
             OneCServiceControlAction.Restart => "restart",
+            OneCServiceControlAction.Delete => "delete",
             _ => throw new ArgumentOutOfRangeException(nameof(action), action, null)
         };
     }
