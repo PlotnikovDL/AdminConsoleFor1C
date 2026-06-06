@@ -105,7 +105,7 @@
                 x:Name="ContentGrid"
                 ColumnSpacing="24">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="640" />
+                    <ColumnDefinition Width="520" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
@@ -122,8 +122,8 @@
                             <ItemsRepeater.ItemTemplate>
                                 <DataTemplate>
                                     <Border
-                                        Margin="0,0,0,12"
-                                        Padding="16"
+                                        Margin="0,0,0,10"
+                                        Padding="12"
                                         HorizontalAlignment="Stretch"
                                         Background="{Binding CardBackgroundBrush}"
                                         BorderBrush="{Binding CardBorderBrush}"
@@ -131,38 +131,24 @@
                                         CornerRadius="6"
                                         Tag="{Binding}"
                                         Tapped="ServiceNode_Tapped">
-                                        <Grid ColumnSpacing="12">
+                                        <Grid ColumnSpacing="10">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto" />
-                                                <ColumnDefinition Width="Auto" />
                                                 <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="120" />
-                                                <ColumnDefinition Width="170" />
+                                                <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
 
                                             <Border
                                                 Width="4"
-                                                Height="36"
-                                                VerticalAlignment="Top"
+                                                MinHeight="44"
+                                                VerticalAlignment="Stretch"
                                                 Background="{Binding StatusAccentBrush}"
                                                 CornerRadius="2" />
 
-                                            <Button
+                                            <StackPanel
                                                 Grid.Column="1"
-                                                Width="32"
-                                                Height="32"
-                                                Padding="0"
-                                                VerticalAlignment="Top"
-                                                Click="ToggleNodeButton_Click"
-                                                Tag="{Binding}">
-                                                <TextBlock
-                                                    HorizontalAlignment="Center"
-                                                    VerticalAlignment="Center"
-                                                    FontSize="18"
-                                                    Text="{Binding ExpandGlyph}" />
-                                            </Button>
-
-                                            <StackPanel Grid.Column="2" Spacing="4">
+                                                Spacing="3"
+                                                VerticalAlignment="Center">
                                                 <TextBlock
                                                     Style="{StaticResource SectionTitleTextBlockStyle}"
                                                     Text="{Binding Title}"
@@ -170,64 +156,59 @@
                                                 <TextBlock
                                                     Style="{StaticResource MetadataValueTextBlockStyle}"
                                                     Text="{Binding WindowsServicesDisplayNameText}"
-                                                    TextTrimming="CharacterEllipsis" />
-                                                <StackPanel
-                                                    Orientation="Horizontal"
-                                                    Spacing="8"
+                                                    TextWrapping="WrapWholeWords"
+                                                    MaxLines="2" />
+                                                <Grid
+                                                    ColumnSpacing="6"
                                                     Visibility="{Binding ProcessSummaryVisibility}">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
                                                     <TextBlock
                                                         FontSize="12"
                                                         FontWeight="SemiBold"
                                                         Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                         Text="{Binding ProcessesSummaryText}" />
                                                     <TextBlock
+                                                        Grid.Column="1"
                                                         FontSize="12"
                                                         Foreground="{ThemeResource TextFillColorTertiaryBrush}"
                                                         Text="{Binding ProcessNamesSummaryText}"
                                                         TextTrimming="CharacterEllipsis" />
-                                                </StackPanel>
+                                                </Grid>
                                             </StackPanel>
 
-                                            <StackPanel Grid.Column="3" Spacing="4">
-                                                <TextBlock
-                                                    Style="{StaticResource ColumnLabelTextBlockStyle}"
-                                                    Text="Состояние" />
-                                                <Border
-                                                    MinHeight="28"
-                                                    Padding="8,0"
-                                                    HorizontalAlignment="Left"
-                                                    Background="{Binding StatusBadgeBackgroundBrush}"
-                                                    BorderBrush="{Binding StatusAccentBrush}"
-                                                    BorderThickness="1"
-                                                    CornerRadius="10">
-                                                    <StackPanel
+                                            <Border
+                                                Grid.Column="2"
+                                                MinWidth="124"
+                                                MinHeight="30"
+                                                Padding="10,4"
+                                                HorizontalAlignment="Right"
+                                                VerticalAlignment="Center"
+                                                Background="{Binding StatusChipBackgroundBrush}"
+                                                CornerRadius="12">
+                                                <Grid ColumnSpacing="8">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <Ellipse
+                                                        Width="8"
+                                                        Height="8"
                                                         VerticalAlignment="Center"
-                                                        Orientation="Horizontal"
-                                                        Spacing="6">
-                                                        <Ellipse
-                                                            Width="7"
-                                                            Height="7"
-                                                            VerticalAlignment="Center"
-                                                            Fill="{Binding StatusAccentBrush}" />
-                                                        <TextBlock
-                                                            VerticalAlignment="Center"
-                                                            FontWeight="SemiBold"
-                                                            LineHeight="20"
-                                                            Text="{Binding StateDisplayName}"
-                                                            TextTrimming="CharacterEllipsis" />
-                                                    </StackPanel>
-                                                </Border>
-                                            </StackPanel>
-
-                                            <StackPanel Grid.Column="4" Spacing="4">
-                                                <TextBlock
-                                                    Style="{StaticResource ColumnLabelTextBlockStyle}"
-                                                    Text="Порты" />
-                                                <TextBlock
-                                                    LineHeight="20"
-                                                    Text="{Binding PortsText}"
-                                                    TextWrapping="WrapWholeWords" />
-                                            </StackPanel>
+                                                        Fill="{Binding StatusAccentBrush}" />
+                                                    <TextBlock
+                                                        Grid.Column="1"
+                                                        MinWidth="92"
+                                                        VerticalAlignment="Center"
+                                                        Foreground="{Binding StatusTextBrush}"
+                                                        FontWeight="SemiBold"
+                                                        LineHeight="20"
+                                                        Text="{Binding StateDisplayName}"
+                                                        TextTrimming="CharacterEllipsis" />
+                                                </Grid>
+                                            </Border>
                                         </Grid>
                                     </Border>
                                 </DataTemplate>

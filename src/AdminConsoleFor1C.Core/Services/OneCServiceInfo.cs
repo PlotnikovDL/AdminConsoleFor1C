@@ -59,14 +59,19 @@ public sealed record OneCServiceInfo
     public string StateDisplayName => State switch
     {
         "Running" => "Работает",
-        "Stopped" => "Остановлена",
-        "Paused" => "Приостановлена",
+        "Stopped" => IsServerComponent ? "Остановлен" : "Остановлена",
+        "Paused" => IsServerComponent ? "Приостановлен" : "Приостановлена",
         "Start Pending" => "Запускается",
         "Stop Pending" => "Останавливается",
         "Continue Pending" => "Возобновляется",
         "Pause Pending" => "Приостанавливается",
         _ => string.IsNullOrWhiteSpace(State) ? "—" : State
     };
+
+    private bool IsServerComponent => Kind is
+        OneCServiceKind.ServerAgent
+        or OneCServiceKind.AdministrationServer
+        or OneCServiceKind.DebugServer;
 
     public string StartModeDisplayName => StartMode switch
     {

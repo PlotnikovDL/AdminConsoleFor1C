@@ -67,14 +67,6 @@ public sealed partial class MainPage : Page
         await RefreshServicesAsync();
     }
 
-    private void ToggleNodeButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is FrameworkElement { Tag: OneCServiceProcessNode node })
-        {
-            node.ToggleExpanded();
-        }
-    }
-
     private void ServiceNode_Tapped(object sender, Microsoft.UI.Xaml.Input.TappedRoutedEventArgs e)
     {
         if (sender is FrameworkElement { Tag: OneCServiceProcessNode node })

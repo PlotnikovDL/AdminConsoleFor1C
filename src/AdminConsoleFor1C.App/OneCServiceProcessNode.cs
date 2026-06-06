@@ -9,7 +9,6 @@ namespace AdminConsoleFor1C.App;
 
 public sealed class OneCServiceProcessNode : INotifyPropertyChanged
 {
-    private bool _isExpanded = true;
     private bool _isSelected;
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -31,14 +30,6 @@ public sealed class OneCServiceProcessNode : INotifyPropertyChanged
         ? Visibility.Collapsed
         : Visibility.Visible;
 
-    public Visibility ServiceDetailsVisibility => Service is not null && IsExpanded
-        ? Visibility.Visible
-        : Visibility.Collapsed;
-
-    public Visibility ProcessesVisibility => Processes.Count > 0 && IsExpanded
-        ? Visibility.Visible
-        : Visibility.Collapsed;
-
     public Visibility ProcessSummaryVisibility => Processes.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
 
     public Visibility ServiceActionsVisibility => Service is null ? Visibility.Collapsed : Visibility.Visible;
@@ -50,24 +41,6 @@ public sealed class OneCServiceProcessNode : INotifyPropertyChanged
     public bool CanRestartService => Service?.State == "Running";
 
     public bool CanDeleteService => Service is not null;
-
-    public bool IsExpanded
-    {
-        get => _isExpanded;
-        private set
-        {
-            if (_isExpanded == value)
-            {
-                return;
-            }
-
-            _isExpanded = value;
-            OnPropertyChanged();
-            OnPropertyChanged(nameof(ExpandGlyph));
-            OnPropertyChanged(nameof(ServiceDetailsVisibility));
-            OnPropertyChanged(nameof(ProcessesVisibility));
-        }
-    }
 
     public bool IsSelected
     {
@@ -87,8 +60,6 @@ public sealed class OneCServiceProcessNode : INotifyPropertyChanged
         }
     }
 
-    public string ExpandGlyph => IsExpanded ? "−" : "+";
-
     public Brush CardBorderBrush => new SolidColorBrush(IsSelected
         ? ColorHelper.FromArgb(255, 0, 95, 184)
         : ColorHelper.FromArgb(28, 0, 0, 0));
@@ -104,6 +75,10 @@ public sealed class OneCServiceProcessNode : INotifyPropertyChanged
     public Brush StatusAccentBrush => new SolidColorBrush(GetStatusAccentColor());
 
     public Brush StatusBadgeBackgroundBrush => new SolidColorBrush(GetStatusBadgeBackgroundColor());
+
+    public Brush StatusChipBackgroundBrush => new SolidColorBrush(GetStatusChipBackgroundColor());
+
+    public Brush StatusTextBrush => new SolidColorBrush(GetStatusTextColor());
 
     public string VersionText => Service?.VersionText ?? GetFirstProcessValue(static process => process.VersionText);
 
@@ -184,9 +159,30 @@ public sealed class OneCServiceProcessNode : INotifyPropertyChanged
         };
     }
 
-    public void ToggleExpanded()
+    private Windows.UI.Color GetStatusChipBackgroundColor()
     {
-        IsExpanded = !IsExpanded;
+        return Service?.State switch
+        {
+            "Running" => ColorHelper.FromArgb(38, 16, 124, 65),
+            "Stopped" => ColorHelper.FromArgb(32, 115, 115, 115),
+            "Paused" => ColorHelper.FromArgb(38, 157, 93, 0),
+            "Start Pending" or "Stop Pending" or "Continue Pending" or "Pause Pending" => ColorHelper.FromArgb(38, 139, 105, 20),
+            null => ColorHelper.FromArgb(24, 96, 96, 96),
+            _ => ColorHelper.FromArgb(38, 196, 43, 28)
+        };
+    }
+
+    private Windows.UI.Color GetStatusTextColor()
+    {
+        return Service?.State switch
+        {
+            "Running" => ColorHelper.FromArgb(255, 10, 86, 46),
+            "Stopped" => ColorHelper.FromArgb(255, 67, 67, 67),
+            "Paused" => ColorHelper.FromArgb(255, 104, 62, 0),
+            "Start Pending" or "Stop Pending" or "Continue Pending" or "Pause Pending" => ColorHelper.FromArgb(255, 92, 70, 14),
+            null => ColorHelper.FromArgb(255, 67, 67, 67),
+            _ => ColorHelper.FromArgb(255, 132, 28, 19)
+        };
     }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
