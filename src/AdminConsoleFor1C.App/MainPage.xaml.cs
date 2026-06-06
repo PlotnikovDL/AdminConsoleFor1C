@@ -677,37 +677,64 @@ public sealed partial class MainPage : Page
 
     private async Task ShowServerAgentServiceDialogAsync(OneCServerAgentSetupCandidateViewModel candidate)
     {
+        const double dialogLabelWidth = 180;
+        const double dialogFieldWidth = 420;
+
         var serviceNameTextBox = CreateReadOnlyDialogTextBox(candidate.ExpectedServiceNameText);
+        serviceNameTextBox.Width = dialogFieldWidth;
         var ragentPathTextBox = CreateReadOnlyDialogTextBox(candidate.RagentPathText);
+        ragentPathTextBox.Width = dialogFieldWidth;
         var dataDirectoryTextBox = new TextBox
         {
-            Width = 420,
+            Width = dialogFieldWidth,
             Height = 34,
             IsSpellCheckEnabled = false,
             Text = candidate.SuggestedServiceDataDirectory
         };
+        var dataDirectoryCautionBrush = GetThemeBrush("SystemFillColorCautionBrush", 255, 157, 93, 0);
         var existingDataDirectoryTextBlock = new TextBlock
         {
-            Foreground = GetThemeBrush("SystemFillColorCautionBrush", 255, 157, 93, 0),
+            Foreground = GetThemeBrush("TextFillColorSecondaryBrush", 255, 96, 96, 96),
             LineHeight = 18,
-            Text = "Каталог данных уже содержит файлы. Если это каталог старой службы, могут восстановиться прежние настройки и список информационных баз.",
-            TextWrapping = TextWrapping.WrapWholeWords,
+            Text = "Каталог уже содержит файлы. Могут восстановиться прежние настройки кластера и список баз.",
+            TextWrapping = TextWrapping.WrapWholeWords
+        };
+        var existingDataDirectoryHintPanel = new Grid
+        {
+            ColumnSpacing = 6,
             Visibility = Visibility.Collapsed
         };
+        existingDataDirectoryHintPanel.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        existingDataDirectoryHintPanel.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        var existingDataDirectoryIcon = new FontIcon
+        {
+            FontSize = 12,
+            Foreground = dataDirectoryCautionBrush,
+            Glyph = "\uE946",
+            Margin = new Thickness(0, 5, 0, 0),
+            VerticalAlignment = VerticalAlignment.Top
+        };
+        Grid.SetColumn(existingDataDirectoryIcon, 0);
+        Grid.SetColumn(existingDataDirectoryTextBlock, 1);
+        existingDataDirectoryHintPanel.Children.Add(existingDataDirectoryIcon);
+        existingDataDirectoryHintPanel.Children.Add(existingDataDirectoryTextBlock);
         var dataDirectoryPanel = new StackPanel
         {
+            Width = dialogFieldWidth,
             Spacing = 4,
             Children =
             {
                 dataDirectoryTextBox,
-                existingDataDirectoryTextBlock
+                existingDataDirectoryHintPanel
             }
         };
         var agentPortTextBox = CreatePortTextBox(candidate.AgentPortText);
+        agentPortTextBox.Width = dialogFieldWidth;
         var clusterPortTextBox = CreatePortTextBox(candidate.ClusterPortText);
+        clusterPortTextBox.Width = dialogFieldWidth;
         var processRangeTextBox = new TextBox
         {
-            Width = 420,
+            Width = dialogFieldWidth,
             Height = 34,
             IsSpellCheckEnabled = false,
             Text = candidate.ProcessRangeText
@@ -716,21 +743,23 @@ public sealed partial class MainPage : Page
             "Выключен",
             "TCP",
             "HTTP");
+        debugModeComboBox.Width = dialogFieldWidth;
         var debugServerPortTextBox = CreatePortTextBox(candidate.DebugServerPortText);
+        debugServerPortTextBox.Width = dialogFieldWidth;
         var serviceUserComboBox = CreateServiceDialogComboBox(GetServiceAccountOptions());
-        serviceUserComboBox.Width = 320;
-        serviceUserComboBox.HorizontalAlignment = HorizontalAlignment.Left;
+        serviceUserComboBox.Width = double.NaN;
+        serviceUserComboBox.HorizontalAlignment = HorizontalAlignment.Stretch;
         var serviceUserPanel = new Grid
         {
-            Width = 420,
+            Width = dialogFieldWidth,
             Children =
             {
                 serviceUserComboBox
             }
         };
         var serviceCustomUserTextBox = CreateOptionalDialogTextBox(@"DOMAIN\user или .\user");
-        serviceCustomUserTextBox.Width = 420;
-        serviceCustomUserTextBox.HorizontalAlignment = HorizontalAlignment.Left;
+        serviceCustomUserTextBox.Width = dialogFieldWidth;
+        serviceCustomUserTextBox.HorizontalAlignment = HorizontalAlignment.Stretch;
         var servicePasswordBox = new PasswordBox
         {
             Width = 260,
@@ -743,6 +772,22 @@ public sealed partial class MainPage : Page
             Height = 34,
             Width = 132
         };
+        var servicePasswordInputGrid = new Grid
+        {
+            Width = dialogFieldWidth,
+            ColumnSpacing = 8,
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) },
+                new ColumnDefinition { Width = GridLength.Auto }
+            }
+        };
+        servicePasswordBox.Width = double.NaN;
+        servicePasswordBox.HorizontalAlignment = HorizontalAlignment.Stretch;
+        Grid.SetColumn(servicePasswordBox, 0);
+        Grid.SetColumn(checkServicePasswordButton, 1);
+        servicePasswordInputGrid.Children.Add(servicePasswordBox);
+        servicePasswordInputGrid.Children.Add(checkServicePasswordButton);
         var servicePasswordStatusTextBlock = new TextBlock
         {
             LineHeight = 18,
@@ -754,16 +799,7 @@ public sealed partial class MainPage : Page
             Spacing = 4,
             Children =
             {
-                new StackPanel
-                {
-                    Orientation = Orientation.Horizontal,
-                    Spacing = 8,
-                    Children =
-                    {
-                        servicePasswordBox,
-                        checkServicePasswordButton
-                    }
-                },
+                servicePasswordInputGrid,
                 servicePasswordStatusTextBlock
             }
         };
@@ -789,8 +825,8 @@ public sealed partial class MainPage : Page
             RowSpacing = 6,
             ColumnDefinitions =
             {
-                new ColumnDefinition { Width = new GridLength(210) },
-                new ColumnDefinition { Width = new GridLength(420) }
+                new ColumnDefinition { Width = new GridLength(dialogLabelWidth) },
+                new ColumnDefinition { Width = new GridLength(dialogFieldWidth) }
             }
         };
 
@@ -812,14 +848,16 @@ public sealed partial class MainPage : Page
             RowSpacing = 6,
             ColumnDefinitions =
             {
-                new ColumnDefinition { Width = new GridLength(210) },
-                new ColumnDefinition { Width = new GridLength(420) }
+                new ColumnDefinition { Width = new GridLength(dialogLabelWidth) },
+                new ColumnDefinition { Width = new GridLength(dialogFieldWidth) }
             }
         };
         var serviceAccountRow = 0;
         AddDialogFormRow(serviceAccountGrid, serviceAccountRow++, "Пользователь службы:", serviceUserPanel);
         var serviceCustomUserLabel = AddDialogFormRow(serviceAccountGrid, serviceAccountRow++, "Имя пользователя:", serviceCustomUserTextBox);
         var servicePasswordLabel = AddDialogFormRow(serviceAccountGrid, serviceAccountRow, "Пароль пользователя:", servicePasswordPanel);
+        servicePasswordLabel.VerticalAlignment = VerticalAlignment.Top;
+        servicePasswordLabel.Margin = new Thickness(0, 7, 0, 0);
 
         var formCard = new Border
         {
@@ -844,7 +882,7 @@ public sealed partial class MainPage : Page
         };
         var contentPanel = new StackPanel
         {
-            Width = 680,
+            Width = 636,
             Spacing = 12,
             Children =
             {
@@ -949,7 +987,7 @@ public sealed partial class MainPage : Page
         void UpdateDataDirectoryInfo()
         {
             var showInfo = HasExistingDataDirectoryContent(dataDirectoryTextBox.Text);
-            existingDataDirectoryTextBlock.Visibility = showInfo ? Visibility.Visible : Visibility.Collapsed;
+            existingDataDirectoryHintPanel.Visibility = showInfo ? Visibility.Visible : Visibility.Collapsed;
         }
 
         void UpdateServiceAccountControls()
