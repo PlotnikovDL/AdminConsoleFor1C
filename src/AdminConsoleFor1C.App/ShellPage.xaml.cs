@@ -29,19 +29,19 @@ public sealed partial class ShellPage : Page
 
     private void NavigateToSection(string sectionTag)
     {
-        if (_currentSectionTag == sectionTag && ContentFrame.Content is MainPage)
+        if (_currentSectionTag == sectionTag && ContentFrame.Content is AgentsPage)
         {
             return;
         }
 
         _currentSectionTag = sectionTag;
 
-        if (ContentFrame.Content is MainPage mainPage)
+        if (ContentFrame.Content is AgentsPage agentsPage)
         {
-            mainPage.NavigateToSection(sectionTag);
+            agentsPage.NavigateToSection(sectionTag);
             return;
         }
 
-        ContentFrame.Navigate(typeof(MainPage), sectionTag);
+        ContentFrame.Navigate(typeof(AgentsPage), sectionTag);
     }
 }
