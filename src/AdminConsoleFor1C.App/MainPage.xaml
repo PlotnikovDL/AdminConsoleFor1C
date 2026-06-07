@@ -49,55 +49,6 @@
         </Style>
     </Page.Resources>
 
-    <NavigationView
-        x:Name="RootNavigation"
-        IsBackButtonVisible="Collapsed"
-        IsSettingsVisible="False"
-        PaneDisplayMode="Left"
-        SelectionChanged="RootNavigation_SelectionChanged">
-        <NavigationView.MenuItems>
-            <NavigationViewItem
-                x:Name="AgentsNavigationItem"
-                Content="Агенты сервера 1С"
-                Tag="agents">
-                <NavigationViewItem.Icon>
-                    <PathIcon Data="M9.25 6C8.83579 6 8.5 6.33579 8.5 6.75C8.5 7.16421 8.83579 7.5 9.25 7.5H14.75C15.1642 7.5 15.5 7.16421 15.5 6.75C15.5 6.33579 15.1642 6 14.75 6H9.25ZM8.5 17.75C8.5 17.3358 8.83579 17 9.25 17H14.75C15.1642 17 15.5 17.3358 15.5 17.75C15.5 18.1642 15.1642 18.5 14.75 18.5H9.25C8.83579 18.5 8.5 18.1642 8.5 17.75ZM9.25 14C8.83579 14 8.5 14.3358 8.5 14.75C8.5 15.1642 8.83579 15.5 9.25 15.5H14.75C15.1642 15.5 15.5 15.1642 15.5 14.75C15.5 14.3358 15.1642 14 14.75 14H9.25ZM6 5C6 3.34315 7.34315 2 9 2H15C16.6569 2 18 3.34315 18 5V19C18 20.6569 16.6569 22 15 22H9C7.34315 22 6 20.6569 6 19V5ZM9 3.5C8.17157 3.5 7.5 4.17157 7.5 5V19C7.5 19.8284 8.17157 20.5 9 20.5H15C15.8284 20.5 16.5 19.8284 16.5 19V5C16.5 4.17157 15.8284 3.5 15 3.5H9Z" />
-                </NavigationViewItem.Icon>
-            </NavigationViewItem>
-            <NavigationViewItem
-                x:Name="InfobasesNavigationItem"
-                Content="Информационные базы"
-                Tag="infobases">
-                <NavigationViewItem.Icon>
-                    <PathIcon Data="M4 6C4 5.30945 4.3153 4.70664 4.77423 4.22025C5.2294 3.73784 5.85301 3.33745 6.56668 3.01752C7.99575 2.3769 9.91738 2 12 2C14.0826 2 16.0042 2.3769 17.4333 3.01752C18.147 3.33745 18.7706 3.73784 19.2258 4.22025C19.6847 4.70664 20 5.30945 20 6V18C20 18.6906 19.6847 19.2934 19.2258 19.7798C18.7706 20.2622 18.147 20.6626 17.4333 20.9825C16.0042 21.6231 14.0826 22 12 22C9.91738 22 7.99575 21.6231 6.56668 20.9825C5.85301 20.6626 5.2294 20.2622 4.77423 19.7798C4.3153 19.2934 4 18.6906 4 18V6ZM5.5 6C5.5 6.20691 5.59044 6.45909 5.86525 6.75034C6.14382 7.04559 6.58195 7.3455 7.18027 7.61372C8.37519 8.14937 10.0786 8.5 12 8.5C13.9214 8.5 15.6248 8.14937 16.8197 7.61372C17.418 7.3455 17.8562 7.04559 18.1348 6.75034C18.4096 6.45909 18.5 6.20691 18.5 6C18.5 5.79309 18.4096 5.54091 18.1348 5.24966C17.8562 4.95441 17.418 4.65449 16.8197 4.38628C15.6248 3.85063 13.9214 3.5 12 3.5C10.0786 3.5 8.37519 3.85063 7.18027 4.38628C6.58195 4.65449 6.14382 4.95441 5.86525 5.24966C5.59044 5.54091 5.5 5.79309 5.5 6ZM18.5 8.39242C18.1791 8.61282 17.8194 8.80942 17.4333 8.98248C16.0042 9.6231 14.0826 10 12 10C9.91738 10 7.99575 9.6231 6.56668 8.98248C6.18063 8.80942 5.82094 8.61282 5.5 8.39242V18C5.5 18.2069 5.59044 18.4591 5.86525 18.7503C6.14382 19.0456 6.58195 19.3455 7.18027 19.6137C8.37519 20.1494 10.0786 20.5 12 20.5C13.9214 20.5 15.6248 20.1494 16.8197 19.6137C17.418 19.3455 17.8562 19.0456 18.1348 18.7503C18.4096 18.4591 18.5 18.2069 18.5 18V8.39242Z" />
-                </NavigationViewItem.Icon>
-            </NavigationViewItem>
-            <NavigationViewItem
-                x:Name="SessionsNavigationItem"
-                Content="Сеансы"
-                Tag="sessions">
-                <NavigationViewItem.Icon>
-                    <FontIcon Glyph="&#xE716;" />
-                </NavigationViewItem.Icon>
-            </NavigationViewItem>
-            <NavigationViewItem
-                x:Name="LicensesNavigationItem"
-                Content="Лицензии"
-                Tag="licenses">
-                <NavigationViewItem.Icon>
-                    <FontIcon Glyph="&#xE8D7;" />
-                </NavigationViewItem.Icon>
-            </NavigationViewItem>
-            <NavigationViewItem
-                x:Name="SettingsNavigationItem"
-                Content="Настройки"
-                Tag="settings">
-                <NavigationViewItem.Icon>
-                    <FontIcon Glyph="&#xE713;" />
-                </NavigationViewItem.Icon>
-            </NavigationViewItem>
-        </NavigationView.MenuItems>
-
     <Grid Padding="24" RowSpacing="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -1778,5 +1729,4 @@
             </Border>
         </Grid>
     </Grid>
-    </NavigationView>
 </Page>

@@ -22,8 +22,8 @@ public sealed partial class MainWindow : Window
 
         AppWindow.SetIcon("Assets/AppIcon.ico");
 
-        // Navigate the root frame to the main page on startup.
-        RootFrame.Navigate(typeof(MainPage));
+        // Navigate the root frame to the application shell on startup.
+        RootFrame.Navigate(typeof(ShellPage));
 
         if (AppWindow.Presenter is OverlappedPresenter presenter)
         {

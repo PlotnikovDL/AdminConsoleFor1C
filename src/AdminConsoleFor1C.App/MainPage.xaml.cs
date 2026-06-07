@@ -10,6 +10,7 @@ using AdminConsoleFor1C.Core.Services;
 using AdminConsoleFor1C.Infrastructure.Services;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Navigation;
 using Windows.ApplicationModel.DataTransfer;
 
 namespace AdminConsoleFor1C.App;
@@ -61,9 +62,23 @@ public sealed partial class MainPage : Page
         ClustersCard.DataContext = initialClusterDiagnostics;
         InfobasesCard.DataContext = initialClusterDiagnostics;
         LicensesCard.DataContext = initialClusterDiagnostics;
-        RootNavigation.SelectedItem = AgentsNavigationItem;
         ApplyCurrentSection();
         Loaded += MainPage_Loaded;
+    }
+
+    public void NavigateToSection(string sectionTag)
+    {
+        SetCurrentSection(sectionTag);
+    }
+
+    protected override void OnNavigatedTo(NavigationEventArgs e)
+    {
+        base.OnNavigatedTo(e);
+
+        if (e.Parameter is string sectionTag)
+        {
+            SetCurrentSection(sectionTag);
+        }
     }
 
     private async void MainPage_Loaded(object sender, RoutedEventArgs e)
@@ -77,16 +92,9 @@ public sealed partial class MainPage : Page
         await RefreshServicesAsync();
     }
 
-    private void RootNavigation_SelectionChanged(
-        NavigationView sender,
-        NavigationViewSelectionChangedEventArgs args)
+    private void SetCurrentSection(string sectionTag)
     {
-        if (args.SelectedItemContainer?.Tag is not string tag)
-        {
-            return;
-        }
-
-        _currentSection = tag switch
+        _currentSection = sectionTag switch
         {
             "infobases" => MainPageSection.Infobases,
             "sessions" => MainPageSection.Sessions,
