@@ -11,6 +11,8 @@ public sealed class RacOneCClusterInventory : IOneCClusterInventory
     private static readonly TimeSpan CommandTimeout = TimeSpan.FromSeconds(6);
     private static readonly TimeSpan CreateInfobaseCommandTimeout = TimeSpan.FromMinutes(2);
     private static readonly TimeSpan UpdateInfobaseCommandTimeout = TimeSpan.FromSeconds(20);
+    private static readonly TimeSpan SessionCommandTimeout = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan DropInfobaseCommandTimeout = TimeSpan.FromSeconds(30);
 
     static RacOneCClusterInventory()
     {
@@ -103,6 +105,47 @@ public sealed class RacOneCClusterInventory : IOneCClusterInventory
         }
     }
 
+    public async Task<OneCClusterInventoryResult> GetAgentClustersAsync(
+        OneCAgentEndpoint agent,
+        CancellationToken cancellationToken = default)
+    {
+        return await GetClustersAsync(agent.RacPath, agent.AdministrationServerAddress, cancellationToken);
+    }
+
+    public async Task<OneCInfobaseSummaryInfo?> GetInfobaseDetailsAsync(
+        string racPath,
+        string administrationServerAddress,
+        string clusterUuid,
+        OneCInfobaseSummaryInfo summary,
+        CancellationToken cancellationToken = default)
+    {
+        var details = await GetInfobaseDetailsCoreAsync(
+            racPath,
+            administrationServerAddress,
+            clusterUuid,
+            summary,
+            cancellationToken);
+
+        return details.Item;
+    }
+
+    public async Task<IReadOnlyList<OneCSessionInfo>> GetInfobaseSessionsAsync(
+        string racPath,
+        string administrationServerAddress,
+        string clusterUuid,
+        string infobaseUuid,
+        CancellationToken cancellationToken = default)
+    {
+        var sessions = await GetInfobaseSessionsCoreAsync(
+            racPath,
+            administrationServerAddress,
+            clusterUuid,
+            infobaseUuid,
+            cancellationToken);
+
+        return sessions.Items;
+    }
+
     public async Task<OneCClusterCommandResult> CreateInfobaseAsync(
         string racPath,
         OneCInfobaseCreateRequest request,
@@ -154,6 +197,24 @@ public sealed class RacOneCClusterInventory : IOneCClusterInventory
         }
     }
 
+    public async Task<OneCClusterCommandResult> CreateInfobaseRegistrationAsync(
+        string racPath,
+        OneCInfobaseTransferPlan plan,
+        CancellationToken cancellationToken = default)
+    {
+        if (!TryCreateRegistrationRequest(plan, out var request, out var validationMessage))
+        {
+            return new OneCClusterCommandResult
+            {
+                CommandText = "rac.exe infobase create",
+                IsSuccess = false,
+                Message = validationMessage
+            };
+        }
+
+        return await CreateInfobaseAsync(racPath, request!, cancellationToken);
+    }
+
     public async Task<OneCClusterCommandResult> UpdateInfobaseRestrictionsAsync(
         string racPath,
         OneCInfobaseRestrictionsUpdateRequest request,
@@ -189,6 +250,166 @@ public sealed class RacOneCClusterInventory : IOneCClusterInventory
                 Message = command.ExitCode == 0
                     ? NormalizeMessage(combinedOutput, "Параметры информационной базы были обновлены")
                     : NormalizeMessage(combinedOutput, "Параметры информационной базы не были обновлены")
+            };
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return new OneCClusterCommandResult
+            {
+                CommandText = commandText,
+                IsSuccess = false,
+                Message = "Команда rac не ответила за отведенное время"
+            };
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
+        {
+            return new OneCClusterCommandResult
+            {
+                CommandText = commandText,
+                IsSuccess = false,
+                Message = exception.Message
+            };
+        }
+    }
+
+    public async Task<OneCClusterCommandResult> TerminateInfobaseSessionsAsync(
+        string racPath,
+        string administrationServerAddress,
+        string clusterUuid,
+        string infobaseUuid,
+        string message,
+        CancellationToken cancellationToken = default)
+    {
+        var listArguments = BuildInfobaseSessionsArguments(administrationServerAddress, clusterUuid, infobaseUuid);
+        var commandText = BuildSafeCommandText(racPath, listArguments);
+        if (string.IsNullOrWhiteSpace(racPath) || !File.Exists(racPath))
+        {
+            return new OneCClusterCommandResult
+            {
+                CommandText = commandText,
+                IsSuccess = false,
+                Message = "rac.exe не найден"
+            };
+        }
+
+        try
+        {
+            var sessions = await GetInfobaseSessionsCoreAsync(
+                racPath,
+                administrationServerAddress,
+                clusterUuid,
+                infobaseUuid,
+                cancellationToken);
+
+            if (!string.IsNullOrWhiteSpace(sessions.Message))
+            {
+                return new OneCClusterCommandResult
+                {
+                    CommandText = commandText,
+                    IsSuccess = false,
+                    Message = sessions.Message
+                };
+            }
+
+            if (sessions.Items.Count == 0)
+            {
+                return new OneCClusterCommandResult
+                {
+                    CommandText = commandText,
+                    IsSuccess = true,
+                    Message = "Активные сеансы не найдены"
+                };
+            }
+
+            var terminated = 0;
+            foreach (var session in sessions.Items.Where(static item => !string.IsNullOrWhiteSpace(item.Uuid)))
+            {
+                string[] terminateArguments =
+                [
+                    administrationServerAddress,
+                    "session",
+                    "terminate",
+                    $"--cluster={clusterUuid}",
+                    $"--session={session.Uuid}",
+                    $"--error-message={message}"
+                ];
+                commandText = BuildSafeCommandText(racPath, terminateArguments);
+                var command = await RunRacAsync(racPath, terminateArguments, SessionCommandTimeout, cancellationToken);
+                var combinedOutput = CombineOutput(command.Output, command.Error);
+                if (command.ExitCode != 0)
+                {
+                    return new OneCClusterCommandResult
+                    {
+                        CommandText = commandText,
+                        IsSuccess = false,
+                        Message = NormalizeMessage(combinedOutput, "Сеанс не был завершен")
+                    };
+                }
+
+                terminated++;
+            }
+
+            return new OneCClusterCommandResult
+            {
+                CommandText = commandText,
+                IsSuccess = true,
+                Message = terminated == 0
+                    ? "Активные сеансы не найдены"
+                    : $"Активные сеансы были завершены: {terminated}"
+            };
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return new OneCClusterCommandResult
+            {
+                CommandText = commandText,
+                IsSuccess = false,
+                Message = "Команда rac не ответила за отведенное время"
+            };
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
+        {
+            return new OneCClusterCommandResult
+            {
+                CommandText = commandText,
+                IsSuccess = false,
+                Message = exception.Message
+            };
+        }
+    }
+
+    public async Task<OneCClusterCommandResult> DropInfobaseRegistrationAsync(
+        string racPath,
+        string administrationServerAddress,
+        string clusterUuid,
+        string infobaseUuid,
+        bool dropDatabase = false,
+        CancellationToken cancellationToken = default)
+    {
+        var arguments = BuildDropInfobaseArguments(administrationServerAddress, clusterUuid, infobaseUuid, dropDatabase);
+        var commandText = BuildSafeCommandText(racPath, arguments);
+        if (string.IsNullOrWhiteSpace(racPath) || !File.Exists(racPath))
+        {
+            return new OneCClusterCommandResult
+            {
+                CommandText = commandText,
+                IsSuccess = false,
+                Message = "rac.exe не найден"
+            };
+        }
+
+        try
+        {
+            var command = await RunRacAsync(racPath, arguments, DropInfobaseCommandTimeout, cancellationToken);
+            var combinedOutput = CombineOutput(command.Output, command.Error);
+
+            return new OneCClusterCommandResult
+            {
+                CommandText = commandText,
+                IsSuccess = command.ExitCode == 0,
+                Message = command.ExitCode == 0
+                    ? NormalizeMessage(combinedOutput, "Регистрация информационной базы была удалена")
+                    : NormalizeMessage(combinedOutput, "Регистрация информационной базы не была удалена")
             };
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
@@ -258,7 +479,7 @@ public sealed class RacOneCClusterInventory : IOneCClusterInventory
         var detailMessages = new List<string>();
         foreach (var summary in infobases)
         {
-            var details = await GetInfobaseDetailsAsync(
+            var details = await GetInfobaseDetailsCoreAsync(
                 racPath,
                 administrationServerAddress,
                 clusterUuid,
@@ -325,7 +546,7 @@ public sealed class RacOneCClusterInventory : IOneCClusterInventory
             cancellationToken);
     }
 
-    private static async Task<(OneCInfobaseSummaryInfo Item, string? Message)> GetInfobaseDetailsAsync(
+    private static async Task<(OneCInfobaseSummaryInfo Item, string? Message)> GetInfobaseDetailsCoreAsync(
         string racPath,
         string administrationServerAddress,
         string clusterUuid,
@@ -368,6 +589,43 @@ public sealed class RacOneCClusterInventory : IOneCClusterInventory
         catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
         {
             return (summary, $"Подробности базы {summary.NameText} не были прочитаны: {exception.Message}");
+        }
+    }
+
+    private static async Task<(IReadOnlyList<OneCSessionInfo> Items, string? Message)> GetInfobaseSessionsCoreAsync(
+        string racPath,
+        string administrationServerAddress,
+        string clusterUuid,
+        string infobaseUuid,
+        CancellationToken cancellationToken)
+    {
+        var arguments = BuildInfobaseSessionsArguments(administrationServerAddress, clusterUuid, infobaseUuid);
+        try
+        {
+            var command = await RunRacAsync(racPath, arguments, SessionCommandTimeout, cancellationToken);
+            if (command.ExitCode != 0)
+            {
+                return (
+                    [],
+                    NormalizeMessage(
+                        CombineOutput(command.Output, command.Error),
+                        "Сеансы информационной базы не были прочитаны"));
+            }
+
+            var sessions = OneCRacOutputParser.ParseObjects(command.Output)
+                .Select(OneCSessionInfo.FromProperties)
+                .Where(static session => !string.IsNullOrWhiteSpace(session.Uuid))
+                .ToList();
+
+            return (sessions, null);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return ([], "Сеансы информационной базы не были прочитаны: команда rac не ответила за отведенное время");
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
+        {
+            return ([], $"Сеансы информационной базы не были прочитаны: {exception.Message}");
         }
     }
 
@@ -535,6 +793,62 @@ public sealed class RacOneCClusterInventory : IOneCClusterInventory
         return arguments;
     }
 
+    private static bool TryCreateRegistrationRequest(
+        OneCInfobaseTransferPlan plan,
+        out OneCInfobaseCreateRequest? request,
+        out string validationMessage)
+    {
+        var source = plan.SourceInfobase;
+        var missing = new List<string>();
+        if (string.IsNullOrWhiteSpace(source.Name))
+        {
+            missing.Add("имя ИБ");
+        }
+
+        if (string.IsNullOrWhiteSpace(source.Dbms))
+        {
+            missing.Add("тип СУБД");
+        }
+
+        if (string.IsNullOrWhiteSpace(source.DbServer))
+        {
+            missing.Add("сервер БД");
+        }
+
+        if (string.IsNullOrWhiteSpace(source.DbName))
+        {
+            missing.Add("имя базы данных");
+        }
+
+        if (missing.Count > 0)
+        {
+            request = null;
+            validationMessage = $"Не удалось подготовить регистрацию ИБ. Не заполнено: {string.Join(", ", missing)}.";
+            return false;
+        }
+
+        request = new OneCInfobaseCreateRequest
+        {
+            AdministrationServerAddress = plan.TargetAgent.AdministrationServerAddress,
+            ClusterUuid = plan.TargetClusterUuid,
+            Name = source.NameText,
+            Description = source.Description,
+            SecurityLevel = source.SecurityLevel,
+            DbServer = source.DbServer!,
+            Dbms = source.Dbms!,
+            DbName = source.DbName!,
+            DbUser = source.DbUser,
+            DbPassword = plan.DbPassword,
+            LicenseDistribution = source.LicenseDistribution,
+            Locale = string.IsNullOrWhiteSpace(source.Locale) ? "ru_RU" : source.Locale!,
+            DateOffset = source.DateOffset,
+            CreateDatabase = false,
+            ScheduledJobsDeny = source.ScheduledJobsDeny
+        };
+        validationMessage = string.Empty;
+        return true;
+    }
+
     private static List<string> BuildUpdateInfobaseRestrictionsArguments(OneCInfobaseRestrictionsUpdateRequest request)
     {
         var arguments = new List<string>
@@ -548,6 +862,44 @@ public sealed class RacOneCClusterInventory : IOneCClusterInventory
 
         AddOptionalOption(arguments, "--sessions-deny", request.SessionsDeny);
         AddOptionalOption(arguments, "--scheduled-jobs-deny", request.ScheduledJobsDeny);
+
+        return arguments;
+    }
+
+    private static string[] BuildInfobaseSessionsArguments(
+        string administrationServerAddress,
+        string clusterUuid,
+        string infobaseUuid)
+    {
+        return
+        [
+            administrationServerAddress,
+            "session",
+            "list",
+            $"--cluster={clusterUuid}",
+            $"--infobase={infobaseUuid}"
+        ];
+    }
+
+    private static List<string> BuildDropInfobaseArguments(
+        string administrationServerAddress,
+        string clusterUuid,
+        string infobaseUuid,
+        bool dropDatabase)
+    {
+        var arguments = new List<string>
+        {
+            administrationServerAddress,
+            "infobase",
+            "drop",
+            $"--cluster={clusterUuid}",
+            $"--infobase={infobaseUuid}"
+        };
+
+        if (dropDatabase)
+        {
+            arguments.Add("--drop-database");
+        }
 
         return arguments;
     }

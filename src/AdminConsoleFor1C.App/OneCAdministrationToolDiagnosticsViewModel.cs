@@ -47,6 +47,8 @@ public sealed class OneCAdministrationToolDiagnosticsViewModel
 
     public OneCAdministrationToolInfo? RasTool { get; }
 
+    public IReadOnlyList<OneCAdministrationToolInfo> Tools => _tools;
+
     public IReadOnlyList<OneCAdministrationToolInfo> RagentTools { get; }
 
     public OneCAdministrationToolInfo? RagentTool { get; }

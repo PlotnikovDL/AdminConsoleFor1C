@@ -15,14 +15,27 @@ public sealed class OneCServiceProcessNode : INotifyPropertyChanged
 
     public required OneCServiceInfo? Service { get; init; }
 
+    public OneCServerAgentSetupCandidateViewModel? ServerAgentSetupCandidate { get; init; }
+
     public required IReadOnlyList<OneCProcessInfo> Processes { get; init; }
 
-    public bool IsOrphanGroup => Service is null;
+    public bool IsServerAgentSetupCandidate => ServerAgentSetupCandidate is not null;
 
-    public string Title => Service?.KindDisplayName ?? "Процессы без службы";
+    public bool IsOrphanGroup => Service is null && !IsServerAgentSetupCandidate;
+
+    public string Title => IsServerAgentSetupCandidate
+        ? "Агент сервера"
+        : Service?.KindDisplayName ?? "Процессы без службы";
 
     public string WindowsServicesDisplayNameText => Service?.DisplayNameText
+        ?? ServerAgentSetupCandidate?.VersionText
         ?? "Запущены, но не сопоставлены со службой Windows";
+
+    public string CandidateExecutablePathText => ServerAgentSetupCandidate?.RagentPathText ?? string.Empty;
+
+    public Visibility CandidateExecutablePathVisibility => string.IsNullOrWhiteSpace(CandidateExecutablePathText)
+        ? Visibility.Collapsed
+        : Visibility.Visible;
 
     public string TaskManagerServiceNameText => Service?.Name ?? string.Empty;
 
@@ -32,7 +45,13 @@ public sealed class OneCServiceProcessNode : INotifyPropertyChanged
 
     public Visibility ProcessSummaryVisibility => Processes.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
 
+    public Visibility ProcessesSectionVisibility => Processes.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+
     public Visibility ServiceActionsVisibility => Service is null ? Visibility.Collapsed : Visibility.Visible;
+
+    public Visibility SetupActionsVisibility => IsServerAgentSetupCandidate ? Visibility.Visible : Visibility.Collapsed;
+
+    public Visibility WindowsNamesVisibility => Service is null ? Visibility.Collapsed : Visibility.Visible;
 
     public bool CanStartService => Service?.State == "Stopped";
 
@@ -70,7 +89,8 @@ public sealed class OneCServiceProcessNode : INotifyPropertyChanged
 
     public Thickness CardBorderThickness => IsSelected ? new Thickness(2) : new Thickness(1);
 
-    public string StateDisplayName => Service?.StateDisplayName ?? "—";
+    public string StateDisplayName => Service?.StateDisplayName
+        ?? (IsServerAgentSetupCandidate ? "Без службы" : "Без службы");
 
     public Brush StatusAccentBrush => new SolidColorBrush(GetStatusAccentColor());
 
@@ -80,21 +100,34 @@ public sealed class OneCServiceProcessNode : INotifyPropertyChanged
 
     public Brush StatusTextBrush => new SolidColorBrush(GetStatusTextColor());
 
-    public string VersionText => Service?.VersionText ?? GetFirstProcessValue(static process => process.VersionText);
+    public Visibility StatusReadyIconVisibility => Service?.State == "Running" ? Visibility.Visible : Visibility.Collapsed;
 
-    public string PortsText => Service?.PortsText ?? GetFirstProcessValue(static process => process.PortsText);
+    public Visibility StatusFallbackDotVisibility => Service?.State == "Running" ? Visibility.Collapsed : Visibility.Visible;
+
+    public string VersionText => Service?.VersionText
+        ?? ServerAgentSetupCandidate?.VersionText
+        ?? GetFirstProcessValue(static process => process.VersionText);
+
+    public string PortsText => Service?.PortsText
+        ?? GetServerAgentSetupPortsText()
+        ?? GetFirstProcessValue(static process => process.PortsText);
 
     public string ProcessIdText => Service?.ProcessIdText ?? GetFirstProcessValue(static process => process.ProcessIdText);
 
     public string ProcessIdSummaryText => ProcessIdText == "—" ? "PID —" : $"PID {ProcessIdText}";
 
-    public string StartModeDisplayName => Service?.StartModeDisplayName ?? "—";
+    public string StartModeDisplayName => Service?.StartModeDisplayName
+        ?? (IsServerAgentSetupCandidate ? "Служба не создана" : "—");
 
     public string AccountText => Service?.AccountText ?? GetFirstProcessValue(static process => process.OwnerText);
 
-    public string DataDirectoryText => Service?.DataDirectoryText ?? "—";
+    public string DataDirectoryText => Service?.DataDirectoryText
+        ?? ServerAgentSetupCandidate?.DataDirectory
+        ?? "—";
 
-    public string ExecutablePathText => Service?.ExecutablePathText ?? "—";
+    public string ExecutablePathText => Service?.ExecutablePathText
+        ?? ServerAgentSetupCandidate?.RagentPathText
+        ?? "—";
 
     public string ArgumentsText => Service?.ArgumentsText ?? "—";
 
@@ -133,14 +166,30 @@ public sealed class OneCServiceProcessNode : INotifyPropertyChanged
         return string.IsNullOrWhiteSpace(value) ? "—" : value;
     }
 
+    private string? GetServerAgentSetupPortsText()
+    {
+        if (ServerAgentSetupCandidate is null)
+        {
+            return null;
+        }
+
+        return string.Join(
+            Environment.NewLine,
+            $"Агент: {ServerAgentSetupCandidate.AgentPortText}",
+            $"Кластер: {ServerAgentSetupCandidate.ClusterPortText}",
+            $"Процессы: {ServerAgentSetupCandidate.ProcessRangeText}",
+            $"Отладка HTTP: {ServerAgentSetupCandidate.DebugServerPortText}");
+    }
+
     private Windows.UI.Color GetStatusAccentColor()
     {
         return Service?.State switch
         {
-            "Running" => ColorHelper.FromArgb(255, 16, 124, 65),
+            "Running" => ColorHelper.FromArgb(255, 16, 124, 16),
             "Stopped" => ColorHelper.FromArgb(255, 115, 115, 115),
             "Paused" => ColorHelper.FromArgb(255, 157, 93, 0),
             "Start Pending" or "Stop Pending" or "Continue Pending" or "Pause Pending" => ColorHelper.FromArgb(255, 139, 105, 20),
+            null when IsServerAgentSetupCandidate => ColorHelper.FromArgb(255, 96, 96, 96),
             null => ColorHelper.FromArgb(255, 96, 96, 96),
             _ => ColorHelper.FromArgb(255, 196, 43, 28)
         };
@@ -150,10 +199,11 @@ public sealed class OneCServiceProcessNode : INotifyPropertyChanged
     {
         return Service?.State switch
         {
-            "Running" => ColorHelper.FromArgb(28, 16, 124, 65),
+            "Running" => ColorHelper.FromArgb(26, 16, 124, 16),
             "Stopped" => ColorHelper.FromArgb(22, 115, 115, 115),
             "Paused" => ColorHelper.FromArgb(28, 157, 93, 0),
             "Start Pending" or "Stop Pending" or "Continue Pending" or "Pause Pending" => ColorHelper.FromArgb(28, 139, 105, 20),
+            null when IsServerAgentSetupCandidate => ColorHelper.FromArgb(18, 96, 96, 96),
             null => ColorHelper.FromArgb(18, 96, 96, 96),
             _ => ColorHelper.FromArgb(28, 196, 43, 28)
         };
@@ -163,10 +213,11 @@ public sealed class OneCServiceProcessNode : INotifyPropertyChanged
     {
         return Service?.State switch
         {
-            "Running" => ColorHelper.FromArgb(38, 16, 124, 65),
+            "Running" => ColorHelper.FromArgb(24, 16, 124, 16),
             "Stopped" => ColorHelper.FromArgb(32, 115, 115, 115),
             "Paused" => ColorHelper.FromArgb(38, 157, 93, 0),
             "Start Pending" or "Stop Pending" or "Continue Pending" or "Pause Pending" => ColorHelper.FromArgb(38, 139, 105, 20),
+            null when IsServerAgentSetupCandidate => ColorHelper.FromArgb(24, 96, 96, 96),
             null => ColorHelper.FromArgb(24, 96, 96, 96),
             _ => ColorHelper.FromArgb(38, 196, 43, 28)
         };
@@ -176,10 +227,11 @@ public sealed class OneCServiceProcessNode : INotifyPropertyChanged
     {
         return Service?.State switch
         {
-            "Running" => ColorHelper.FromArgb(255, 10, 86, 46),
+            "Running" => ColorHelper.FromArgb(255, 10, 95, 10),
             "Stopped" => ColorHelper.FromArgb(255, 67, 67, 67),
             "Paused" => ColorHelper.FromArgb(255, 104, 62, 0),
             "Start Pending" or "Stop Pending" or "Continue Pending" or "Pause Pending" => ColorHelper.FromArgb(255, 92, 70, 14),
+            null when IsServerAgentSetupCandidate => ColorHelper.FromArgb(255, 67, 67, 67),
             null => ColorHelper.FromArgb(255, 67, 67, 67),
             _ => ColorHelper.FromArgb(255, 132, 28, 19)
         };

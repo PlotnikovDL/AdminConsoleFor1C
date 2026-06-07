@@ -2,8 +2,6 @@ using System.Globalization;
 using AdminConsoleFor1C.Core.Administration;
 using AdminConsoleFor1C.Core.Services;
 using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
-using Windows.Foundation;
 
 namespace AdminConsoleFor1C.App;
 
@@ -18,11 +16,6 @@ public sealed class OneCServerAgentSetupViewModel
             administrationTools.RagentTools,
             services,
             processes);
-        var versionColumnWidth = CalculateVersionColumnWidth(candidates);
-        foreach (var candidate in candidates)
-        {
-            candidate.SetVersionColumnWidth(versionColumnWidth);
-        }
 
         Candidates = candidates;
     }
@@ -80,30 +73,6 @@ public sealed class OneCServerAgentSetupViewModel
             .OrderBy(static tool => string.IsNullOrWhiteSpace(tool.Version))
             .ThenBy(static tool => ParseVersion(tool.Version))
             .ThenBy(static tool => tool.FilePath, StringComparer.OrdinalIgnoreCase);
-    }
-
-    private static double CalculateVersionColumnWidth(
-        IReadOnlyList<OneCServerAgentSetupCandidateViewModel> candidates)
-    {
-        var maxWidth = candidates
-            .Select(static candidate => MeasureVersionTextWidth(candidate.VersionText))
-            .DefaultIfEmpty(0)
-            .Max();
-
-        return Math.Ceiling(maxWidth + 8);
-    }
-
-    private static double MeasureVersionTextWidth(string text)
-    {
-        var textBlock = new TextBlock
-        {
-            Text = text,
-            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-            LineHeight = 20
-        };
-
-        textBlock.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-        return textBlock.DesiredSize.Width;
     }
 
     private static bool IsRegisteredAsService(
@@ -329,8 +298,6 @@ public sealed class OneCServerAgentSetupCandidateViewModel
 
     public string VersionText => _ragentTool.VersionText;
 
-    public double VersionColumnWidth { get; private set; }
-
     public string RagentPathText => _ragentTool.FilePathText;
 
     public string ExpectedServiceNameText => $"1C:Enterprise {VersionFamilyText} Server Agent {AgentPortText} {VersionText}";
@@ -352,11 +319,6 @@ public sealed class OneCServerAgentSetupCandidateViewModel
                 ? string.Create(CultureInfo.InvariantCulture, $"{parts[0]}.{parts[1]}")
                 : "8";
         }
-    }
-
-    internal void SetVersionColumnWidth(double width)
-    {
-        VersionColumnWidth = width;
     }
 
     private static bool HasSameVersion(string? left, string? right)

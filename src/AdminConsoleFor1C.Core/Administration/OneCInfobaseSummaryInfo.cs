@@ -18,6 +18,10 @@ public sealed record OneCInfobaseSummaryInfo
 
     public string? DbUser { get; init; }
 
+    public string? Locale { get; init; }
+
+    public string? DateOffset { get; init; }
+
     public string? SecurityLevel { get; init; }
 
     public string? LicenseDistribution { get; init; }
@@ -140,6 +144,8 @@ public sealed record OneCInfobaseSummaryInfo
         properties.TryGetValue("db-server", out var dbServer);
         properties.TryGetValue("db-name", out var dbName);
         properties.TryGetValue("db-user", out var dbUser);
+        properties.TryGetValue("locale", out var locale);
+        properties.TryGetValue("date-offset", out var dateOffset);
         properties.TryGetValue("security-level", out var securityLevel);
         properties.TryGetValue("license-distribution", out var licenseDistribution);
         properties.TryGetValue("sessions-deny", out var sessionsDeny);
@@ -155,6 +161,8 @@ public sealed record OneCInfobaseSummaryInfo
             DbServer = NormalizeValue(dbServer),
             DbName = NormalizeValue(dbName),
             DbUser = NormalizeValue(dbUser),
+            Locale = NormalizeValue(locale),
+            DateOffset = NormalizeValue(dateOffset),
             SecurityLevel = NormalizeValue(securityLevel),
             LicenseDistribution = NormalizeValue(licenseDistribution),
             SessionsDeny = NormalizeValue(sessionsDeny),

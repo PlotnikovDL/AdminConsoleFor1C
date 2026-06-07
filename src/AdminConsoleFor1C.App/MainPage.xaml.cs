@@ -19,6 +19,15 @@ namespace AdminConsoleFor1C.App;
 /// </summary>
 public sealed partial class MainPage : Page
 {
+    private enum MainPageSection
+    {
+        Agents,
+        Infobases,
+        Sessions,
+        Licenses,
+        Settings
+    }
+
     private const string ServiceAccountLocalSystem = "LocalSystem";
     private const string ServiceAccountLocalService = @"NT AUTHORITY\LocalService";
     private const string ServiceAccountNetworkService = @"NT AUTHORITY\NetworkService";
@@ -36,16 +45,14 @@ public sealed partial class MainPage : Page
     private OneCAdministrationToolDiagnosticsViewModel? _administrationToolDiagnostics;
     private OneCServiceProcessNode? _selectedNode;
     private int? _temporaryRasProcessId;
+    private MainPageSection _currentSection = MainPageSection.Agents;
+    private string _agentsStatusText = "Готово";
 
     public MainPage()
     {
         InitializeComponent();
         ServiceTreeRepeater.ItemsSource = _nodes;
         AdministrationToolsCard.DataContext = new OneCAdministrationToolDiagnosticsViewModel([], [], []);
-        ServerAgentSetupCard.DataContext = new OneCServerAgentSetupViewModel(
-            new OneCAdministrationToolDiagnosticsViewModel([], [], []),
-            [],
-            []);
         var initialClusterDiagnostics = new OneCClusterDiagnosticsViewModel(
             CreateUnavailableClusterResult("localhost:1545", "Данные еще не обновлены"),
             "localhost:1540",
@@ -53,6 +60,8 @@ public sealed partial class MainPage : Page
             canStopTemporaryRas: false);
         ClustersCard.DataContext = initialClusterDiagnostics;
         LicensesCard.DataContext = initialClusterDiagnostics;
+        RootNavigation.SelectedItem = AgentsNavigationItem;
+        ApplyCurrentSection();
         Loaded += MainPage_Loaded;
     }
 
@@ -67,6 +76,27 @@ public sealed partial class MainPage : Page
         await RefreshServicesAsync();
     }
 
+    private void RootNavigation_SelectionChanged(
+        NavigationView sender,
+        NavigationViewSelectionChangedEventArgs args)
+    {
+        if (args.SelectedItemContainer?.Tag is not string tag)
+        {
+            return;
+        }
+
+        _currentSection = tag switch
+        {
+            "infobases" => MainPageSection.Infobases,
+            "sessions" => MainPageSection.Sessions,
+            "licenses" => MainPageSection.Licenses,
+            "settings" => MainPageSection.Settings,
+            _ => MainPageSection.Agents
+        };
+
+        ApplyCurrentSection();
+    }
+
     private void ServiceNode_Tapped(object sender, Microsoft.UI.Xaml.Input.TappedRoutedEventArgs e)
     {
         if (sender is FrameworkElement { Tag: OneCServiceProcessNode node })
@@ -77,10 +107,7 @@ public sealed partial class MainPage : Page
 
     private void OpenWindowsServicesButton_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is FrameworkElement { Tag: OneCServiceProcessNode node })
-        {
-            OpenWindowsServices(node.WindowsServicesDisplayNameText);
-        }
+        OpenWindowsServices();
     }
 
     private void CopyValueButton_Click(object sender, RoutedEventArgs e)
@@ -139,6 +166,86 @@ public sealed partial class MainPage : Page
         {
             await ShowCreateInfobaseDraftDialogAsync(cluster);
         }
+    }
+
+    private async void OpenTransferInfobaseDialogButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: OneCInfobaseSummaryInfo infobase })
+        {
+            await ShowTransferInfobaseDialogAsync(infobase);
+        }
+    }
+
+    private async void OpenTransferInfobaseFromClusterButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { Tag: OneCClusterViewModel cluster })
+        {
+            return;
+        }
+
+        if (cluster.Infobases.Count == 0)
+        {
+            StatusText.Text = "Перенос информационной базы не начат";
+            ErrorInfoBar.Title = "Не удалось перенести информационную базу";
+            ErrorInfoBar.Message = "В выбранном кластере нет информационных баз.";
+            ErrorInfoBar.IsOpen = true;
+            return;
+        }
+
+        var infobase = cluster.Infobases.Count == 1
+            ? cluster.Infobases[0]
+            : await SelectInfobaseForTransferAsync(cluster.Infobases);
+
+        if (infobase is not null)
+        {
+            await ShowTransferInfobaseDialogAsync(infobase);
+        }
+    }
+
+    private async Task<OneCInfobaseSummaryInfo?> SelectInfobaseForTransferAsync(
+        IReadOnlyList<OneCInfobaseSummaryInfo> infobases)
+    {
+        var comboBox = new ComboBox
+        {
+            Width = 420,
+            MinWidth = 0,
+            Height = 34,
+            ItemsSource = infobases,
+            DisplayMemberPath = nameof(OneCInfobaseSummaryInfo.NameText),
+            SelectedIndex = 0
+        };
+
+        var content = new StackPanel
+        {
+            Spacing = 10,
+            Children =
+            {
+                new TextBlock
+                {
+                    Text = "Выберите информационную базу, которую нужно зарегистрировать на другом агенте.",
+                    TextWrapping = TextWrapping.WrapWholeWords,
+                    LineHeight = 20
+                },
+                comboBox
+            }
+        };
+
+        var dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = "Перенос информационной базы",
+            Content = content,
+            PrimaryButtonText = "Продолжить",
+            CloseButtonText = "Отмена",
+            DefaultButton = ContentDialogButton.Primary
+        };
+        dialog.Resources["ContentDialogMaxWidth"] = 520d;
+        dialog.Resources["ContentDialogMinWidth"] = 480d;
+
+        var result = await dialog.ShowAsync();
+        return result == ContentDialogResult.Primary
+            ? comboBox.SelectedItem as OneCInfobaseSummaryInfo
+            : null;
     }
 
     private async void ConfigureServerAgentServiceButton_Click(object sender, RoutedEventArgs e)
@@ -263,7 +370,11 @@ public sealed partial class MainPage : Page
         RefreshProgress.IsActive = true;
         RefreshProgress.Visibility = Visibility.Visible;
         ErrorInfoBar.IsOpen = false;
-        StatusText.Text = "Обновление...";
+        _agentsStatusText = "Обновление...";
+        if (_currentSection == MainPageSection.Agents)
+        {
+            StatusText.Text = _agentsStatusText;
+        }
 
         try
         {
@@ -284,12 +395,11 @@ public sealed partial class MainPage : Page
                 services,
                 processes);
             var clusterDiagnostics = await GetClusterDiagnosticsAsync(administrationToolDiagnostics);
-            var nodes = BuildServiceProcessTree(services, processes);
+            var nodes = BuildServiceProcessTree(services, processes, serverAgentSetup.Candidates);
             var previousServiceName = _selectedNode?.Service?.Name;
 
             _administrationToolDiagnostics = administrationToolDiagnostics;
             AdministrationToolsCard.DataContext = administrationToolDiagnostics;
-            ServerAgentSetupCard.DataContext = serverAgentSetup;
             ClustersCard.DataContext = clusterDiagnostics;
             LicensesCard.DataContext = clusterDiagnostics;
 
@@ -302,16 +412,18 @@ public sealed partial class MainPage : Page
             SelectNode(GetNodeToSelect(previousServiceName));
 
             UpdateEmptyState();
-            StatusText.Text = serverAgentSetup.IsVisible && services.All(static service => service.Kind != OneCServiceKind.ServerAgent)
+            _agentsStatusText = serverAgentSetup.IsVisible && services.All(static service => service.Kind != OneCServiceKind.ServerAgent)
                 ? "Найдены компоненты сервера 1С без службы Windows"
                 : $"Найдено служб: {services.Count}, процессов: {processes.Count}";
+            ApplyCurrentSection();
             return true;
         }
         catch (Exception exception)
         {
             ErrorInfoBar.Message = exception.Message;
             ErrorInfoBar.IsOpen = true;
-            StatusText.Text = "Ошибка обновления";
+            _agentsStatusText = "Ошибка обновления";
+            StatusText.Text = _agentsStatusText;
             return false;
         }
         finally
@@ -325,13 +437,53 @@ public sealed partial class MainPage : Page
     private void UpdateEmptyState()
     {
         var hasItems = _nodes.Count > 0;
-        var hasServerAgentSetup = ServerAgentSetupCard.DataContext is OneCServerAgentSetupViewModel { IsVisible: true };
-        var hasLeftContent = hasItems || hasServerAgentSetup;
+        var isAgentsSection = _currentSection == MainPageSection.Agents;
 
-        ServiceTreeRepeater.Visibility = hasItems ? Visibility.Visible : Visibility.Collapsed;
-        ComponentDetailsCard.Visibility = hasItems && _selectedNode is not null ? Visibility.Visible : Visibility.Collapsed;
-        ServicesTable.Visibility = hasLeftContent ? Visibility.Visible : Visibility.Collapsed;
-        EmptyState.Visibility = hasLeftContent ? Visibility.Collapsed : Visibility.Visible;
+        ServiceTreeRepeater.Visibility = isAgentsSection && hasItems ? Visibility.Visible : Visibility.Collapsed;
+        ComponentDetailsCard.Visibility = isAgentsSection && hasItems && _selectedNode is not null
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+        ServicesTable.Visibility = isAgentsSection && hasItems ? Visibility.Visible : Visibility.Collapsed;
+        EmptyState.Visibility = isAgentsSection && !hasItems ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void ApplyCurrentSection()
+    {
+        var isAgentsSection = _currentSection == MainPageSection.Agents;
+
+        PageTitleText.Text = _currentSection switch
+        {
+            MainPageSection.Infobases => "Информационные базы",
+            MainPageSection.Sessions => "Сеансы",
+            MainPageSection.Licenses => "Лицензии",
+            MainPageSection.Settings => "Настройки",
+            _ => "Агенты сервера 1С"
+        };
+
+        StatusText.Text = _currentSection switch
+        {
+            MainPageSection.Infobases => "Кластеры и информационные базы 1С",
+            MainPageSection.Sessions => "Активные пользователи и сеансы информационных баз",
+            MainPageSection.Licenses => "Аппаратные, программные и занятые лицензии",
+            MainPageSection.Settings => "Параметры приложения",
+            _ => _agentsStatusText
+        };
+
+        ServiceListColumn.Width = isAgentsSection
+            ? new GridLength(520)
+            : new GridLength(0);
+        ContentGrid.ColumnSpacing = isAgentsSection ? 24 : 0;
+
+        AdministrationToolsCard.Visibility = isAgentsSection ? Visibility.Visible : Visibility.Collapsed;
+        ClustersCard.Visibility = _currentSection == MainPageSection.Infobases ? Visibility.Visible : Visibility.Collapsed;
+        SessionsCard.Visibility = _currentSection == MainPageSection.Sessions ? Visibility.Visible : Visibility.Collapsed;
+        LicensesCard.Visibility = _currentSection == MainPageSection.Licenses ? Visibility.Visible : Visibility.Collapsed;
+        SettingsCard.Visibility = _currentSection == MainPageSection.Settings ? Visibility.Visible : Visibility.Collapsed;
+
+        Grid.SetRow(ClustersCard, _currentSection == MainPageSection.Infobases ? 0 : 3);
+        Grid.SetRow(LicensesCard, _currentSection == MainPageSection.Licenses ? 0 : 2);
+
+        UpdateEmptyState();
     }
 
     private OneCServiceProcessNode? GetNodeToSelect(string? previousServiceName)
@@ -366,12 +518,15 @@ public sealed partial class MainPage : Page
 
         _selectedNode.IsSelected = true;
         ComponentDetailsCard.DataContext = _selectedNode;
-        ComponentDetailsCard.Visibility = Visibility.Visible;
+        ComponentDetailsCard.Visibility = _currentSection == MainPageSection.Agents
+            ? Visibility.Visible
+            : Visibility.Collapsed;
     }
 
     private static IReadOnlyList<OneCServiceProcessNode> BuildServiceProcessTree(
         IReadOnlyList<OneCServiceInfo> services,
-        IReadOnlyList<OneCProcessInfo> processes)
+        IReadOnlyList<OneCProcessInfo> processes,
+        IReadOnlyList<OneCServerAgentSetupCandidateViewModel> serverAgentSetupCandidates)
     {
         var nodes = new List<OneCServiceProcessNode>();
         var assignedProcessIds = new HashSet<uint>();
@@ -399,6 +554,16 @@ public sealed partial class MainPage : Page
             {
                 Service = service,
                 Processes = serviceProcesses
+            });
+        }
+
+        foreach (var candidate in serverAgentSetupCandidates)
+        {
+            nodes.Add(new OneCServiceProcessNode
+            {
+                Service = null,
+                ServerAgentSetupCandidate = candidate,
+                Processes = []
             });
         }
 
@@ -628,24 +793,17 @@ public sealed partial class MainPage : Page
         StatusText.Text = $"{actionText}: скопировано";
     }
 
-    private void OpenWindowsServices(string displayName)
+    private void OpenWindowsServices()
     {
         try
         {
-            if (IsCopyValueAvailable(displayName))
-            {
-                SetClipboardText(displayName);
-            }
-
             Process.Start(new ProcessStartInfo
             {
                 FileName = "services.msc",
                 UseShellExecute = true
             });
 
-            StatusText.Text = IsCopyValueAvailable(displayName)
-                ? "Открыто окно служб Windows, имя строки скопировано"
-                : "Открыто окно служб Windows";
+            StatusText.Text = "Открыто окно служб Windows";
         }
         catch (Exception exception)
         {
@@ -1645,6 +1803,16 @@ public sealed partial class MainPage : Page
         string ExpectedServiceName,
         string ServiceDescription);
 
+    private sealed record TransferTargetAgentItem(OneCAgentEndpoint Agent)
+    {
+        public string DisplayText => Agent.DisplayText;
+    }
+
+    private sealed record TransferTargetClusterItem(OneCClusterInfo Cluster)
+    {
+        public string DisplayText => $"{Cluster.NameText} ({Cluster.AddressText})";
+    }
+
     private async Task ShowCreateInfobaseDraftDialogAsync(OneCClusterViewModel cluster)
     {
         var infobaseNameTextBox = new TextBox
@@ -2095,6 +2263,773 @@ public sealed partial class MainPage : Page
         }
 
         return result.Message;
+    }
+
+    private async Task ShowTransferInfobaseDialogAsync(OneCInfobaseSummaryInfo infobase)
+    {
+        if (!TryCreateSourceAgentEndpoint(out var sourceAgent, out var sourceAgentError))
+        {
+            StatusText.Text = "Перенос информационной базы не начат";
+            ErrorInfoBar.Title = "Не удалось перенести информационную базу";
+            ErrorInfoBar.Message = sourceAgentError;
+            ErrorInfoBar.IsOpen = true;
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(infobase.ClusterUuid) || string.IsNullOrWhiteSpace(infobase.Uuid))
+        {
+            StatusText.Text = "Перенос информационной базы не начат";
+            ErrorInfoBar.Title = "Не удалось перенести информационную базу";
+            ErrorInfoBar.Message = "Не удалось определить кластер или идентификатор информационной базы.";
+            ErrorInfoBar.IsOpen = true;
+            return;
+        }
+
+        var targetAgents = GetTransferTargetAgents(sourceAgent).ToList();
+        if (targetAgents.Count == 0)
+        {
+            StatusText.Text = "Перенос информационной базы не начат";
+            ErrorInfoBar.Title = "Не удалось перенести информационную базу";
+            ErrorInfoBar.Message = "Другой агент сервера 1С не найден. Сначала создайте или запустите службу агента, на которую нужно перенести регистрацию ИБ.";
+            ErrorInfoBar.IsOpen = true;
+            return;
+        }
+
+        OneCInfobaseSummaryInfo sourceDetails = infobase;
+        IReadOnlyList<OneCSessionInfo> activeSessions = [];
+        try
+        {
+            sourceDetails = await _clusterInventory.GetInfobaseDetailsAsync(
+                    sourceAgent.RacPath,
+                    sourceAgent.AdministrationServerAddress,
+                    infobase.ClusterUuid,
+                    infobase)
+                ?? infobase;
+
+            activeSessions = await _clusterInventory.GetInfobaseSessionsAsync(
+                sourceAgent.RacPath,
+                sourceAgent.AdministrationServerAddress,
+                infobase.ClusterUuid,
+                infobase.Uuid);
+        }
+        catch
+        {
+            // Детали и сеансы уточняются еще раз при выполнении переноса.
+        }
+
+        var targetAgentComboBox = new ComboBox
+        {
+            Width = 430,
+            MinWidth = 0,
+            Height = 34,
+            ItemsSource = targetAgents,
+            DisplayMemberPath = nameof(TransferTargetAgentItem.DisplayText),
+            SelectedIndex = 0
+        };
+        var targetClusterComboBox = new ComboBox
+        {
+            Width = 430,
+            MinWidth = 0,
+            Height = 34,
+            DisplayMemberPath = nameof(TransferTargetClusterItem.DisplayText)
+        };
+        var dbPasswordBox = new PasswordBox
+        {
+            Width = 430,
+            MinWidth = 0,
+            Height = 34,
+            PlaceholderText = string.IsNullOrWhiteSpace(sourceDetails.DbUser)
+                ? "не требуется, если пользователь БД не указан"
+                : "пароль пользователя БД"
+        };
+        var clusterStatusTextBlock = new TextBlock
+        {
+            Foreground = GetThemeBrush("TextFillColorSecondaryBrush", 255, 96, 96, 96),
+            LineHeight = 18,
+            TextWrapping = TextWrapping.WrapWholeWords
+        };
+        var validationTextBlock = new TextBlock
+        {
+            Foreground = GetThemeBrush("SystemFillColorCriticalBrush", 255, 196, 43, 28),
+            LineHeight = 20,
+            TextWrapping = TextWrapping.WrapWholeWords,
+            Visibility = Visibility.Collapsed
+        };
+        var targetProgressRing = new ProgressRing
+        {
+            Width = 18,
+            Height = 18,
+            IsActive = false,
+            Visibility = Visibility.Collapsed
+        };
+        var transferButton = new Button
+        {
+            Content = "Перенести",
+            MinWidth = 170,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            Background = GetThemeBrush("AccentFillColorDefaultBrush", 255, 0, 120, 212),
+            BorderBrush = GetThemeBrush("AccentFillColorDefaultBrush", 255, 0, 120, 212),
+            Foreground = GetThemeBrush("TextOnAccentFillColorPrimaryBrush", 255, 255, 255, 255)
+        };
+        var closeButton = new Button
+        {
+            Content = "Закрыть",
+            MinWidth = 170,
+            HorizontalAlignment = HorizontalAlignment.Stretch
+        };
+
+        var infoBar = new InfoBar
+        {
+            IsOpen = true,
+            IsClosable = false,
+            Severity = InfoBarSeverity.Informational,
+            Title = "Будет создана регистрация ИБ на другом агенте.",
+            Message = "База данных в СУБД не переносится и не удаляется."
+        };
+        var sourceGrid = CreateTransferSummaryGrid(sourceAgent, sourceDetails, activeSessions.Count);
+        var targetGrid = new Grid
+        {
+            ColumnSpacing = 12,
+            RowSpacing = 6,
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = new GridLength(180) },
+                new ColumnDefinition { Width = new GridLength(430) }
+            }
+        };
+
+        var targetRow = 0;
+        AddDialogFormRow(targetGrid, targetRow++, "Целевой агент:", targetAgentComboBox);
+        AddDialogFormRow(targetGrid, targetRow++, "Целевой кластер:", targetClusterComboBox);
+        AddDialogFormRow(targetGrid, targetRow++, "Пароль пользователя БД:", dbPasswordBox);
+
+        var statusPanel = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 8,
+            Children =
+            {
+                targetProgressRing,
+                clusterStatusTextBlock
+            }
+        };
+        Grid.SetRow(statusPanel, targetRow);
+        Grid.SetColumn(statusPanel, 1);
+        targetGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        targetGrid.Children.Add(statusPanel);
+
+        var content = new StackPanel
+        {
+            Width = 650,
+            Spacing = 14,
+            Children =
+            {
+                infoBar,
+                new Border
+                {
+                    Padding = new Thickness(12),
+                    Background = GetThemeBrush("CardBackgroundFillColorDefaultBrush", 255, 255, 255, 255),
+                    BorderBrush = GetThemeBrush("CardStrokeColorDefaultBrush", 64, 0, 0, 0),
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(6),
+                    Child = new StackPanel
+                    {
+                        Spacing = 12,
+                        Children =
+                        {
+                            CreateDialogSectionTitle("Источник"),
+                            sourceGrid
+                        }
+                    }
+                },
+                new Border
+                {
+                    Padding = new Thickness(12),
+                    Background = GetThemeBrush("CardBackgroundFillColorDefaultBrush", 255, 255, 255, 255),
+                    BorderBrush = GetThemeBrush("CardStrokeColorDefaultBrush", 64, 0, 0, 0),
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(6),
+                    Child = new StackPanel
+                    {
+                        Spacing = 12,
+                        Children =
+                        {
+                            CreateDialogSectionTitle("Цель"),
+                            targetGrid,
+                            validationTextBlock
+                        }
+                    }
+                }
+            }
+        };
+        var footer = new Grid
+        {
+            Margin = new Thickness(0, 12, 0, 0),
+            ColumnSpacing = 8,
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) },
+                new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }
+            },
+            Children =
+            {
+                transferButton,
+                closeButton
+            }
+        };
+        Grid.SetColumn(closeButton, 1);
+        content.Children.Add(footer);
+
+        ContentDialog? dialog = null;
+        OneCInfobaseTransferPlan? planToExecute = null;
+
+        async Task LoadTargetClustersAsync()
+        {
+            targetClusterComboBox.ItemsSource = null;
+            targetClusterComboBox.SelectedIndex = -1;
+            targetClusterComboBox.IsEnabled = false;
+            transferButton.IsEnabled = false;
+            validationTextBlock.Visibility = Visibility.Collapsed;
+            clusterStatusTextBlock.Text = "Проверка целевого агента...";
+            targetProgressRing.IsActive = true;
+            targetProgressRing.Visibility = Visibility.Visible;
+
+            if (targetAgentComboBox.SelectedItem is not TransferTargetAgentItem targetAgentItem)
+            {
+                clusterStatusTextBlock.Text = "Выберите целевой агент.";
+                targetProgressRing.IsActive = false;
+                targetProgressRing.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            try
+            {
+                var result = await _clusterInventory.GetAgentClustersAsync(targetAgentItem.Agent);
+                if (!result.IsAvailable)
+                {
+                    clusterStatusTextBlock.Text = $"Целевой агент недоступен: {result.Message}";
+                    return;
+                }
+
+                var clusters = result.Clusters
+                    .Select(static cluster => new TransferTargetClusterItem(cluster))
+                    .ToList();
+
+                if (clusters.Count == 0)
+                {
+                    clusterStatusTextBlock.Text = "На целевом агенте не найден кластер. Создание нового кластера будет добавлено отдельным сценарием.";
+                    return;
+                }
+
+                targetClusterComboBox.ItemsSource = clusters;
+                targetClusterComboBox.SelectedIndex = 0;
+                targetClusterComboBox.IsEnabled = true;
+                transferButton.IsEnabled = true;
+                clusterStatusTextBlock.Text = $"Найдено кластеров: {clusters.Count}.";
+            }
+            catch (Exception exception)
+            {
+                clusterStatusTextBlock.Text = $"Целевой агент недоступен: {exception.Message}";
+            }
+            finally
+            {
+                targetProgressRing.IsActive = false;
+                targetProgressRing.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        targetAgentComboBox.SelectionChanged += async (_, _) => await LoadTargetClustersAsync();
+        transferButton.Click += (_, _) =>
+        {
+            if (targetAgentComboBox.SelectedItem is not TransferTargetAgentItem targetAgentItem
+                || targetClusterComboBox.SelectedItem is not TransferTargetClusterItem targetClusterItem)
+            {
+                validationTextBlock.Text = "Выберите целевой агент и кластер.";
+                validationTextBlock.Visibility = Visibility.Visible;
+                return;
+            }
+
+            planToExecute = new OneCInfobaseTransferPlan
+            {
+                SourceAgent = sourceAgent,
+                SourceClusterUuid = infobase.ClusterUuid,
+                SourceInfobase = sourceDetails,
+                TargetAgent = targetAgentItem.Agent,
+                TargetClusterUuid = targetClusterItem.Cluster.Uuid,
+                DbPassword = NormalizeFormValue(dbPasswordBox.Password)
+            };
+            dialog?.Hide();
+        };
+        closeButton.Click += (_, _) => dialog?.Hide();
+
+        dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = "Перенос информационной базы",
+            Content = content
+        };
+        dialog.Resources["ContentDialogMaxWidth"] = 760d;
+        dialog.Resources["ContentDialogMinWidth"] = 720d;
+
+        await LoadTargetClustersAsync();
+        await dialog.ShowAsync();
+
+        if (planToExecute is not null)
+        {
+            await ExecuteInfobaseTransferAsync(planToExecute);
+        }
+    }
+
+    private async Task ExecuteInfobaseTransferAsync(OneCInfobaseTransferPlan plan)
+    {
+        SetClusterCommandRunning(true);
+        ErrorInfoBar.IsOpen = false;
+        StatusText.Text = "Перенос информационной базы...";
+
+        OneCInfobaseSummaryInfo? sourceDetailsForRollback = null;
+        var restoreSourceSessionsOnFailure = false;
+        var targetRegistrationCreated = false;
+
+        try
+        {
+            var sourceDetails = await _clusterInventory.GetInfobaseDetailsAsync(
+                    plan.SourceAgent.RacPath,
+                    plan.SourceAgent.AdministrationServerAddress,
+                    plan.SourceClusterUuid,
+                    plan.SourceInfobase)
+                ?? plan.SourceInfobase;
+            sourceDetailsForRollback = sourceDetails;
+
+            var targetInventory = await _clusterInventory.GetAgentClustersAsync(plan.TargetAgent);
+            if (!targetInventory.IsAvailable)
+            {
+                ShowInfobaseTransferError($"Целевой агент недоступен: {targetInventory.Message}");
+                return;
+            }
+
+            var targetCluster = targetInventory.Clusters.FirstOrDefault(
+                cluster => string.Equals(cluster.Uuid, plan.TargetClusterUuid, StringComparison.OrdinalIgnoreCase));
+
+            if (targetCluster is null)
+            {
+                ShowInfobaseTransferError("Целевой кластер не найден.");
+                return;
+            }
+
+            if (FindMatchingInfobase(targetCluster, sourceDetails) is not null)
+            {
+                ShowInfobaseTransferError("Информационная база уже зарегистрирована на целевом агенте.");
+                return;
+            }
+
+            var denyResult = await _clusterInventory.UpdateInfobaseRestrictionsAsync(
+                plan.SourceAgent.RacPath,
+                new OneCInfobaseRestrictionsUpdateRequest
+                {
+                    AdministrationServerAddress = plan.SourceAgent.AdministrationServerAddress,
+                    ClusterUuid = plan.SourceClusterUuid,
+                    InfobaseUuid = sourceDetails.Uuid,
+                    InfobaseName = sourceDetails.NameText,
+                    SessionsDeny = "on"
+                });
+
+            if (!denyResult.IsSuccess)
+            {
+                ShowInfobaseTransferError($"Не удалось запретить вход пользователей: {denyResult.Message}");
+                return;
+            }
+            restoreSourceSessionsOnFailure = !sourceDetails.AreSessionsDenied;
+
+            var sessions = await _clusterInventory.GetInfobaseSessionsAsync(
+                plan.SourceAgent.RacPath,
+                plan.SourceAgent.AdministrationServerAddress,
+                plan.SourceClusterUuid,
+                sourceDetails.Uuid);
+
+            var terminateResult = await _clusterInventory.TerminateInfobaseSessionsAsync(
+                plan.SourceAgent.RacPath,
+                plan.SourceAgent.AdministrationServerAddress,
+                plan.SourceClusterUuid,
+                sourceDetails.Uuid,
+                plan.SessionTerminationMessage);
+
+            if (!terminateResult.IsSuccess)
+            {
+                ShowInfobaseTransferError($"Не удалось завершить активные сеансы: {terminateResult.Message}");
+                return;
+            }
+
+            var remainingSessions = await _clusterInventory.GetInfobaseSessionsAsync(
+                plan.SourceAgent.RacPath,
+                plan.SourceAgent.AdministrationServerAddress,
+                plan.SourceClusterUuid,
+                sourceDetails.Uuid);
+
+            if (remainingSessions.Count > 0)
+            {
+                ShowInfobaseTransferError(
+                    $"Активные сеансы не завершились: {remainingSessions.Count}. Регистрация на целевом агенте не была создана.");
+                return;
+            }
+
+            var effectivePlan = plan with { SourceInfobase = sourceDetails };
+            var createResult = await _clusterInventory.CreateInfobaseRegistrationAsync(
+                plan.TargetAgent.RacPath,
+                effectivePlan);
+
+            if (!createResult.IsSuccess)
+            {
+                ShowInfobaseTransferError($"Не удалось создать регистрацию ИБ на целевом агенте: {createResult.Message}");
+                return;
+            }
+            targetRegistrationCreated = true;
+
+            var verifyInventory = await _clusterInventory.GetAgentClustersAsync(plan.TargetAgent);
+            var createdInfobase = verifyInventory.Clusters
+                .FirstOrDefault(cluster => string.Equals(cluster.Uuid, plan.TargetClusterUuid, StringComparison.OrdinalIgnoreCase))
+                ?.Infobases
+                .FirstOrDefault(candidate => IsSameInfobaseRegistration(candidate, sourceDetails));
+
+            if (createdInfobase is null)
+            {
+                ShowInfobaseTransferError("Регистрация была создана, но приложение не увидело ИБ на целевом агенте после проверки.");
+                return;
+            }
+
+            var dropOldRegistration = await ConfirmDropOldInfobaseRegistrationAsync(
+                effectivePlan,
+                sessions.Count);
+
+            if (dropOldRegistration)
+            {
+                var dropResult = await _clusterInventory.DropInfobaseRegistrationAsync(
+                    plan.SourceAgent.RacPath,
+                    plan.SourceAgent.AdministrationServerAddress,
+                    plan.SourceClusterUuid,
+                    sourceDetails.Uuid,
+                    dropDatabase: false);
+
+                if (!dropResult.IsSuccess)
+                {
+                    ShowInfobaseTransferError(
+                        $"Регистрация на целевом агенте создана, но старую регистрацию удалить не удалось: {dropResult.Message}");
+                    return;
+                }
+            }
+
+            if (await RefreshServicesAsync())
+            {
+                StatusText.Text = dropOldRegistration
+                    ? $"Информационная база была перенесена: {sourceDetails.NameText}"
+                    : $"Регистрация ИБ была создана на целевом агенте: {sourceDetails.NameText}";
+            }
+        }
+        catch (Exception exception)
+        {
+            ShowInfobaseTransferError(exception.Message);
+        }
+        finally
+        {
+            if (restoreSourceSessionsOnFailure && !targetRegistrationCreated && sourceDetailsForRollback is not null)
+            {
+                try
+                {
+                    await _clusterInventory.UpdateInfobaseRestrictionsAsync(
+                        plan.SourceAgent.RacPath,
+                        new OneCInfobaseRestrictionsUpdateRequest
+                        {
+                            AdministrationServerAddress = plan.SourceAgent.AdministrationServerAddress,
+                            ClusterUuid = plan.SourceClusterUuid,
+                            InfobaseUuid = sourceDetailsForRollback.Uuid,
+                            InfobaseName = sourceDetailsForRollback.NameText,
+                            SessionsDeny = "off"
+                        });
+                }
+                catch
+                {
+                    // Ошибка переноса уже показана пользователю. Откат запрета входа не должен скрывать исходную причину.
+                }
+            }
+
+            SetClusterCommandRunning(false);
+        }
+    }
+
+    private void ShowInfobaseTransferError(string message)
+    {
+        ErrorInfoBar.Title = "Не удалось перенести информационную базу";
+        ErrorInfoBar.Message = message;
+        ErrorInfoBar.IsOpen = true;
+        StatusText.Text = "Информационная база не была перенесена";
+    }
+
+    private async Task<bool> ConfirmDropOldInfobaseRegistrationAsync(
+        OneCInfobaseTransferPlan plan,
+        int terminatedSessionCount)
+    {
+        var content = new StackPanel
+        {
+            Spacing = 8,
+            Children =
+            {
+                new TextBlock
+                {
+                    Text = plan.SourceInfobase.NameText,
+                    FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+                    LineHeight = 20
+                },
+                new TextBlock
+                {
+                    Text =
+                        $"Регистрация на целевом агенте создана.{Environment.NewLine}" +
+                        $"Завершено сеансов: {terminatedSessionCount}.{Environment.NewLine}" +
+                        "База данных в СУБД не переносилась и не будет удаляться.",
+                    LineHeight = 20,
+                    TextWrapping = TextWrapping.WrapWholeWords
+                },
+                new TextBlock
+                {
+                    Text = "Удалить регистрацию со старого агента?",
+                    LineHeight = 20,
+                    TextWrapping = TextWrapping.WrapWholeWords
+                }
+            }
+        };
+
+        var dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = "Старая регистрация ИБ",
+            Content = content,
+            PrimaryButtonText = "Удалить регистрацию",
+            SecondaryButtonText = "Оставить",
+            DefaultButton = ContentDialogButton.Secondary
+        };
+
+        return await dialog.ShowAsync() == ContentDialogResult.Primary;
+    }
+
+    private Grid CreateTransferSummaryGrid(
+        OneCAgentEndpoint sourceAgent,
+        OneCInfobaseSummaryInfo infobase,
+        int activeSessionCount)
+    {
+        var grid = new Grid
+        {
+            ColumnSpacing = 12,
+            RowSpacing = 6,
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = new GridLength(180) },
+                new ColumnDefinition { Width = new GridLength(430) }
+            }
+        };
+
+        var row = 0;
+        AddDialogValueRow(grid, row++, "Исходный агент:", sourceAgent.DisplayText);
+        AddDialogValueRow(grid, row++, "Информационная база:", infobase.NameText);
+        AddDialogValueRow(grid, row++, "Сервер БД:", infobase.DbServer ?? "—");
+        AddDialogValueRow(grid, row++, "База данных:", infobase.DbName ?? "—");
+        AddDialogValueRow(grid, row, "Активные сеансы:", activeSessionCount.ToString(CultureInfo.InvariantCulture));
+
+        return grid;
+    }
+
+    private static void AddDialogValueRow(Grid grid, int row, string labelText, string valueText)
+    {
+        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+        var label = new TextBlock
+        {
+            Text = labelText,
+            FontSize = 14,
+            Foreground = GetThemeBrush("TextFillColorSecondaryBrush", 255, 96, 96, 96),
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Top,
+            TextAlignment = TextAlignment.Right,
+            TextWrapping = TextWrapping.WrapWholeWords
+        };
+        var value = new TextBlock
+        {
+            Text = string.IsNullOrWhiteSpace(valueText) ? "—" : valueText,
+            FontSize = 14,
+            Foreground = GetThemeBrush("TextFillColorPrimaryBrush", 255, 32, 32, 32),
+            TextWrapping = TextWrapping.WrapWholeWords
+        };
+
+        Grid.SetRow(label, row);
+        Grid.SetRow(value, row);
+        Grid.SetColumn(value, 1);
+
+        grid.Children.Add(label);
+        grid.Children.Add(value);
+    }
+
+    private bool TryCreateSourceAgentEndpoint(
+        out OneCAgentEndpoint sourceAgent,
+        out string errorMessage)
+    {
+        var diagnostics = _administrationToolDiagnostics;
+        if (diagnostics?.RacTool is null)
+        {
+            sourceAgent = CreateEmptyAgentEndpoint();
+            errorMessage = "rac.exe не найден.";
+            return false;
+        }
+
+        var service = _selectedNode?.Service;
+        var agentPort = service?.AgentPort ?? diagnostics.AgentPort;
+        var administrationServerPort = service?.AdministrationServerPort ?? diagnostics.AdministrationServerPort;
+        var version = FirstNonEmpty(
+            service?.Version,
+            diagnostics.TargetVersion,
+            diagnostics.RacTool.Version,
+            "—");
+
+        sourceAgent = new OneCAgentEndpoint
+        {
+            DisplayName = service?.DisplayNameText ?? $"Агент {agentPort}",
+            AgentAddress = $"{Environment.MachineName}:{agentPort.ToString(CultureInfo.InvariantCulture)}",
+            AdministrationServerAddress = $"localhost:{administrationServerPort.ToString(CultureInfo.InvariantCulture)}",
+            AgentPort = agentPort,
+            Version = version,
+            RacPath = diagnostics.RacTool.FilePath,
+            ServiceName = service?.Name,
+            WindowsDisplayName = service?.DisplayName
+        };
+        errorMessage = string.Empty;
+        return true;
+    }
+
+    private static OneCAgentEndpoint CreateEmptyAgentEndpoint()
+    {
+        return new OneCAgentEndpoint
+        {
+            DisplayName = string.Empty,
+            AgentAddress = string.Empty,
+            AdministrationServerAddress = string.Empty,
+            AgentPort = 0,
+            Version = string.Empty,
+            RacPath = string.Empty
+        };
+    }
+
+    private IEnumerable<TransferTargetAgentItem> GetTransferTargetAgents(OneCAgentEndpoint sourceAgent)
+    {
+        return _nodes
+            .Select(static node => node.Service)
+            .Where(static service => service?.Kind == OneCServiceKind.ServerAgent)
+            .Select(service => TryCreateAgentEndpoint(service!, out var endpoint) ? endpoint : null)
+            .Where(endpoint => endpoint is not null && !IsSameAgent(sourceAgent, endpoint))
+            .Select(endpoint => new TransferTargetAgentItem(endpoint!))
+            .OrderBy(static item => ParseVersion(item.Agent.Version))
+            .ThenBy(static item => item.Agent.AgentPort);
+    }
+
+    private bool TryCreateAgentEndpoint(OneCServiceInfo service, out OneCAgentEndpoint? endpoint)
+    {
+        endpoint = null;
+        if (service.AgentPort is null)
+        {
+            return false;
+        }
+
+        var racTool = FindRacToolForVersion(service.Version);
+        if (racTool is null)
+        {
+            return false;
+        }
+
+        var agentPort = service.AgentPort.Value;
+        var administrationServerPort = service.AdministrationServerPort ?? agentPort + 5;
+        var version = FirstNonEmpty(service.Version, racTool.Version, "—");
+
+        endpoint = new OneCAgentEndpoint
+        {
+            DisplayName = service.DisplayNameText,
+            AgentAddress = $"{Environment.MachineName}:{agentPort.ToString(CultureInfo.InvariantCulture)}",
+            AdministrationServerAddress = $"localhost:{administrationServerPort.ToString(CultureInfo.InvariantCulture)}",
+            AgentPort = agentPort,
+            Version = version,
+            RacPath = racTool.FilePath,
+            ServiceName = service.Name,
+            WindowsDisplayName = service.DisplayName
+        };
+        return true;
+    }
+
+    private OneCAdministrationToolInfo? FindRacToolForVersion(string? version)
+    {
+        var tools = _administrationToolDiagnostics?.Tools ?? [];
+        var racTools = tools
+            .Where(static tool => tool.Kind == OneCAdministrationToolKind.Rac)
+            .ToList();
+
+        if (racTools.Count == 0)
+        {
+            return null;
+        }
+
+        if (!string.IsNullOrWhiteSpace(version))
+        {
+            var exactTool = racTools.FirstOrDefault(
+                tool => string.Equals(tool.Version, version, StringComparison.OrdinalIgnoreCase));
+
+            if (exactTool is not null)
+            {
+                return exactTool;
+            }
+        }
+
+        return racTools
+            .OrderByDescending(static tool => ParseVersion(tool.Version))
+            .FirstOrDefault();
+    }
+
+    private static bool IsSameAgent(OneCAgentEndpoint first, OneCAgentEndpoint? second)
+    {
+        if (second is null)
+        {
+            return false;
+        }
+
+        if (!string.IsNullOrWhiteSpace(first.ServiceName)
+            && !string.IsNullOrWhiteSpace(second.ServiceName)
+            && string.Equals(first.ServiceName, second.ServiceName, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return first.AgentPort == second.AgentPort
+            && string.Equals(first.Version, second.Version, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static OneCInfobaseSummaryInfo? FindMatchingInfobase(
+        OneCClusterInfo cluster,
+        OneCInfobaseSummaryInfo sourceInfobase)
+    {
+        return cluster.Infobases.FirstOrDefault(candidate => IsSameInfobaseRegistration(candidate, sourceInfobase));
+    }
+
+    private static bool IsSameInfobaseRegistration(
+        OneCInfobaseSummaryInfo candidate,
+        OneCInfobaseSummaryInfo sourceInfobase)
+    {
+        if (string.Equals(candidate.Name, sourceInfobase.Name, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(candidate.NameText, sourceInfobase.NameText, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return !string.IsNullOrWhiteSpace(candidate.DbServer)
+            && !string.IsNullOrWhiteSpace(candidate.DbName)
+            && string.Equals(candidate.DbServer, sourceInfobase.DbServer, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(candidate.DbName, sourceInfobase.DbName, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string FirstNonEmpty(params string?[] values)
+    {
+        return values.FirstOrDefault(static value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty;
     }
 
     private async Task<bool> ExecuteInfobaseRestrictionsUpdateAsync(
