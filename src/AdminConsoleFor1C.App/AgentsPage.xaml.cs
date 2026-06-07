@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
@@ -33,19 +32,15 @@ public sealed partial class AgentsPage : Page
     private readonly IOneCClusterInventory _clusterInventory = new RacOneCClusterInventory();
     private readonly IOneCAdministrationServerLauncher _administrationServerLauncher = new RasOneCAdministrationServerLauncher();
     private readonly IOneCServiceController _serviceController = new ElevatedWorkerOneCServiceController();
-    private readonly ObservableCollection<OneCServiceProcessNode> _nodes = [];
-    private OneCAdministrationToolDiagnosticsViewModel? _administrationToolDiagnostics;
-    private OneCClusterDiagnosticsViewModel? _clusterDiagnostics;
-    private OneCServiceProcessNode? _selectedNode;
-    private int? _temporaryRasProcessId;
+    private readonly AdminConsoleWorkspaceViewModel _workspace = new();
     private AdminConsoleSection _currentSection = AdminConsoleSection.Agents;
-    private string _agentsStatusText = "Готово";
 
     public AgentsPage()
     {
         InitializeComponent();
-        ServiceTreeRepeater.ItemsSource = _nodes;
-        AdministrationToolsCard.DataContext = new OneCAdministrationToolDiagnosticsViewModel([], [], []);
+        ServiceTreeRepeater.ItemsSource = _workspace.Nodes;
+        _workspace.AdministrationToolDiagnostics = new OneCAdministrationToolDiagnosticsViewModel([], [], []);
+        AdministrationToolsCard.DataContext = _workspace.AdministrationToolDiagnostics;
         var initialClusterDiagnostics = new OneCClusterDiagnosticsViewModel(
             CreateUnavailableClusterResult("localhost:1545", "Данные еще не обновлены"),
             "localhost:1540",
@@ -55,7 +50,7 @@ public sealed partial class AgentsPage : Page
         InfobasesCard.DataContext = initialClusterDiagnostics;
         SessionsCard.DataContext = initialClusterDiagnostics;
         LicensesCard.DataContext = initialClusterDiagnostics;
-        _clusterDiagnostics = initialClusterDiagnostics;
+        _workspace.ClusterDiagnostics = initialClusterDiagnostics;
         ApplyCurrentSection();
         Loaded += AgentsPage_Loaded;
     }
@@ -382,10 +377,10 @@ public sealed partial class AgentsPage : Page
         RefreshProgress.IsActive = true;
         RefreshProgress.Visibility = Visibility.Visible;
         ErrorInfoBar.IsOpen = false;
-        _agentsStatusText = "Обновление...";
+        _workspace.AgentsStatusText = "Обновление...";
         if (_currentSection == AdminConsoleSection.Agents)
         {
-            StatusText.Text = _agentsStatusText;
+            StatusText.Text = _workspace.AgentsStatusText;
         }
 
         try
@@ -408,26 +403,22 @@ public sealed partial class AgentsPage : Page
                 processes);
             var clusterDiagnostics = await GetClusterDiagnosticsAsync(administrationToolDiagnostics);
             var nodes = BuildServiceProcessTree(services, processes, serverAgentSetup.Candidates);
-            var previousServiceName = _selectedNode?.Service?.Name;
+            var previousServiceName = _workspace.SelectedNode?.Service?.Name;
 
-            _administrationToolDiagnostics = administrationToolDiagnostics;
+            _workspace.AdministrationToolDiagnostics = administrationToolDiagnostics;
             AdministrationToolsCard.DataContext = administrationToolDiagnostics;
             ClustersCard.DataContext = clusterDiagnostics;
             InfobasesCard.DataContext = clusterDiagnostics;
             SessionsCard.DataContext = clusterDiagnostics;
             LicensesCard.DataContext = clusterDiagnostics;
-            _clusterDiagnostics = clusterDiagnostics;
+            _workspace.ClusterDiagnostics = clusterDiagnostics;
 
-            _nodes.Clear();
-            foreach (var node in nodes)
-            {
-                _nodes.Add(node);
-            }
+            _workspace.ReplaceNodes(nodes);
 
             SelectNode(GetNodeToSelect(previousServiceName));
 
             UpdateEmptyState();
-            _agentsStatusText = serverAgentSetup.IsVisible && services.All(static service => service.Kind != OneCServiceKind.ServerAgent)
+            _workspace.AgentsStatusText = serverAgentSetup.IsVisible && services.All(static service => service.Kind != OneCServiceKind.ServerAgent)
                 ? "Найдены компоненты сервера 1С без службы Windows"
                 : $"Найдено служб: {services.Count}, процессов: {processes.Count}";
             ApplyCurrentSection();
@@ -437,8 +428,8 @@ public sealed partial class AgentsPage : Page
         {
             ErrorInfoBar.Message = exception.Message;
             ErrorInfoBar.IsOpen = true;
-            _agentsStatusText = "Ошибка обновления";
-            StatusText.Text = _agentsStatusText;
+            _workspace.AgentsStatusText = "Ошибка обновления";
+            StatusText.Text = _workspace.AgentsStatusText;
             return false;
         }
         finally
@@ -451,11 +442,11 @@ public sealed partial class AgentsPage : Page
 
     private void UpdateEmptyState()
     {
-        var hasItems = _nodes.Count > 0;
+        var hasItems = _workspace.Nodes.Count > 0;
         var isAgentsSection = _currentSection == AdminConsoleSection.Agents;
 
         ServiceTreeRepeater.Visibility = isAgentsSection && hasItems ? Visibility.Visible : Visibility.Collapsed;
-        ComponentDetailsCard.Visibility = isAgentsSection && hasItems && _selectedNode is not null
+        ComponentDetailsCard.Visibility = isAgentsSection && hasItems && _workspace.SelectedNode is not null
             ? Visibility.Visible
             : Visibility.Collapsed;
         ServicesTable.Visibility = isAgentsSection && hasItems ? Visibility.Visible : Visibility.Collapsed;
@@ -467,7 +458,7 @@ public sealed partial class AgentsPage : Page
         var isAgentsSection = _currentSection == AdminConsoleSection.Agents;
 
         PageTitleText.Text = AdminConsoleSections.GetTitle(_currentSection);
-        StatusText.Text = AdminConsoleSections.GetDescription(_currentSection, _agentsStatusText);
+        StatusText.Text = AdminConsoleSections.GetDescription(_currentSection, _workspace.AgentsStatusText);
 
         ServiceListColumn.Width = isAgentsSection
             ? new GridLength(520)
@@ -491,34 +482,28 @@ public sealed partial class AgentsPage : Page
     {
         if (!string.IsNullOrWhiteSpace(previousServiceName))
         {
-            var previousNode = _nodes.FirstOrDefault(node => node.Service?.Name == previousServiceName);
+            var previousNode = _workspace.Nodes.FirstOrDefault(node => node.Service?.Name == previousServiceName);
             if (previousNode is not null)
             {
                 return previousNode;
             }
         }
 
-        return _nodes.FirstOrDefault();
+        return _workspace.Nodes.FirstOrDefault();
     }
 
     private void SelectNode(OneCServiceProcessNode? node)
     {
-        if (_selectedNode is not null)
-        {
-            _selectedNode.IsSelected = false;
-        }
+        _workspace.SelectNode(node);
 
-        _selectedNode = node;
-
-        if (_selectedNode is null)
+        if (_workspace.SelectedNode is null)
         {
             ComponentDetailsCard.DataContext = null;
             ComponentDetailsCard.Visibility = Visibility.Collapsed;
             return;
         }
 
-        _selectedNode.IsSelected = true;
-        ComponentDetailsCard.DataContext = _selectedNode;
+        ComponentDetailsCard.DataContext = _workspace.SelectedNode;
         ComponentDetailsCard.Visibility = _currentSection == AdminConsoleSection.Agents
             ? Visibility.Visible
             : Visibility.Collapsed;
@@ -667,14 +652,14 @@ public sealed partial class AgentsPage : Page
 
     private bool IsTemporaryRasRunning()
     {
-        if (_temporaryRasProcessId is null)
+        if (_workspace.TemporaryRasProcessId is null)
         {
             return false;
         }
 
         try
         {
-            using var process = Process.GetProcessById(_temporaryRasProcessId.Value);
+            using var process = Process.GetProcessById(_workspace.TemporaryRasProcessId.Value);
             if (!process.HasExited)
             {
                 return true;
@@ -687,7 +672,7 @@ public sealed partial class AgentsPage : Page
         {
         }
 
-        _temporaryRasProcessId = null;
+        _workspace.TemporaryRasProcessId = null;
         return false;
     }
 
@@ -2147,7 +2132,7 @@ public sealed partial class AgentsPage : Page
         validationMessage = string.Empty;
         return new OneCInfobaseCreateRequest
         {
-            AdministrationServerAddress = _administrationToolDiagnostics?.AdministrationServerAddress ?? "localhost:1545",
+            AdministrationServerAddress = _workspace.AdministrationToolDiagnostics?.AdministrationServerAddress ?? "localhost:1545",
             ClusterUuid = clusterUuid!,
             Name = normalizedName!,
             Description = NormalizeFormValue(description),
@@ -2207,7 +2192,7 @@ public sealed partial class AgentsPage : Page
 
     private async Task ExecuteCreateInfobaseAsync(OneCInfobaseCreateRequest request)
     {
-        var diagnostics = _administrationToolDiagnostics;
+        var diagnostics = _workspace.AdministrationToolDiagnostics;
         if (diagnostics?.RacTool is null)
         {
             StatusText.Text = "rac.exe не найден";
@@ -2870,7 +2855,7 @@ public sealed partial class AgentsPage : Page
         out OneCAgentEndpoint sourceAgent,
         out string errorMessage)
     {
-        var diagnostics = _administrationToolDiagnostics;
+        var diagnostics = _workspace.AdministrationToolDiagnostics;
         if (diagnostics?.RacTool is null)
         {
             sourceAgent = CreateEmptyAgentEndpoint();
@@ -2878,7 +2863,7 @@ public sealed partial class AgentsPage : Page
             return false;
         }
 
-        var service = _selectedNode?.Service;
+        var service = _workspace.SelectedNode?.Service;
         var agentPort = service?.AgentPort ?? diagnostics.AgentPort;
         var administrationServerPort = service?.AdministrationServerPort ?? diagnostics.AdministrationServerPort;
         var version = FirstNonEmpty(
@@ -2917,7 +2902,7 @@ public sealed partial class AgentsPage : Page
 
     private IEnumerable<TransferTargetAgentItem> GetTransferTargetAgents(OneCAgentEndpoint sourceAgent)
     {
-        return _nodes
+        return _workspace.Nodes
             .Select(static node => node.Service)
             .Where(static service => service?.Kind == OneCServiceKind.ServerAgent)
             .Select(service => TryCreateAgentEndpoint(service!, out var endpoint) ? endpoint : null)
@@ -2961,7 +2946,7 @@ public sealed partial class AgentsPage : Page
 
     private OneCAdministrationToolInfo? FindRacToolForVersion(string? version)
     {
-        var tools = _administrationToolDiagnostics?.Tools ?? [];
+        var tools = _workspace.AdministrationToolDiagnostics?.Tools ?? [];
         var racTools = tools
             .Where(static tool => tool.Kind == OneCAdministrationToolKind.Rac)
             .ToList();
@@ -3035,7 +3020,7 @@ public sealed partial class AgentsPage : Page
 
     private async Task TerminateSessionsForSessionInfobaseAsync(OneCSessionInfo session)
     {
-        var diagnostics = _administrationToolDiagnostics;
+        var diagnostics = _workspace.AdministrationToolDiagnostics;
         if (diagnostics?.RacTool is null)
         {
             StatusText.Text = "Сеансы не были завершены";
@@ -3105,7 +3090,7 @@ public sealed partial class AgentsPage : Page
         out OneCInfobaseSummaryInfo infobase,
         out string error)
     {
-        foreach (var candidateCluster in _clusterDiagnostics?.Clusters ?? [])
+        foreach (var candidateCluster in _workspace.ClusterDiagnostics?.Clusters ?? [])
         {
             if (!candidateCluster.Sessions.Contains(session))
             {
@@ -3155,7 +3140,7 @@ public sealed partial class AgentsPage : Page
         string description,
         string completedText)
     {
-        var diagnostics = _administrationToolDiagnostics;
+        var diagnostics = _workspace.AdministrationToolDiagnostics;
         if (diagnostics?.RacTool is null)
         {
             StatusText.Text = "rac.exe не найден";
@@ -3246,7 +3231,7 @@ public sealed partial class AgentsPage : Page
 
     private async Task StartTemporaryRasAsync()
     {
-        var diagnostics = _administrationToolDiagnostics;
+        var diagnostics = _workspace.AdministrationToolDiagnostics;
         if (diagnostics?.RasTool is null)
         {
             StatusText.Text = "ras.exe не найден";
@@ -3259,7 +3244,7 @@ public sealed partial class AgentsPage : Page
 
         try
         {
-            _temporaryRasProcessId = await _administrationServerLauncher.StartTemporaryAsync(
+            _workspace.TemporaryRasProcessId = await _administrationServerLauncher.StartTemporaryAsync(
                 diagnostics.RasTool.FilePath,
                 diagnostics.AdministrationServerPort,
                 diagnostics.AgentAddress);
@@ -3271,7 +3256,7 @@ public sealed partial class AgentsPage : Page
         }
         catch (Exception exception)
         {
-            _temporaryRasProcessId = null;
+            _workspace.TemporaryRasProcessId = null;
             ErrorInfoBar.Title = "Не удалось запустить RAS";
             ErrorInfoBar.Message = exception.Message;
             ErrorInfoBar.IsOpen = true;
@@ -3285,14 +3270,14 @@ public sealed partial class AgentsPage : Page
 
     private async Task StopTemporaryRasAsync()
     {
-        if (!IsTemporaryRasRunning() || _temporaryRasProcessId is null)
+        if (!IsTemporaryRasRunning() || _workspace.TemporaryRasProcessId is null)
         {
             StatusText.Text = "Временный RAS не запущен";
             await RefreshServicesAsync();
             return;
         }
 
-        var processId = _temporaryRasProcessId.Value;
+        var processId = _workspace.TemporaryRasProcessId.Value;
 
         SetClusterCommandRunning(true);
         ErrorInfoBar.IsOpen = false;
@@ -3301,7 +3286,7 @@ public sealed partial class AgentsPage : Page
         try
         {
             await _administrationServerLauncher.StopTemporaryAsync(processId);
-            _temporaryRasProcessId = null;
+            _workspace.TemporaryRasProcessId = null;
 
             if (await RefreshServicesAsync())
             {
