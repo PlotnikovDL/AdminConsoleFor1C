@@ -44,6 +44,7 @@ public sealed partial class AgentsPage : Page
     private readonly IOneCServiceController _serviceController = new ElevatedWorkerOneCServiceController();
     private readonly ObservableCollection<OneCServiceProcessNode> _nodes = [];
     private OneCAdministrationToolDiagnosticsViewModel? _administrationToolDiagnostics;
+    private OneCClusterDiagnosticsViewModel? _clusterDiagnostics;
     private OneCServiceProcessNode? _selectedNode;
     private int? _temporaryRasProcessId;
     private WorkspaceSection _currentSection = WorkspaceSection.Agents;
@@ -61,7 +62,9 @@ public sealed partial class AgentsPage : Page
             canStopTemporaryRas: false);
         ClustersCard.DataContext = initialClusterDiagnostics;
         InfobasesCard.DataContext = initialClusterDiagnostics;
+        SessionsCard.DataContext = initialClusterDiagnostics;
         LicensesCard.DataContext = initialClusterDiagnostics;
+        _clusterDiagnostics = initialClusterDiagnostics;
         ApplyCurrentSection();
         Loaded += AgentsPage_Loaded;
     }
@@ -208,6 +211,14 @@ public sealed partial class AgentsPage : Page
         if (infobase is not null)
         {
             await ShowTransferInfobaseDialogAsync(infobase);
+        }
+    }
+
+    private async void TerminateSessionInfobaseButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: OneCSessionInfo session })
+        {
+            await TerminateSessionsForSessionInfobaseAsync(session);
         }
     }
 
@@ -411,7 +422,9 @@ public sealed partial class AgentsPage : Page
             AdministrationToolsCard.DataContext = administrationToolDiagnostics;
             ClustersCard.DataContext = clusterDiagnostics;
             InfobasesCard.DataContext = clusterDiagnostics;
+            SessionsCard.DataContext = clusterDiagnostics;
             LicensesCard.DataContext = clusterDiagnostics;
+            _clusterDiagnostics = clusterDiagnostics;
 
             _nodes.Clear();
             foreach (var node in nodes)
@@ -3041,6 +3054,120 @@ public sealed partial class AgentsPage : Page
     private static string FirstNonEmpty(params string?[] values)
     {
         return values.FirstOrDefault(static value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty;
+    }
+
+    private async Task TerminateSessionsForSessionInfobaseAsync(OneCSessionInfo session)
+    {
+        var diagnostics = _administrationToolDiagnostics;
+        if (diagnostics?.RacTool is null)
+        {
+            StatusText.Text = "Сеансы не были завершены";
+            ErrorInfoBar.Title = "Не удалось завершить сеансы";
+            ErrorInfoBar.Message = "rac.exe не найден";
+            ErrorInfoBar.IsOpen = true;
+            return;
+        }
+
+        if (!TryFindSessionInfobase(session, out var cluster, out var infobase, out var error))
+        {
+            StatusText.Text = "Сеансы не были завершены";
+            ErrorInfoBar.Title = "Не удалось завершить сеансы";
+            ErrorInfoBar.Message = error;
+            ErrorInfoBar.IsOpen = true;
+            return;
+        }
+
+        if (!await ConfirmTerminateInfobaseSessionsAsync(infobase))
+        {
+            return;
+        }
+
+        SetClusterCommandRunning(true);
+        ErrorInfoBar.IsOpen = false;
+        StatusText.Text = "Завершение сеансов...";
+
+        try
+        {
+            var result = await _clusterInventory.TerminateInfobaseSessionsAsync(
+                diagnostics.RacTool.FilePath,
+                diagnostics.AdministrationServerAddress,
+                cluster.UuidText,
+                infobase.Uuid,
+                "Сеанс завершен администратором Admin Console for 1C");
+
+            if (!result.IsSuccess)
+            {
+                ErrorInfoBar.Title = "Не удалось завершить сеансы";
+                ErrorInfoBar.Message = result.Message;
+                ErrorInfoBar.IsOpen = true;
+                StatusText.Text = "Сеансы не были завершены";
+                return;
+            }
+
+            if (await RefreshServicesAsync())
+            {
+                StatusText.Text = $"Сеансы были завершены: {infobase.NameText}";
+            }
+        }
+        catch (Exception exception)
+        {
+            ErrorInfoBar.Title = "Не удалось завершить сеансы";
+            ErrorInfoBar.Message = exception.Message;
+            ErrorInfoBar.IsOpen = true;
+            StatusText.Text = "Сеансы не были завершены";
+        }
+        finally
+        {
+            SetClusterCommandRunning(false);
+        }
+    }
+
+    private bool TryFindSessionInfobase(
+        OneCSessionInfo session,
+        out OneCClusterViewModel cluster,
+        out OneCInfobaseSummaryInfo infobase,
+        out string error)
+    {
+        foreach (var candidateCluster in _clusterDiagnostics?.Clusters ?? [])
+        {
+            if (!candidateCluster.Sessions.Contains(session))
+            {
+                continue;
+            }
+
+            var candidateInfobase = candidateCluster.Infobases.FirstOrDefault(
+                candidate => string.Equals(candidate.Uuid, session.InfobaseUuid, StringComparison.OrdinalIgnoreCase));
+
+            if (candidateInfobase is not null)
+            {
+                cluster = candidateCluster;
+                infobase = candidateInfobase;
+                error = string.Empty;
+                return true;
+            }
+        }
+
+        cluster = null!;
+        infobase = null!;
+        error = string.IsNullOrWhiteSpace(session.InfobaseUuid)
+            ? "В строке сеанса нет идентификатора информационной базы."
+            : "Информационная база для выбранного сеанса не найдена в текущем списке.";
+        return false;
+    }
+
+    private async Task<bool> ConfirmTerminateInfobaseSessionsAsync(OneCInfobaseSummaryInfo infobase)
+    {
+        var dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = "Завершить сеансы информационной базы?",
+            Content = $"{infobase.NameText}{Environment.NewLine}{Environment.NewLine}Будут завершены активные сеансы этой информационной базы. Новые сеансы отдельно не блокируются.",
+            PrimaryButtonText = "Завершить",
+            CloseButtonText = "Отмена",
+            DefaultButton = ContentDialogButton.Close
+        };
+
+        return await dialog.ShowAsync() == ContentDialogResult.Primary;
     }
 
     private async Task<bool> ExecuteInfobaseRestrictionsUpdateAsync(

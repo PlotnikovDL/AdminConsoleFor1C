@@ -21,6 +21,12 @@ public sealed record OneCSessionInfo
 
     public string UserText => string.IsNullOrWhiteSpace(UserName) ? "Пользователь" : UserName;
 
+    public string InfobaseText => string.IsNullOrWhiteSpace(InfobaseUuid) ? "—" : InfobaseUuid;
+
+    public string StartedAtText => string.IsNullOrWhiteSpace(StartedAt) ? "—" : StartedAt;
+
+    public string LastActiveAtText => string.IsNullOrWhiteSpace(LastActiveAt) ? "—" : LastActiveAt;
+
     public string ContextText
     {
         get

@@ -461,17 +461,29 @@
                                                             TextTrimming="CharacterEllipsis" />
                                                     </StackPanel>
 
-                                                    <Button
+                                                    <StackPanel
                                                         Grid.Column="1"
-                                                        HorizontalAlignment="Right"
-                                                        AutomationProperties.Name="Создать информационную базу"
-                                                        Click="OpenCreateInfobaseDialogButton_Click"
-                                                        Tag="{Binding}">
-                                                        <StackPanel Orientation="Horizontal" Spacing="6">
-                                                            <SymbolIcon Symbol="Add" />
-                                                            <TextBlock Text="Создать базу" />
-                                                        </StackPanel>
-                                                    </Button>
+                                                        Orientation="Horizontal"
+                                                        Spacing="8">
+                                                        <Button
+                                                            AutomationProperties.Name="Перенести информационную базу на другой агент"
+                                                            Click="OpenTransferInfobaseFromClusterButton_Click"
+                                                            Tag="{Binding}">
+                                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                                <SymbolIcon Symbol="Forward" />
+                                                                <TextBlock Text="Перенести базу" />
+                                                            </StackPanel>
+                                                        </Button>
+                                                        <Button
+                                                            AutomationProperties.Name="Создать информационную базу"
+                                                            Click="OpenCreateInfobaseDialogButton_Click"
+                                                            Tag="{Binding}">
+                                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                                <SymbolIcon Symbol="Add" />
+                                                                <TextBlock Text="Создать базу" />
+                                                            </StackPanel>
+                                                        </Button>
+                                                    </StackPanel>
                                                 </Grid>
 
                                                 <Border
@@ -557,7 +569,7 @@
                                                                             Tag="{Binding}">
                                                                             <StackPanel Orientation="Horizontal" Spacing="6">
                                                                                 <SymbolIcon Symbol="Forward" />
-                                                                                <TextBlock Text="Перенести..." />
+                                                                                <TextBlock Text="Перенести на другой агент" />
                                                                             </StackPanel>
                                                                         </Button>
 
@@ -916,7 +928,7 @@
                                                                     Tag="{Binding}">
                                                                     <StackPanel Orientation="Horizontal" Spacing="6">
                                                                         <SymbolIcon Symbol="Forward" />
-                                                                        <TextBlock Text="Перенести базу..." />
+                                                                        <TextBlock Text="Перенести базу" />
                                                                     </StackPanel>
                                                                 </Button>
                                                                 <Button
@@ -1068,7 +1080,7 @@
                                                                                     HorizontalAlignment="Stretch"
                                                                                     Click="OpenTransferInfobaseDialogButton_Click"
                                                                                     Tag="{Binding}">
-                                                                                    <TextBlock Text="Перенести на другой агент..." />
+                                                                                    <TextBlock Text="Перенести на другой агент" />
                                                                                 </Button>
                                                                             </StackPanel>
                                                                         </Grid>
@@ -1257,21 +1269,149 @@
                     <Border
                         x:Name="SessionsCard"
                         Grid.Row="0"
-                        Padding="20"
+                        Padding="16"
                         Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                         BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                         BorderThickness="1"
                         CornerRadius="6"
                         Visibility="Collapsed">
-                        <StackPanel Spacing="6">
-                            <TextBlock
-                                FontSize="22"
-                                FontWeight="SemiBold"
-                                Text="Сеансы" />
-                            <TextBlock
-                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                Text="Активные пользователи и сеансы информационных баз будут показаны здесь."
-                                TextWrapping="WrapWholeWords" />
+                        <StackPanel Spacing="12">
+                            <StackPanel Spacing="2">
+                                <TextBlock
+                                    FontSize="16"
+                                    FontWeight="SemiBold"
+                                    Text="Сеансы" />
+                                <TextBlock
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                    LineHeight="20"
+                                    Text="{Binding SessionSummaryText}"
+                                    TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+
+                            <Border
+                                Padding="14"
+                                Background="{ThemeResource LayerFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                Visibility="{Binding SessionsEmptyStateVisibility}">
+                                <StackPanel Spacing="4">
+                                    <TextBlock
+                                        FontWeight="SemiBold"
+                                        LineHeight="20"
+                                        Text="Активные сеансы не обнаружены" />
+                                    <TextBlock
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                        LineHeight="20"
+                                        Text="{Binding MessageText}"
+                                        TextWrapping="WrapWholeWords" />
+                                </StackPanel>
+                            </Border>
+
+                            <ItemsRepeater
+                                ItemsSource="{Binding SessionClusters}"
+                                Visibility="{Binding SessionClustersVisibility}">
+                                <ItemsRepeater.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border
+                                            Padding="0,12"
+                                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                            BorderThickness="0,1,0,0">
+                                            <StackPanel Spacing="10">
+                                                <StackPanel Spacing="2">
+                                                    <TextBlock
+                                                        Style="{StaticResource SectionTitleTextBlockStyle}"
+                                                        Text="{Binding NameText}"
+                                                        TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock
+                                                        Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                        Text="{Binding AddressText}"
+                                                        TextTrimming="CharacterEllipsis" />
+                                                </StackPanel>
+
+                                                <ItemsRepeater ItemsSource="{Binding Sessions}">
+                                                    <ItemsRepeater.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Border
+                                                                Margin="0,0,0,8"
+                                                                Padding="14"
+                                                                Background="{ThemeResource LayerFillColorDefaultBrush}"
+                                                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                                                BorderThickness="1"
+                                                                CornerRadius="6">
+                                                                <Grid ColumnSpacing="16">
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="1.1*" />
+                                                                        <ColumnDefinition Width="1.4*" />
+                                                                        <ColumnDefinition Width="1.2*" />
+                                                                        <ColumnDefinition Width="1.4*" />
+                                                                        <ColumnDefinition Width="Auto" />
+                                                                    </Grid.ColumnDefinitions>
+
+                                                                    <StackPanel Spacing="4">
+                                                                        <TextBlock
+                                                                            Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                                            Text="Пользователь" />
+                                                                        <TextBlock
+                                                                            FontWeight="SemiBold"
+                                                                            LineHeight="20"
+                                                                            Text="{Binding OwnerText}"
+                                                                            TextWrapping="WrapWholeWords" />
+                                                                    </StackPanel>
+
+                                                                    <StackPanel Grid.Column="1" Spacing="4">
+                                                                        <TextBlock
+                                                                            Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                                            Text="Контекст" />
+                                                                        <TextBlock
+                                                                            LineHeight="20"
+                                                                            Text="{Binding ContextText}"
+                                                                            TextWrapping="WrapWholeWords" />
+                                                                    </StackPanel>
+
+                                                                    <StackPanel Grid.Column="2" Spacing="4">
+                                                                        <TextBlock
+                                                                            Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                                            Text="Информационная база" />
+                                                                        <TextBlock
+                                                                            Style="{StaticResource MetadataMonoTextBlockStyle}"
+                                                                            Text="{Binding InfobaseText}"
+                                                                            TextTrimming="CharacterEllipsis" />
+                                                                    </StackPanel>
+
+                                                                    <StackPanel Grid.Column="3" Spacing="4">
+                                                                        <TextBlock
+                                                                            Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                                            Text="Активность" />
+                                                                        <TextBlock
+                                                                            LineHeight="20"
+                                                                            Text="{Binding StartedAtText}"
+                                                                            TextWrapping="WrapWholeWords" />
+                                                                        <TextBlock
+                                                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                            LineHeight="20"
+                                                                            Text="{Binding LastActiveAtText}"
+                                                                            TextWrapping="WrapWholeWords" />
+                                                                    </StackPanel>
+
+                                                                    <Button
+                                                                        Grid.Column="4"
+                                                                        HorizontalAlignment="Right"
+                                                                        VerticalAlignment="Center"
+                                                                        Click="TerminateSessionInfobaseButton_Click"
+                                                                        Tag="{Binding}">
+                                                                        <TextBlock Text="Завершить сеансы ИБ" />
+                                                                    </Button>
+                                                                </Grid>
+                                                            </Border>
+                                                        </DataTemplate>
+                                                    </ItemsRepeater.ItemTemplate>
+                                                </ItemsRepeater>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsRepeater.ItemTemplate>
+                            </ItemsRepeater>
                         </StackPanel>
                     </Border>
 

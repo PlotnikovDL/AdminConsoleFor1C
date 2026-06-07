@@ -135,6 +135,8 @@ public sealed record OneCOccupiedLicenseInfo
         ? string.IsNullOrWhiteSpace(FullName) ? "—" : FullName
         : LicenseFile;
 
+    public string InfobaseText => string.IsNullOrWhiteSpace(InfobaseUuid) ? "—" : InfobaseUuid;
+
     public bool IsIssuedByServer => string.Equals(IssuedByServer, "yes", StringComparison.OrdinalIgnoreCase);
 
     public bool IsNetworkLicense => string.Equals(Net, "yes", StringComparison.OrdinalIgnoreCase);

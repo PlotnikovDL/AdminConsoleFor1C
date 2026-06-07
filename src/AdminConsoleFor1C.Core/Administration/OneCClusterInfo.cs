@@ -22,6 +22,8 @@ public sealed record OneCClusterInfo
 
     public IReadOnlyList<OneCOccupiedLicenseInfo> SessionLicenses { get; init; } = [];
 
+    public IReadOnlyList<OneCSessionInfo> Sessions { get; init; } = [];
+
     public IReadOnlyList<OneCLicenseUsageInfo> OccupiedLicenseUsages =>
         OneCLicenseUsageInfo.Create(ProcessLicenses, SessionLicenses);
 

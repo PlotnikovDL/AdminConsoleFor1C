@@ -20,6 +20,8 @@ public sealed class OneCClusterViewModel
 
     public IReadOnlyList<OneCOccupiedLicenseInfo> SessionLicenses => _cluster.SessionLicenses;
 
+    public IReadOnlyList<OneCSessionInfo> Sessions => _cluster.Sessions;
+
     public IReadOnlyList<OneCLicenseUsageInfo> OccupiedLicenseUsages => _cluster.OccupiedLicenseUsages;
 
     public string NameText => _cluster.NameText;
@@ -49,6 +51,8 @@ public sealed class OneCClusterViewModel
     public Visibility ProcessLicensesVisibility => ProcessLicenses.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
 
     public Visibility SessionLicensesVisibility => SessionLicenses.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+
+    public Visibility SessionsVisibility => Sessions.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
 
     public Visibility OccupiedLicenseUsagesVisibility => OccupiedLicenseUsages.Count > 0
         ? Visibility.Visible

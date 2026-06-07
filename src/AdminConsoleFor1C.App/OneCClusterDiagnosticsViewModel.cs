@@ -27,11 +27,16 @@ public sealed class OneCClusterDiagnosticsViewModel
         LicenseClusters = Clusters
             .Where(static cluster => cluster.OccupiedLicenseUsages.Count > 0)
             .ToList();
+        SessionClusters = Clusters
+            .Where(static cluster => cluster.Sessions.Count > 0)
+            .ToList();
     }
 
     public IReadOnlyList<OneCClusterViewModel> Clusters { get; }
 
     public IReadOnlyList<OneCClusterViewModel> LicenseClusters { get; }
+
+    public IReadOnlyList<OneCClusterViewModel> SessionClusters { get; }
 
     public string InfobasesSummaryText
     {
@@ -87,7 +92,7 @@ public sealed class OneCClusterDiagnosticsViewModel
 
             if (clientUsages.Count > 0)
             {
-                var sessionCount = Clusters.Sum(static cluster => cluster.SessionLicenses.Count);
+                var sessionCount = Clusters.Sum(static cluster => cluster.Sessions.Count);
                 parts.Add($"Клиентские места: {FormatUsage(clientUsages)}, сеансов: {sessionCount}");
             }
 
@@ -97,6 +102,26 @@ public sealed class OneCClusterDiagnosticsViewModel
             }
 
             return string.Join("; ", parts);
+        }
+    }
+
+    public string SessionSummaryText
+    {
+        get
+        {
+            if (!_result.IsAvailable)
+            {
+                return "Сеансы недоступны";
+            }
+
+            var count = Clusters.Sum(static cluster => cluster.Sessions.Count);
+            return count switch
+            {
+                0 => "Активные пользовательские сеансы не обнаружены",
+                1 => "1 пользовательский сеанс",
+                >= 2 and <= 4 => $"{count} пользовательских сеанса",
+                _ => $"{count} пользовательских сеансов"
+            };
         }
     }
 
@@ -117,6 +142,10 @@ public sealed class OneCClusterDiagnosticsViewModel
     public Visibility LicenseClustersVisibility => LicenseClusters.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
 
     public Visibility LicensesEmptyStateVisibility => LicenseClusters.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+
+    public Visibility SessionClustersVisibility => SessionClusters.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+
+    public Visibility SessionsEmptyStateVisibility => SessionClusters.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 
     public Visibility StartTemporaryRasVisibility => _canStartTemporaryRas ? Visibility.Visible : Visibility.Collapsed;
 

@@ -57,11 +57,18 @@ public sealed class RacOneCClusterInventory : IOneCClusterInventory
             {
                 var servers = await GetClusterServersAsync(racPath, administrationServerAddress, cluster.Uuid, cancellationToken);
                 var infobases = await GetClusterInfobasesAsync(racPath, administrationServerAddress, cluster.Uuid, cancellationToken);
+                var sessions = await GetClusterSessionsAsync(
+                    racPath,
+                    administrationServerAddress,
+                    cluster.Uuid,
+                    infobases.Items,
+                    cancellationToken);
                 var processLicenses = await GetClusterProcessLicensesAsync(racPath, administrationServerAddress, cluster.Uuid, cancellationToken);
                 var sessionLicenses = await GetClusterSessionLicensesAsync(racPath, administrationServerAddress, cluster.Uuid, cancellationToken);
                 var detailsMessage = CombineDetailsMessages(
                     servers.Message,
                     infobases.Message,
+                    sessions.Message,
                     processLicenses.Message,
                     sessionLicenses.Message);
 
@@ -69,6 +76,7 @@ public sealed class RacOneCClusterInventory : IOneCClusterInventory
                 {
                     Servers = servers.Items,
                     Infobases = infobases.Items,
+                    Sessions = sessions.Items,
                     ProcessLicenses = processLicenses.Items,
                     SessionLicenses = sessionLicenses.Items,
                     DetailsMessage = detailsMessage
@@ -627,6 +635,34 @@ public sealed class RacOneCClusterInventory : IOneCClusterInventory
         {
             return ([], $"Сеансы информационной базы не были прочитаны: {exception.Message}");
         }
+    }
+
+    private static async Task<(IReadOnlyList<OneCSessionInfo> Items, string? Message)> GetClusterSessionsAsync(
+        string racPath,
+        string administrationServerAddress,
+        string clusterUuid,
+        IReadOnlyList<OneCInfobaseSummaryInfo> infobases,
+        CancellationToken cancellationToken)
+    {
+        var sessions = new List<OneCSessionInfo>();
+        var messages = new List<string?>();
+
+        foreach (var infobase in infobases.Where(static item => !string.IsNullOrWhiteSpace(item.Uuid)))
+        {
+            var result = await GetInfobaseSessionsCoreAsync(
+                racPath,
+                administrationServerAddress,
+                clusterUuid,
+                infobase.Uuid,
+                cancellationToken);
+
+            messages.Add(result.Message);
+            sessions.AddRange(result.Items.Select(session => string.IsNullOrWhiteSpace(session.InfobaseUuid)
+                ? session with { InfobaseUuid = infobase.Uuid }
+                : session));
+        }
+
+        return (sessions, CombineDetailsMessages(messages.ToArray()));
     }
 
     private static IReadOnlyDictionary<string, string> MergeProperties(
