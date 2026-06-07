@@ -442,6 +442,246 @@
                     </Border>
 
                     <Border
+                        x:Name="InfobasesCard"
+                        Grid.Row="0"
+                        Padding="16"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="6"
+                        Visibility="Collapsed">
+                        <StackPanel Spacing="12">
+                            <StackPanel Spacing="2">
+                                <TextBlock
+                                    FontSize="16"
+                                    FontWeight="SemiBold"
+                                    Text="Информационные базы" />
+                                <TextBlock
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                    LineHeight="20"
+                                    Text="{Binding InfobasesSummaryText}"
+                                    TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+
+                            <Border
+                                Padding="14"
+                                Background="{ThemeResource LayerFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                Visibility="{Binding InfobasesEmptyStateVisibility}">
+                                <StackPanel Spacing="4">
+                                    <TextBlock
+                                        FontWeight="SemiBold"
+                                        LineHeight="20"
+                                        Text="Информационные базы не найдены" />
+                                    <TextBlock
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                        LineHeight="20"
+                                        Text="{Binding MessageText}"
+                                        TextWrapping="WrapWholeWords" />
+                                </StackPanel>
+                            </Border>
+
+                            <ItemsRepeater
+                                ItemsSource="{Binding Clusters}"
+                                Visibility="{Binding InfobaseClustersVisibility}">
+                                <ItemsRepeater.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border
+                                            Padding="0,12"
+                                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                            BorderThickness="0,1,0,0">
+                                            <StackPanel Spacing="10">
+                                                <Grid ColumnSpacing="12">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <StackPanel Spacing="2">
+                                                        <TextBlock
+                                                            Style="{StaticResource SectionTitleTextBlockStyle}"
+                                                            Text="{Binding NameText}"
+                                                            TextTrimming="CharacterEllipsis" />
+                                                        <TextBlock
+                                                            Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                            Text="{Binding AddressText}"
+                                                            TextTrimming="CharacterEllipsis" />
+                                                    </StackPanel>
+
+                                                    <Button
+                                                        Grid.Column="1"
+                                                        HorizontalAlignment="Right"
+                                                        AutomationProperties.Name="Создать информационную базу"
+                                                        Click="OpenCreateInfobaseDialogButton_Click"
+                                                        Tag="{Binding}">
+                                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                                            <SymbolIcon Symbol="Add" />
+                                                            <TextBlock Text="Создать базу" />
+                                                        </StackPanel>
+                                                    </Button>
+                                                </Grid>
+
+                                                <Border
+                                                    Padding="14"
+                                                    Background="{ThemeResource LayerFillColorDefaultBrush}"
+                                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                                    BorderThickness="1"
+                                                    CornerRadius="6"
+                                                    Visibility="{Binding InfobaseEmptyStateVisibility}">
+                                                    <StackPanel Spacing="4">
+                                                        <TextBlock
+                                                            FontWeight="SemiBold"
+                                                            LineHeight="20"
+                                                            Text="Баз пока нет" />
+                                                        <TextBlock
+                                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                            LineHeight="20"
+                                                            Text="Создайте регистрацию информационной базы в выбранном кластере."
+                                                            TextWrapping="WrapWholeWords" />
+                                                    </StackPanel>
+                                                </Border>
+
+                                                <ItemsRepeater
+                                                    ItemsSource="{Binding Infobases}"
+                                                    Visibility="{Binding InfobasesVisibility}">
+                                                    <ItemsRepeater.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Border
+                                                                Margin="0,0,0,8"
+                                                                Padding="14"
+                                                                Background="{ThemeResource LayerFillColorDefaultBrush}"
+                                                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                                                BorderThickness="1"
+                                                                CornerRadius="6">
+                                                                <Grid ColumnSpacing="16">
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="1.3*" />
+                                                                        <ColumnDefinition Width="1.5*" />
+                                                                        <ColumnDefinition Width="1.1*" />
+                                                                        <ColumnDefinition Width="220" />
+                                                                    </Grid.ColumnDefinitions>
+
+                                                                    <StackPanel Spacing="4">
+                                                                        <TextBlock
+                                                                            Style="{StaticResource SectionTitleTextBlockStyle}"
+                                                                            Text="{Binding NameText}"
+                                                                            TextTrimming="CharacterEllipsis" />
+                                                                        <TextBlock
+                                                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                            LineHeight="20"
+                                                                            Text="{Binding DescriptionText}"
+                                                                            TextWrapping="WrapWholeWords" />
+                                                                        <TextBlock
+                                                                            Style="{StaticResource MetadataMonoTextBlockStyle}"
+                                                                            Text="{Binding UuidText}"
+                                                                            TextTrimming="CharacterEllipsis" />
+                                                                    </StackPanel>
+
+                                                                    <StackPanel Grid.Column="1" Spacing="4">
+                                                                        <TextBlock
+                                                                            Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                                            Text="Хранилище данных" />
+                                                                        <TextBlock
+                                                                            LineHeight="20"
+                                                                            Text="{Binding DatabaseText}"
+                                                                            TextWrapping="WrapWholeWords" />
+                                                                    </StackPanel>
+
+                                                                    <StackPanel Grid.Column="2" Spacing="4">
+                                                                        <TextBlock
+                                                                            Style="{StaticResource ColumnLabelTextBlockStyle}"
+                                                                            Text="Ограничения" />
+                                                                        <TextBlock
+                                                                            LineHeight="20"
+                                                                            Text="{Binding RestrictionsText}"
+                                                                            TextWrapping="WrapWholeWords" />
+                                                                    </StackPanel>
+
+                                                                    <StackPanel Grid.Column="3" Spacing="10">
+                                                                        <Button
+                                                                            HorizontalAlignment="Stretch"
+                                                                            Click="OpenTransferInfobaseDialogButton_Click"
+                                                                            Tag="{Binding}">
+                                                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                                                <SymbolIcon Symbol="Forward" />
+                                                                                <TextBlock Text="Перенести..." />
+                                                                            </StackPanel>
+                                                                        </Button>
+
+                                                                        <Grid
+                                                                            MinHeight="34"
+                                                                            ColumnSpacing="12">
+                                                                            <Grid.ColumnDefinitions>
+                                                                                <ColumnDefinition Width="*" />
+                                                                                <ColumnDefinition Width="Auto" />
+                                                                            </Grid.ColumnDefinitions>
+                                                                            <StackPanel
+                                                                                VerticalAlignment="Center"
+                                                                                Spacing="1">
+                                                                                <TextBlock
+                                                                                    FontWeight="SemiBold"
+                                                                                    Text="Вход пользователей" />
+                                                                                <TextBlock
+                                                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                                    Text="{Binding SessionsAccessText}" />
+                                                                            </StackPanel>
+                                                                            <ToggleSwitch
+                                                                                Grid.Column="1"
+                                                                                MinWidth="0"
+                                                                                HorizontalAlignment="Right"
+                                                                                VerticalAlignment="Center"
+                                                                                OffContent=""
+                                                                                OnContent=""
+                                                                                Tag="{Binding}"
+                                                                                Loaded="InfobaseSessionsToggleSwitch_Loaded"
+                                                                                Unloaded="InfobaseSessionsToggleSwitch_Unloaded" />
+                                                                        </Grid>
+
+                                                                        <Grid
+                                                                            MinHeight="34"
+                                                                            ColumnSpacing="12">
+                                                                            <Grid.ColumnDefinitions>
+                                                                                <ColumnDefinition Width="*" />
+                                                                                <ColumnDefinition Width="Auto" />
+                                                                            </Grid.ColumnDefinitions>
+                                                                            <StackPanel
+                                                                                VerticalAlignment="Center"
+                                                                                Spacing="1">
+                                                                                <TextBlock
+                                                                                    FontWeight="SemiBold"
+                                                                                    Text="Регламентные задания" />
+                                                                                <TextBlock
+                                                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                                    Text="{Binding ScheduledJobsAccessText}" />
+                                                                            </StackPanel>
+                                                                            <ToggleSwitch
+                                                                                Grid.Column="1"
+                                                                                MinWidth="0"
+                                                                                HorizontalAlignment="Right"
+                                                                                VerticalAlignment="Center"
+                                                                                OffContent=""
+                                                                                OnContent=""
+                                                                                Tag="{Binding}"
+                                                                                Loaded="InfobaseScheduledJobsToggleSwitch_Loaded"
+                                                                                Unloaded="InfobaseScheduledJobsToggleSwitch_Unloaded" />
+                                                                        </Grid>
+                                                                    </StackPanel>
+                                                                </Grid>
+                                                            </Border>
+                                                        </DataTemplate>
+                                                    </ItemsRepeater.ItemTemplate>
+                                                </ItemsRepeater>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsRepeater.ItemTemplate>
+                            </ItemsRepeater>
+                        </StackPanel>
+                    </Border>
+
+                    <Border
                         x:Name="ClustersCard"
                         Grid.Row="3"
                         Padding="16"

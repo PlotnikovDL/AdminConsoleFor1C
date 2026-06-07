@@ -33,6 +33,26 @@ public sealed class OneCClusterDiagnosticsViewModel
 
     public IReadOnlyList<OneCClusterViewModel> LicenseClusters { get; }
 
+    public string InfobasesSummaryText
+    {
+        get
+        {
+            if (!_result.IsAvailable)
+            {
+                return "Информационные базы недоступны";
+            }
+
+            var count = Clusters.Sum(static cluster => cluster.Infobases.Count);
+            return count switch
+            {
+                0 => "Информационные базы не найдены",
+                1 => "1 информационная база",
+                >= 2 and <= 4 => $"{count} информационные базы",
+                _ => $"{count} информационных баз"
+            };
+        }
+    }
+
     public string StatusText => _result.IsAvailable
         ? _result.Clusters.Count == 0 ? "Пусто" : "Доступны"
         : "Недоступны";
@@ -89,6 +109,10 @@ public sealed class OneCClusterDiagnosticsViewModel
     public Visibility ClustersVisibility => _result.Clusters.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
 
     public Visibility MessageVisibility => _result.Clusters.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+
+    public Visibility InfobaseClustersVisibility => _result.Clusters.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+
+    public Visibility InfobasesEmptyStateVisibility => _result.Clusters.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 
     public Visibility LicenseClustersVisibility => LicenseClusters.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
 

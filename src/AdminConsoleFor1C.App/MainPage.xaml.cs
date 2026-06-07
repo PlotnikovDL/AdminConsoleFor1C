@@ -59,6 +59,7 @@ public sealed partial class MainPage : Page
             canStartTemporaryRas: false,
             canStopTemporaryRas: false);
         ClustersCard.DataContext = initialClusterDiagnostics;
+        InfobasesCard.DataContext = initialClusterDiagnostics;
         LicensesCard.DataContext = initialClusterDiagnostics;
         RootNavigation.SelectedItem = AgentsNavigationItem;
         ApplyCurrentSection();
@@ -401,6 +402,7 @@ public sealed partial class MainPage : Page
             _administrationToolDiagnostics = administrationToolDiagnostics;
             AdministrationToolsCard.DataContext = administrationToolDiagnostics;
             ClustersCard.DataContext = clusterDiagnostics;
+            InfobasesCard.DataContext = clusterDiagnostics;
             LicensesCard.DataContext = clusterDiagnostics;
 
             _nodes.Clear();
@@ -462,7 +464,7 @@ public sealed partial class MainPage : Page
 
         StatusText.Text = _currentSection switch
         {
-            MainPageSection.Infobases => "Кластеры и информационные базы 1С",
+            MainPageSection.Infobases => "Информационные базы найденных кластеров 1С",
             MainPageSection.Sessions => "Активные пользователи и сеансы информационных баз",
             MainPageSection.Licenses => "Аппаратные, программные и занятые лицензии",
             MainPageSection.Settings => "Параметры приложения",
@@ -475,12 +477,13 @@ public sealed partial class MainPage : Page
         ContentGrid.ColumnSpacing = isAgentsSection ? 24 : 0;
 
         AdministrationToolsCard.Visibility = isAgentsSection ? Visibility.Visible : Visibility.Collapsed;
-        ClustersCard.Visibility = _currentSection == MainPageSection.Infobases ? Visibility.Visible : Visibility.Collapsed;
+        InfobasesCard.Visibility = _currentSection == MainPageSection.Infobases ? Visibility.Visible : Visibility.Collapsed;
+        ClustersCard.Visibility = Visibility.Collapsed;
         SessionsCard.Visibility = _currentSection == MainPageSection.Sessions ? Visibility.Visible : Visibility.Collapsed;
         LicensesCard.Visibility = _currentSection == MainPageSection.Licenses ? Visibility.Visible : Visibility.Collapsed;
         SettingsCard.Visibility = _currentSection == MainPageSection.Settings ? Visibility.Visible : Visibility.Collapsed;
 
-        Grid.SetRow(ClustersCard, _currentSection == MainPageSection.Infobases ? 0 : 3);
+        Grid.SetRow(ClustersCard, 3);
         Grid.SetRow(LicensesCard, _currentSection == MainPageSection.Licenses ? 0 : 2);
 
         UpdateEmptyState();
