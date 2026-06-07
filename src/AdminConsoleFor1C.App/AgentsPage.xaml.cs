@@ -20,15 +20,6 @@ namespace AdminConsoleFor1C.App;
 /// </summary>
 public sealed partial class AgentsPage : Page
 {
-    private enum WorkspaceSection
-    {
-        Agents,
-        Infobases,
-        Sessions,
-        Licenses,
-        Settings
-    }
-
     private const string ServiceAccountLocalSystem = "LocalSystem";
     private const string ServiceAccountLocalService = @"NT AUTHORITY\LocalService";
     private const string ServiceAccountNetworkService = @"NT AUTHORITY\NetworkService";
@@ -47,7 +38,7 @@ public sealed partial class AgentsPage : Page
     private OneCClusterDiagnosticsViewModel? _clusterDiagnostics;
     private OneCServiceProcessNode? _selectedNode;
     private int? _temporaryRasProcessId;
-    private WorkspaceSection _currentSection = WorkspaceSection.Agents;
+    private AdminConsoleSection _currentSection = AdminConsoleSection.Agents;
     private string _agentsStatusText = "Готово";
 
     public AgentsPage()
@@ -71,16 +62,25 @@ public sealed partial class AgentsPage : Page
 
     public void NavigateToSection(string sectionTag)
     {
-        SetCurrentSection(sectionTag);
+        NavigateToSection(AdminConsoleSections.FromTag(sectionTag));
+    }
+
+    public void NavigateToSection(AdminConsoleSection section)
+    {
+        SetCurrentSection(section);
     }
 
     protected override void OnNavigatedTo(NavigationEventArgs e)
     {
         base.OnNavigatedTo(e);
 
-        if (e.Parameter is string sectionTag)
+        if (e.Parameter is AdminConsoleSection section)
         {
-            SetCurrentSection(sectionTag);
+            SetCurrentSection(section);
+        }
+        else if (e.Parameter is string sectionTag)
+        {
+            NavigateToSection(sectionTag);
         }
     }
 
@@ -95,17 +95,9 @@ public sealed partial class AgentsPage : Page
         await RefreshServicesAsync();
     }
 
-    private void SetCurrentSection(string sectionTag)
+    private void SetCurrentSection(AdminConsoleSection section)
     {
-        _currentSection = sectionTag switch
-        {
-            "infobases" => WorkspaceSection.Infobases,
-            "sessions" => WorkspaceSection.Sessions,
-            "licenses" => WorkspaceSection.Licenses,
-            "settings" => WorkspaceSection.Settings,
-            _ => WorkspaceSection.Agents
-        };
-
+        _currentSection = section;
         ApplyCurrentSection();
     }
 
@@ -391,7 +383,7 @@ public sealed partial class AgentsPage : Page
         RefreshProgress.Visibility = Visibility.Visible;
         ErrorInfoBar.IsOpen = false;
         _agentsStatusText = "Обновление...";
-        if (_currentSection == WorkspaceSection.Agents)
+        if (_currentSection == AdminConsoleSection.Agents)
         {
             StatusText.Text = _agentsStatusText;
         }
@@ -460,7 +452,7 @@ public sealed partial class AgentsPage : Page
     private void UpdateEmptyState()
     {
         var hasItems = _nodes.Count > 0;
-        var isAgentsSection = _currentSection == WorkspaceSection.Agents;
+        var isAgentsSection = _currentSection == AdminConsoleSection.Agents;
 
         ServiceTreeRepeater.Visibility = isAgentsSection && hasItems ? Visibility.Visible : Visibility.Collapsed;
         ComponentDetailsCard.Visibility = isAgentsSection && hasItems && _selectedNode is not null
@@ -472,25 +464,10 @@ public sealed partial class AgentsPage : Page
 
     private void ApplyCurrentSection()
     {
-        var isAgentsSection = _currentSection == WorkspaceSection.Agents;
+        var isAgentsSection = _currentSection == AdminConsoleSection.Agents;
 
-        PageTitleText.Text = _currentSection switch
-        {
-            WorkspaceSection.Infobases => "Информационные базы",
-            WorkspaceSection.Sessions => "Сеансы",
-            WorkspaceSection.Licenses => "Лицензии",
-            WorkspaceSection.Settings => "Настройки",
-            _ => "Агенты сервера 1С"
-        };
-
-        StatusText.Text = _currentSection switch
-        {
-            WorkspaceSection.Infobases => "Информационные базы найденных кластеров 1С",
-            WorkspaceSection.Sessions => "Активные пользователи и сеансы информационных баз",
-            WorkspaceSection.Licenses => "Аппаратные, программные и занятые лицензии",
-            WorkspaceSection.Settings => "Параметры приложения",
-            _ => _agentsStatusText
-        };
+        PageTitleText.Text = AdminConsoleSections.GetTitle(_currentSection);
+        StatusText.Text = AdminConsoleSections.GetDescription(_currentSection, _agentsStatusText);
 
         ServiceListColumn.Width = isAgentsSection
             ? new GridLength(520)
@@ -498,14 +475,14 @@ public sealed partial class AgentsPage : Page
         ContentGrid.ColumnSpacing = isAgentsSection ? 24 : 0;
 
         AdministrationToolsCard.Visibility = isAgentsSection ? Visibility.Visible : Visibility.Collapsed;
-        InfobasesCard.Visibility = _currentSection == WorkspaceSection.Infobases ? Visibility.Visible : Visibility.Collapsed;
+        InfobasesCard.Visibility = _currentSection == AdminConsoleSection.Infobases ? Visibility.Visible : Visibility.Collapsed;
         ClustersCard.Visibility = Visibility.Collapsed;
-        SessionsCard.Visibility = _currentSection == WorkspaceSection.Sessions ? Visibility.Visible : Visibility.Collapsed;
-        LicensesCard.Visibility = _currentSection == WorkspaceSection.Licenses ? Visibility.Visible : Visibility.Collapsed;
-        SettingsCard.Visibility = _currentSection == WorkspaceSection.Settings ? Visibility.Visible : Visibility.Collapsed;
+        SessionsCard.Visibility = _currentSection == AdminConsoleSection.Sessions ? Visibility.Visible : Visibility.Collapsed;
+        LicensesCard.Visibility = _currentSection == AdminConsoleSection.Licenses ? Visibility.Visible : Visibility.Collapsed;
+        SettingsCard.Visibility = _currentSection == AdminConsoleSection.Settings ? Visibility.Visible : Visibility.Collapsed;
 
         Grid.SetRow(ClustersCard, 3);
-        Grid.SetRow(LicensesCard, _currentSection == WorkspaceSection.Licenses ? 0 : 2);
+        Grid.SetRow(LicensesCard, _currentSection == AdminConsoleSection.Licenses ? 0 : 2);
 
         UpdateEmptyState();
     }
@@ -542,7 +519,7 @@ public sealed partial class AgentsPage : Page
 
         _selectedNode.IsSelected = true;
         ComponentDetailsCard.DataContext = _selectedNode;
-        ComponentDetailsCard.Visibility = _currentSection == WorkspaceSection.Agents
+        ComponentDetailsCard.Visibility = _currentSection == AdminConsoleSection.Agents
             ? Visibility.Visible
             : Visibility.Collapsed;
     }

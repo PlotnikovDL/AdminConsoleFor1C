@@ -7,14 +7,14 @@ namespace AdminConsoleFor1C.App;
 /// </summary>
 public sealed partial class ShellPage : Page
 {
-    private string? _currentSectionTag;
+    private AdminConsoleSection? _currentSection;
 
     public ShellPage()
     {
         InitializeComponent();
 
         RootNavigation.SelectedItem = AgentsNavigationItem;
-        NavigateToSection("agents");
+        NavigateToSection(AdminConsoleSection.Agents);
     }
 
     private void RootNavigation_SelectionChanged(
@@ -23,25 +23,25 @@ public sealed partial class ShellPage : Page
     {
         if (args.SelectedItemContainer?.Tag is string sectionTag)
         {
-            NavigateToSection(sectionTag);
+            NavigateToSection(AdminConsoleSections.FromTag(sectionTag));
         }
     }
 
-    private void NavigateToSection(string sectionTag)
+    private void NavigateToSection(AdminConsoleSection section)
     {
-        if (_currentSectionTag == sectionTag && ContentFrame.Content is AgentsPage)
+        if (_currentSection == section && ContentFrame.Content is AgentsPage)
         {
             return;
         }
 
-        _currentSectionTag = sectionTag;
+        _currentSection = section;
 
         if (ContentFrame.Content is AgentsPage agentsPage)
         {
-            agentsPage.NavigateToSection(sectionTag);
+            agentsPage.NavigateToSection(section);
             return;
         }
 
-        ContentFrame.Navigate(typeof(AgentsPage), sectionTag);
+        ContentFrame.Navigate(typeof(AgentsPage), section);
     }
 }
