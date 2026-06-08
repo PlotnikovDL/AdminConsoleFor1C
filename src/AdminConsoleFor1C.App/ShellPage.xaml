@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="AdminConsoleFor1C.App.ShellPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:ic="using:FluentIcons.WinUI"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <NavigationView
+        x:Name="RootNavigation"
+        CompactModeThresholdWidth="900"
+        ExpandedModeThresholdWidth="1180"
+        IsBackButtonVisible="Collapsed"
+        IsSettingsVisible="False"
+        PaneDisplayMode="Auto"
+        SelectionChanged="RootNavigation_SelectionChanged">
+        <NavigationView.MenuItems>
+            <NavigationViewItem
+                x:Name="AgentsNavigationItem"
+                Content="Агенты сервера 1С"
+                Tag="agents">
+                <NavigationViewItem.Icon>
+                    <ic:FluentIcon
+                        Icon="PuzzlePiece"
+                        IconSize="Size20"
+                        IconVariant="Regular" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+
+            <NavigationViewItem
+                x:Name="InfobasesNavigationItem"
+                Content="Информационные базы"
+                Tag="infobases">
+                <NavigationViewItem.Icon>
+                    <ic:FluentIcon
+                        Icon="Database"
+                        IconSize="Size20"
+                        IconVariant="Regular" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+
+            <NavigationViewItem
+                x:Name="ClustersNavigationItem"
+                Content="Кластеры"
+                Tag="clusters">
+                <NavigationViewItem.Icon>
+                    <ic:FluentIcon
+                        Icon="ServerMultiple"
+                        IconSize="Size20"
+                        IconVariant="Regular" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+
+            <NavigationViewItem
+                x:Name="LicensesNavigationItem"
+                Content="Лицензии"
+                Tag="licenses">
+                <NavigationViewItem.Icon>
+                    <ic:FluentIcon
+                        Icon="Key"
+                        IconSize="Size20"
+                        IconVariant="Regular" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+        </NavigationView.MenuItems>
+
+        <NavigationView.FooterMenuItems>
+            <NavigationViewItem
+                x:Name="SettingsNavigationItem"
+                Content="Настройки"
+                Tag="settings">
+                <NavigationViewItem.Icon>
+                    <ic:FluentIcon
+                        Icon="Settings"
+                        IconSize="Size20"
+                        IconVariant="Regular" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+        </NavigationView.FooterMenuItems>
+
+        <Frame x:Name="ContentFrame" />
+    </NavigationView>
+</Page>

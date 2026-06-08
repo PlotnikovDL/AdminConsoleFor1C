@@ -7,7 +7,7 @@
 - Базовые правила: Windows app design guidelines.
 - Дизайн-язык: Fluent Design / Fluent 2.
 - Реализация: стандартные WinUI 3 controls and patterns.
-- Стандартные паттерны не дублируем вручную: сначала используем WinUI и Windows Community Toolkit.
+- Стандартные UI-паттерны не дублируем вручную: интерфейс строим на WinUI, Windows App SDK и Windows Community Toolkit.
 - Проверка решений: WinUI Gallery и реальные скриншоты приложения.
 
 Полезные ссылки:
@@ -25,11 +25,15 @@
 
 ## Готовые UI-блоки
 
+- По умолчанию любой новый UI-блок должен быть стандартным WinUI-контролом или контролом из Windows Community Toolkit.
+- Самописный визуальный контрол допускается только если готовой библиотечной замены нет; причину фиксировать рядом с кодом или в описании изменения.
+- Не писать собственные аналоги `SettingsCard`, `SettingsExpander`, `NavigationView`, `InfoBar`, `ContentDialog`, `CommandBar`, `Button`, `ProgressRing` и других стандартных блоков.
 - Для строк в стиле Windows 11 Settings использовать `SettingsCard` из `CommunityToolkit.WinUI.Controls.SettingsControls`.
 - Для групп с раскрытием использовать `SettingsExpander` из `CommunityToolkit.WinUI.Controls.SettingsControls`.
 - Для навигации использовать `NavigationView`, режимы `Left`, `LeftCompact`, `LeftMinimal` и явные breakpoints на уровне shell.
+- Для иконок использовать `FluentIcon` из `FluentIcons.WinUI`; ручные glyph-коды допустимы только если иконки нет в библиотеке.
 - Для состояния загрузки, ошибок и подтверждений использовать стандартные WinUI-контролы: `ProgressRing`, `InfoBar`, `ContentDialog`, `CommandBar` или `Button`.
-- Собственный XAML допускается для page scaffold, адаптивной композиции, доменных списков 1С и случаев, где готовый контрол не покрывает сценарий.
+- Собственный XAML допускается только для page scaffold, адаптивной композиции и связывания готовых контролов в доменные сценарии 1С.
 
 ## Таблицы и списки
 

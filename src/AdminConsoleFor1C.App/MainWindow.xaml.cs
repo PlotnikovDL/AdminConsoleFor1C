@@ -7,7 +7,7 @@ using Microsoft.UI.Xaml;
 namespace AdminConsoleFor1C.App;
 
 /// <summary>
-/// The application window that hosts the starter administration page.
+/// The application window that hosts the administration shell.
 /// </summary>
 public sealed partial class MainWindow : Window
 {
@@ -20,7 +20,7 @@ public sealed partial class MainWindow : Window
 
         AppWindow.SetIcon("Assets/AppIcon.ico");
 
-        RootFrame.Navigate(typeof(AgentsPage));
+        RootFrame.Navigate(typeof(ShellPage));
 
         if (AppWindow.Presenter is OverlappedPresenter presenter)
         {

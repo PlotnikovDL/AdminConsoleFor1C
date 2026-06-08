@@ -5,8 +5,8 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:controls="using:CommunityToolkit.WinUI.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:ic="using:FluentIcons.WinUI"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:ui="using:CommunityToolkit.WinUI"
     mc:Ignorable="d">
 
     <Page.Resources>
@@ -68,7 +68,10 @@
                             Visibility="{Binding RefreshProgressVisibility}" />
                         <Button Command="{Binding RefreshCommand}">
                             <StackPanel Orientation="Horizontal" Spacing="8">
-                                <FontIcon FontSize="16" Glyph="&#xE72C;" />
+                                <ic:FluentIcon
+                                    Icon="ArrowClockwise"
+                                    IconSize="Size16"
+                                    IconVariant="Regular" />
                                 <TextBlock Text="Обновить" />
                             </StackPanel>
                         </Button>
@@ -88,8 +91,14 @@
                 <controls:SettingsCard
                     Description="{Binding PageSubtitle}"
                     HorizontalAlignment="Stretch"
-                    Header="Компоненты сервера"
-                    HeaderIcon="{ui:FontIcon Glyph=&#xE950;}">
+                    Header="Компоненты сервера">
+                    <controls:SettingsCard.HeaderIcon>
+                        <ic:FluentIcon
+                            Icon="PuzzlePiece"
+                            IconSize="Size20"
+                            IconVariant="Regular" />
+                    </controls:SettingsCard.HeaderIcon>
+
                     <TextBlock
                         FontWeight="SemiBold"
                         Text="{Binding ComponentsStatusText}" />
