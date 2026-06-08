@@ -1,9 +1,9 @@
 {
   "profiles": {
-    "Admin Console for 1C (Package)": {
+    "Центр администрирования 1С (Package)": {
       "commandName": "MsixPackage"
     },
-    "Admin Console for 1C (Unpackaged)": {
+    "Центр администрирования 1С (Unpackaged)": {
       "commandName": "Project"
     }
   }

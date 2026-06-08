@@ -1,6 +1,9 @@
 # Стек и архитектурные ориентиры
 
-Этот документ фиксирует согласованный стек `Admin Console for 1C` и правила, на которые опираемся при дальнейшем развитии приложения.
+Этот документ фиксирует согласованный стек `Центр администрирования 1С` и правила, на которые опираемся при дальнейшем развитии приложения.
+
+Видимое имя приложения: `Центр администрирования 1С`.
+Техническое имя проекта, EXE, namespace и будущий winget `PackageIdentifier` остаются латиницей: `AdminConsoleFor1C` / `PlotnikovDL.AdminConsoleFor1C`.
 
 ## Базовая платформа
 
@@ -19,6 +22,21 @@
 - `Microsoft.WindowsAppSDK`: `1.8.260317003`.
 - `Microsoft.Windows.SDK.BuildTools`: `10.0.26100.7705`.
 - `Microsoft.Windows.SDK.BuildTools.WinApp`: `0.3.1`.
+- `CommunityToolkit.Mvvm`: `8.4.2`.
+- `CommunityToolkit.WinUI.Controls.SettingsControls`: `8.2.251219`.
+
+## Библиотечный подход
+
+Стандартные UI и MVVM-паттерны сначала берём из поддерживаемых библиотек, а не пишем заново в каждом экране.
+
+Приоритет источников:
+
+- стандартные WinUI 3 / Windows App SDK controls;
+- Windows Community Toolkit для готовых Windows 11 Settings-блоков: `SettingsCard`, `SettingsExpander` и родственные контролы;
+- `CommunityToolkit.Mvvm` для `ObservableObject`, observable properties и relay commands;
+- собственные App-level компоненты только для композиции страниц, навигации, адаптивного scaffold и сценариев администрирования 1С.
+
+Если готовый контрол покрывает поведение и визуальный паттерн, используем его. Свой XAML/control пишем только когда нужно связать стандартные блоки в доменный сценарий 1С, добавить недостающую адаптивную композицию или явно зафиксировать приложение-специфичный контракт.
 
 ## UI и Windows 11
 
@@ -34,6 +52,7 @@
 - `ContentDialog` - подтверждения и короткие мастера.
 - `Expander` - редкие технические подробности, которые не нужны постоянно.
 - `ListView`, `ItemsRepeater` или `TreeView` - списки и иерархии служб, кластеров, баз и сеансов.
+- `SettingsCard`, `SettingsExpander` из Windows Community Toolkit - основной building block для строк и групп в стиле Windows 11 Settings.
 
 Цвета статусов должны быть сдержанными:
 
@@ -136,7 +155,7 @@
 Основная команда запуска в разработке:
 
 ```powershell
-dotnet run --project C:\projects\1c-tools\AdminConsoleFor1C\src\AdminConsoleFor1C.App\AdminConsoleFor1C.App.csproj --launch-profile "Admin Console for 1C (Package)"
+dotnet run --project C:\projects\1c-tools\AdminConsoleFor1C\src\AdminConsoleFor1C.App\AdminConsoleFor1C.App.csproj --launch-profile "Центр администрирования 1С (Package)"
 ```
 
 Проверка перед UI-коммитом:

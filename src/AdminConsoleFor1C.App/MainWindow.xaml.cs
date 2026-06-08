@@ -7,9 +7,7 @@ using Microsoft.UI.Xaml;
 namespace AdminConsoleFor1C.App;
 
 /// <summary>
-/// The application window. This hosts a Frame that displays pages. Add your
-/// UI and logic to AgentsPage.xaml / AgentsPage.xaml.cs instead of here so you
-/// can use Page features such as navigation events and the Loaded lifecycle.
+/// The application window that hosts the starter administration page.
 /// </summary>
 public sealed partial class MainWindow : Window
 {
@@ -22,8 +20,7 @@ public sealed partial class MainWindow : Window
 
         AppWindow.SetIcon("Assets/AppIcon.ico");
 
-        // Navigate the root frame to the application shell on startup.
-        RootFrame.Navigate(typeof(ShellPage));
+        RootFrame.Navigate(typeof(AgentsPage));
 
         if (AppWindow.Presenter is OverlappedPresenter presenter)
         {
