@@ -1,12 +1,33 @@
+using AdminConsoleFor1C.Infrastructure.Services;
+using CommunityToolkit.Mvvm.Input;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
 namespace AdminConsoleFor1C.App;
 
 public sealed partial class AgentsPage : Page
 {
+    private readonly AgentsPageViewModel viewModel;
+
     public AgentsPage()
     {
         InitializeComponent();
-        DataContext = new AgentsPageViewModel();
+
+        viewModel = new AgentsPageViewModel(
+            new WindowsOneCServiceInventory(),
+            new WindowsOneCProcessInventory());
+
+        DataContext = viewModel;
+        Loaded += AgentsPage_Loaded;
+    }
+
+    private async void AgentsPage_Loaded(object sender, RoutedEventArgs e)
+    {
+        Loaded -= AgentsPage_Loaded;
+
+        if (viewModel.RefreshCommand is IAsyncRelayCommand refreshCommand)
+        {
+            await refreshCommand.ExecuteAsync(null);
+        }
     }
 }
