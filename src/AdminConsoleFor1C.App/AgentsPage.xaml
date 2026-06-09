@@ -38,6 +38,11 @@
                     <RepositionThemeTransition IsStaggeringEnabled="False" />
                 </StackPanel.ChildrenTransitions>
 
+                <BreadcrumbBar
+                    ItemClicked="BreadcrumbBar_ItemClicked"
+                    ItemsSource="{Binding Breadcrumbs}"
+                    Visibility="{Binding BreadcrumbVisibility}" />
+
                 <Grid
                     ColumnSpacing="16"
                     RowSpacing="8">
@@ -92,97 +97,177 @@
                     Severity="Error"
                     Title="Не удалось обновить компоненты" />
 
-                <TextBlock
-                    Style="{StaticResource SettingsSectionHeaderTextBlockStyle}"
-                    Text="Агенты сервера 1С" />
-
-                <controls:SettingsCard
-                    Description="{Binding PageSubtitle}"
-                    HorizontalAlignment="Stretch"
-                    Header="Компоненты сервера"
-                    Visibility="{Binding EmptyStateVisibility}">
-                    <controls:SettingsCard.HeaderIcon>
-                        <ic:FluentIcon
-                            Icon="PuzzlePiece"
-                            IconSize="Size20"
-                            IconVariant="Regular" />
-                    </controls:SettingsCard.HeaderIcon>
-
+                <StackPanel Visibility="{Binding OverviewVisibility}">
                     <TextBlock
-                        FontWeight="SemiBold"
-                        Text="{Binding ComponentsStatusText}" />
-                </controls:SettingsCard>
+                        Style="{StaticResource SettingsSectionHeaderTextBlockStyle}"
+                        Text="Агенты сервера 1С" />
 
-                <ItemsRepeater
-                    ItemsSource="{Binding Components}"
-                    Visibility="{Binding ComponentsListVisibility}">
-                    <ItemsRepeater.Layout>
-                        <StackLayout Spacing="{StaticResource SettingsCardSpacing}" />
-                    </ItemsRepeater.Layout>
+                    <controls:SettingsCard
+                        Description="{Binding PageSubtitle}"
+                        HorizontalAlignment="Stretch"
+                        Header="Компоненты сервера"
+                        Visibility="{Binding EmptyStateVisibility}">
+                        <controls:SettingsCard.HeaderIcon>
+                            <ic:FluentIcon
+                                Icon="PuzzlePiece"
+                                IconSize="Size20"
+                                IconVariant="Regular" />
+                        </controls:SettingsCard.HeaderIcon>
 
-                    <ItemsRepeater.ItemTemplate>
-                        <DataTemplate x:DataType="local:AgentComponentItemViewModel">
-                            <controls:SettingsExpander
-                                Description="{Binding SummaryDescription}"
-                                HorizontalAlignment="Stretch"
-                                Header="{Binding Title}"
-                                IsExpanded="{Binding IsExpanded, Mode=TwoWay}"
-                                ItemsSource="{Binding Details}">
-                                <controls:SettingsExpander.HeaderIcon>
-                                    <ic:FluentIcon
-                                        Icon="{Binding Icon}"
-                                        IconSize="Size20"
-                                        IconVariant="Regular" />
-                                </controls:SettingsExpander.HeaderIcon>
+                        <TextBlock
+                            FontWeight="SemiBold"
+                            Text="{Binding ComponentsStatusText}" />
+                    </controls:SettingsCard>
 
-                                <controls:SettingsExpander.Content>
-                                    <StackPanel
-                                        MinWidth="128"
-                                        HorizontalAlignment="Right"
-                                        Spacing="2">
-                                        <TextBlock
+                    <ItemsRepeater
+                        ItemsSource="{Binding Components}"
+                        Visibility="{Binding ComponentsListVisibility}">
+                        <ItemsRepeater.Layout>
+                            <StackLayout Spacing="{StaticResource SettingsCardSpacing}" />
+                        </ItemsRepeater.Layout>
+
+                        <ItemsRepeater.ItemTemplate>
+                            <DataTemplate x:DataType="local:AgentComponentItemViewModel">
+                                <controls:SettingsExpander
+                                    Description="{Binding SummaryDescription}"
+                                    HorizontalAlignment="Stretch"
+                                    Header="{Binding Title}"
+                                    IsExpanded="{Binding IsExpanded, Mode=TwoWay}"
+                                    ItemsSource="{Binding Details}">
+                                    <controls:SettingsExpander.HeaderIcon>
+                                        <ic:FluentIcon
+                                            Icon="{Binding Icon}"
+                                            IconSize="Size20"
+                                            IconVariant="Regular" />
+                                    </controls:SettingsExpander.HeaderIcon>
+
+                                    <controls:SettingsExpander.Content>
+                                        <StackPanel
+                                            MinWidth="128"
                                             HorizontalAlignment="Right"
-                                            FontWeight="SemiBold"
-                                            Text="{Binding StatusText}"
-                                            TextWrapping="NoWrap" />
-                                        <TextBlock
-                                            HorizontalAlignment="Right"
-                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                            Text="{Binding ProcessSummaryText}"
-                                            TextWrapping="NoWrap" />
-                                    </StackPanel>
-                                </controls:SettingsExpander.Content>
-
-                                <controls:SettingsExpander.ItemTemplate>
-                                    <DataTemplate x:DataType="local:AgentComponentDetailItemViewModel">
-                                        <controls:SettingsCard
-                                            ContentAlignment="Right"
-                                            Description="{Binding Description}"
-                                            Header="{Binding Title}"
-                                            HorizontalAlignment="Stretch"
-                                            HorizontalContentAlignment="Right">
-                                            <controls:SettingsCard.HeaderIcon>
-                                                <ic:FluentIcon
-                                                    Icon="{Binding Icon}"
-                                                    IconSize="Size20"
-                                                    IconVariant="Regular" />
-                                            </controls:SettingsCard.HeaderIcon>
-
+                                            Spacing="2">
                                             <TextBlock
-                                                MaxWidth="520"
-                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                 HorizontalAlignment="Right"
-                                                IsTextSelectionEnabled="True"
-                                                Text="{Binding Value}"
-                                                TextAlignment="Right"
-                                                TextWrapping="WrapWholeWords" />
-                                        </controls:SettingsCard>
-                                    </DataTemplate>
-                                </controls:SettingsExpander.ItemTemplate>
-                            </controls:SettingsExpander>
-                        </DataTemplate>
-                    </ItemsRepeater.ItemTemplate>
-                </ItemsRepeater>
+                                                FontWeight="SemiBold"
+                                                Text="{Binding StatusText}"
+                                                TextWrapping="NoWrap" />
+                                            <TextBlock
+                                                HorizontalAlignment="Right"
+                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                Text="{Binding ProcessSummaryText}"
+                                                TextWrapping="NoWrap" />
+                                        </StackPanel>
+                                    </controls:SettingsExpander.Content>
+
+                                    <controls:SettingsExpander.ItemTemplate>
+                                        <DataTemplate x:DataType="local:AgentComponentDetailItemViewModel">
+                                            <controls:SettingsCard
+                                                ActionIconToolTip="{Binding ActionToolTip}"
+                                                Click="DetailCard_Click"
+                                                ContentAlignment="Right"
+                                                Description="{Binding Description}"
+                                                Header="{Binding Title}"
+                                                HorizontalAlignment="Stretch"
+                                                HorizontalContentAlignment="Right"
+                                                IsClickEnabled="{Binding IsClickEnabled}">
+                                                <controls:SettingsCard.HeaderIcon>
+                                                    <ic:FluentIcon
+                                                        Icon="{Binding Icon}"
+                                                        IconSize="Size20"
+                                                        IconVariant="Regular" />
+                                                </controls:SettingsCard.HeaderIcon>
+
+                                                <TextBlock
+                                                    MaxWidth="520"
+                                                    HorizontalAlignment="Right"
+                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                    IsTextSelectionEnabled="True"
+                                                    Text="{Binding Value}"
+                                                    TextAlignment="Right"
+                                                    TextWrapping="WrapWholeWords" />
+                                            </controls:SettingsCard>
+                                        </DataTemplate>
+                                    </controls:SettingsExpander.ItemTemplate>
+                                </controls:SettingsExpander>
+                            </DataTemplate>
+                        </ItemsRepeater.ItemTemplate>
+                    </ItemsRepeater>
+                </StackPanel>
+
+                <StackPanel Visibility="{Binding ProcessDetailsVisibility}">
+                    <TextBlock
+                        Style="{StaticResource SettingsSectionHeaderTextBlockStyle}"
+                        Text="Процессы 1С" />
+
+                    <ItemsRepeater ItemsSource="{Binding SelectedProcessGroup.Processes}">
+                        <ItemsRepeater.Layout>
+                            <StackLayout Spacing="{StaticResource SettingsCardSpacing}" />
+                        </ItemsRepeater.Layout>
+
+                        <ItemsRepeater.ItemTemplate>
+                            <DataTemplate x:DataType="local:AgentProcessItemViewModel">
+                                <controls:SettingsExpander
+                                    Description="{Binding Description}"
+                                    Header="{Binding Title}"
+                                    HorizontalAlignment="Stretch"
+                                    IsExpanded="False"
+                                    ItemsSource="{Binding Details}">
+                                    <controls:SettingsExpander.HeaderIcon>
+                                        <ic:FluentIcon
+                                            Icon="{Binding Icon}"
+                                            IconSize="Size20"
+                                            IconVariant="Regular" />
+                                    </controls:SettingsExpander.HeaderIcon>
+
+                                    <controls:SettingsExpander.Content>
+                                        <StackPanel
+                                            MinWidth="128"
+                                            HorizontalAlignment="Right"
+                                            Spacing="2">
+                                            <TextBlock
+                                                HorizontalAlignment="Right"
+                                                FontWeight="SemiBold"
+                                                Text="{Binding ProcessIdText}"
+                                                TextWrapping="NoWrap" />
+                                            <TextBlock
+                                                HorizontalAlignment="Right"
+                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                Text="{Binding RoleText}"
+                                                TextWrapping="NoWrap" />
+                                        </StackPanel>
+                                    </controls:SettingsExpander.Content>
+
+                                    <controls:SettingsExpander.ItemTemplate>
+                                        <DataTemplate x:DataType="local:AgentProcessDetailItemViewModel">
+                                            <controls:SettingsCard
+                                                ContentAlignment="Right"
+                                                Description="{Binding Description}"
+                                                Header="{Binding Title}"
+                                                HorizontalAlignment="Stretch"
+                                                HorizontalContentAlignment="Right">
+                                                <controls:SettingsCard.HeaderIcon>
+                                                    <ic:FluentIcon
+                                                        Icon="{Binding Icon}"
+                                                        IconSize="Size20"
+                                                        IconVariant="Regular" />
+                                                </controls:SettingsCard.HeaderIcon>
+
+                                                <TextBlock
+                                                    MaxWidth="520"
+                                                    HorizontalAlignment="Right"
+                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                    IsTextSelectionEnabled="True"
+                                                    Text="{Binding Value}"
+                                                    TextAlignment="Right"
+                                                    TextWrapping="WrapWholeWords" />
+                                            </controls:SettingsCard>
+                                        </DataTemplate>
+                                    </controls:SettingsExpander.ItemTemplate>
+                                </controls:SettingsExpander>
+                            </DataTemplate>
+                        </ItemsRepeater.ItemTemplate>
+                    </ItemsRepeater>
+                </StackPanel>
             </StackPanel>
         </Grid>
     </ScrollViewer>

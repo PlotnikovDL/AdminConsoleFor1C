@@ -30,4 +30,17 @@ public sealed partial class AgentsPage : Page
             await refreshCommand.ExecuteAsync(null);
         }
     }
+
+    private void DetailCard_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: AgentComponentDetailItemViewModel detail })
+        {
+            viewModel.OpenProcessDetailsCommand.Execute(detail);
+        }
+    }
+
+    private void BreadcrumbBar_ItemClicked(BreadcrumbBar sender, BreadcrumbBarItemClickedEventArgs args)
+    {
+        viewModel.NavigateToBreadcrumb(args.Index);
+    }
 }

@@ -48,7 +48,19 @@ public sealed partial class AgentsPageViewModel : ObservableObject
 
     public ObservableCollection<AgentComponentItemViewModel> Components { get; } = [];
 
-    public string PageTitle => "Компоненты сервера";
+    public ObservableCollection<string> Breadcrumbs { get; } = [];
+
+    [NotifyPropertyChangedFor(nameof(PageTitle))]
+    [NotifyPropertyChangedFor(nameof(StatusText))]
+    [NotifyPropertyChangedFor(nameof(OverviewVisibility))]
+    [NotifyPropertyChangedFor(nameof(ProcessDetailsVisibility))]
+    [NotifyPropertyChangedFor(nameof(BreadcrumbVisibility))]
+    [ObservableProperty]
+    public partial AgentProcessGroupViewModel? SelectedProcessGroup { get; set; }
+
+    public string PageTitle => SelectedProcessGroup is null
+        ? "Компоненты сервера"
+        : "Процессы";
 
     public string PageSubtitle => "Службы Windows и процессы 1С на этом компьютере";
 
@@ -69,6 +81,11 @@ public sealed partial class AgentsPageViewModel : ObservableObject
             if (!HasLoaded)
             {
                 return "Сведения о компонентах еще не загружены";
+            }
+
+            if (SelectedProcessGroup is { } processGroup)
+            {
+                return $"{processGroup.ComponentTitle}: {AgentComponentTextFormatter.FormatProcessCount(processGroup.Processes.Count)}";
             }
 
             return Components.Count == 0
@@ -93,10 +110,23 @@ public sealed partial class AgentsPageViewModel : ObservableObject
         ? Visibility.Visible
         : Visibility.Collapsed;
 
+    public Visibility OverviewVisibility => SelectedProcessGroup is null
+        ? Visibility.Visible
+        : Visibility.Collapsed;
+
+    public Visibility ProcessDetailsVisibility => SelectedProcessGroup is null
+        ? Visibility.Collapsed
+        : Visibility.Visible;
+
+    public Visibility BreadcrumbVisibility => SelectedProcessGroup is null
+        ? Visibility.Collapsed
+        : Visibility.Visible;
+
     [RelayCommand(CanExecute = nameof(CanRefresh))]
     private async Task RefreshAsync()
     {
         IsRefreshing = true;
+        var selectedComponentId = SelectedProcessGroup?.ComponentId;
 
         try
         {
@@ -120,6 +150,7 @@ public sealed partial class AgentsPageViewModel : ObservableObject
             ServiceCount = services.Count;
             ProcessCount = processes.Count;
             HasLoaded = true;
+            RestoreProcessDetails(selectedComponentId);
             NotifyComponentStateChanged();
         }
         catch (Exception exception)
@@ -139,6 +170,76 @@ public sealed partial class AgentsPageViewModel : ObservableObject
     partial void OnIsRefreshingChanged(bool value)
     {
         RefreshCommand.NotifyCanExecuteChanged();
+    }
+
+    partial void OnSelectedProcessGroupChanged(AgentProcessGroupViewModel? value)
+    {
+        Breadcrumbs.Clear();
+
+        if (value is null)
+        {
+            return;
+        }
+
+        Breadcrumbs.Add("Компоненты сервера");
+        Breadcrumbs.Add(value.ComponentTitle);
+        Breadcrumbs.Add("Процессы");
+    }
+
+    [RelayCommand]
+    private void OpenProcessDetails(AgentComponentDetailItemViewModel detail)
+    {
+        if (detail.NavigationTarget != AgentComponentDetailNavigationTarget.Processes)
+        {
+            return;
+        }
+
+        ShowProcessDetails(detail.ComponentId);
+    }
+
+    [RelayCommand]
+    private void CloseProcessDetails()
+    {
+        SelectedProcessGroup = null;
+    }
+
+    public void NavigateToBreadcrumb(int index)
+    {
+        if (index < Breadcrumbs.Count - 1)
+        {
+            CloseProcessDetails();
+        }
+    }
+
+    private void RestoreProcessDetails(string? componentId)
+    {
+        if (componentId is null)
+        {
+            return;
+        }
+
+        ShowProcessDetails(componentId);
+    }
+
+    private void ShowProcessDetails(string? componentId)
+    {
+        if (string.IsNullOrWhiteSpace(componentId))
+        {
+            return;
+        }
+
+        var component = Components.FirstOrDefault(candidate => string.Equals(
+            candidate.Id,
+            componentId,
+            StringComparison.Ordinal));
+
+        if (component is null || component.Processes.Count == 0)
+        {
+            SelectedProcessGroup = null;
+            return;
+        }
+
+        SelectedProcessGroup = AgentProcessGroupViewModel.FromComponent(component);
     }
 
     private static IReadOnlyList<AgentComponentItemViewModel> BuildComponents(
@@ -250,6 +351,8 @@ public sealed partial class AgentsPageViewModel : ObservableObject
 
 public sealed partial class AgentComponentItemViewModel : ObservableObject
 {
+    public required string Id { get; init; }
+
     public required string Title { get; init; }
 
     public required string SummaryDescription { get; init; }
@@ -264,6 +367,8 @@ public sealed partial class AgentComponentItemViewModel : ObservableObject
 
     public required IReadOnlyList<AgentComponentDetailItemViewModel> Details { get; init; }
 
+    public required IReadOnlyList<AgentProcessItemViewModel> Processes { get; init; }
+
     [ObservableProperty]
     public partial bool IsExpanded { get; set; }
 
@@ -271,8 +376,14 @@ public sealed partial class AgentComponentItemViewModel : ObservableObject
         OneCServiceInfo service,
         IReadOnlyList<OneCProcessInfo> processes)
     {
+        var componentId = GetServiceComponentId(service);
+        var processItems = processes
+            .Select(AgentProcessItemViewModel.FromProcess)
+            .ToList();
+
         return new AgentComponentItemViewModel
         {
+            Id = componentId,
             Title = service.KindDisplayName,
             SummaryDescription = service.DisplayNameText,
             StatusText = service.StateDisplayName,
@@ -291,7 +402,8 @@ public sealed partial class AgentComponentItemViewModel : ObservableObject
                 OneCServiceKind.DebugServer => Icon.DeveloperBoardLightning,
                 _ => Icon.PuzzlePiece
             },
-            Details = BuildServiceDetails(service, processes)
+            Details = BuildServiceDetails(componentId, service, processes),
+            Processes = processItems
         };
     }
 
@@ -299,8 +411,14 @@ public sealed partial class AgentComponentItemViewModel : ObservableObject
         OneCProcessInfo process,
         IReadOnlyList<OneCProcessInfo> relatedProcesses)
     {
+        var componentId = GetProcessComponentId(process);
+        var processItems = relatedProcesses
+            .Select(AgentProcessItemViewModel.FromProcess)
+            .ToList();
+
         return new AgentComponentItemViewModel
         {
+            Id = componentId,
             Title = process.KindDisplayName,
             SummaryDescription = $"Процесс без службы Windows: {process.Name}",
             StatusText = "Без службы",
@@ -323,11 +441,28 @@ public sealed partial class AgentComponentItemViewModel : ObservableObject
                 OneCProcessKind.WorkerProcess => Icon.Box,
                 _ => Icon.AppGeneric
             },
-            Details = BuildProcessDetails(process, relatedProcesses)
+            Details = BuildProcessDetails(componentId, process, relatedProcesses),
+            Processes = processItems
         };
     }
 
+    private static string GetServiceComponentId(OneCServiceInfo service)
+    {
+        if (!string.IsNullOrWhiteSpace(service.Name))
+        {
+            return $"service:{service.Name}";
+        }
+
+        return $"service:{service.Kind}:{service.DisplayNameText}";
+    }
+
+    private static string GetProcessComponentId(OneCProcessInfo process)
+    {
+        return $"process:{process.ProcessId}";
+    }
+
     private static IReadOnlyList<AgentComponentDetailItemViewModel> BuildServiceDetails(
+        string componentId,
         OneCServiceInfo service,
         IReadOnlyList<OneCProcessInfo> processes)
     {
@@ -344,7 +479,15 @@ public sealed partial class AgentComponentItemViewModel : ObservableObject
         var processNames = FormatProcessNames(processes);
         if (!string.IsNullOrWhiteSpace(processNames))
         {
-            AddDetail(details, "Процессы", AgentComponentTextFormatter.FormatProcessCount(processes.Count), processNames, Icon.AppsListDetail);
+            AddDetail(
+                details,
+                "Процессы",
+                AgentComponentTextFormatter.FormatProcessCount(processes.Count),
+                processNames,
+                Icon.AppsListDetail,
+                componentId: componentId,
+                navigationTarget: AgentComponentDetailNavigationTarget.Processes,
+                actionToolTip: "Открыть процессы");
         }
 
         AddDetail(details, "Каталог данных", "Рабочий каталог сервера", service.DataDirectoryText, Icon.Folder);
@@ -355,6 +498,7 @@ public sealed partial class AgentComponentItemViewModel : ObservableObject
     }
 
     private static IReadOnlyList<AgentComponentDetailItemViewModel> BuildProcessDetails(
+        string componentId,
         OneCProcessInfo process,
         IReadOnlyList<OneCProcessInfo> relatedProcesses)
     {
@@ -370,7 +514,15 @@ public sealed partial class AgentComponentItemViewModel : ObservableObject
         var processNames = FormatProcessNames(relatedProcesses);
         if (!string.IsNullOrWhiteSpace(processNames) && relatedProcesses.Count > 1)
         {
-            AddDetail(details, "Связанные процессы", AgentComponentTextFormatter.FormatProcessCount(relatedProcesses.Count), processNames, Icon.AppsListDetail);
+            AddDetail(
+                details,
+                "Связанные процессы",
+                AgentComponentTextFormatter.FormatProcessCount(relatedProcesses.Count),
+                processNames,
+                Icon.AppsListDetail,
+                componentId: componentId,
+                navigationTarget: AgentComponentDetailNavigationTarget.Processes,
+                actionToolTip: "Открыть процессы");
         }
 
         AddDetail(details, "Исполняемый файл", "Путь к файлу процесса", process.ExecutablePathText, Icon.AppFolder);
@@ -385,7 +537,10 @@ public sealed partial class AgentComponentItemViewModel : ObservableObject
         string description,
         string value,
         Icon icon,
-        bool includeEmpty = false)
+        bool includeEmpty = false,
+        string? componentId = null,
+        AgentComponentDetailNavigationTarget navigationTarget = AgentComponentDetailNavigationTarget.None,
+        string actionToolTip = "")
     {
         if (!includeEmpty && (string.IsNullOrWhiteSpace(value) || value == "—"))
         {
@@ -397,7 +552,10 @@ public sealed partial class AgentComponentItemViewModel : ObservableObject
             Title = title,
             Description = description,
             Value = string.IsNullOrWhiteSpace(value) ? "—" : value,
-            Icon = icon
+            Icon = icon,
+            ComponentId = componentId,
+            NavigationTarget = navigationTarget,
+            ActionToolTip = actionToolTip
         });
     }
 
@@ -414,6 +572,137 @@ public sealed partial class AgentComponentItemViewModel : ObservableObject
 }
 
 public sealed record AgentComponentDetailItemViewModel
+{
+    public required string Title { get; init; }
+
+    public required string Description { get; init; }
+
+    public required string Value { get; init; }
+
+    public required Icon Icon { get; init; }
+
+    public required string? ComponentId { get; init; }
+
+    public required AgentComponentDetailNavigationTarget NavigationTarget { get; init; }
+
+    public required string ActionToolTip { get; init; }
+
+    public bool IsClickEnabled => NavigationTarget != AgentComponentDetailNavigationTarget.None;
+}
+
+public enum AgentComponentDetailNavigationTarget
+{
+    None,
+    Processes
+}
+
+public sealed record AgentProcessGroupViewModel
+{
+    public required string ComponentId { get; init; }
+
+    public required string ComponentTitle { get; init; }
+
+    public required IReadOnlyList<AgentProcessItemViewModel> Processes { get; init; }
+
+    public static AgentProcessGroupViewModel FromComponent(AgentComponentItemViewModel component)
+    {
+        return new AgentProcessGroupViewModel
+        {
+            ComponentId = component.Id,
+            ComponentTitle = component.Title,
+            Processes = component.Processes
+        };
+    }
+}
+
+public sealed record AgentProcessItemViewModel
+{
+    public required string Title { get; init; }
+
+    public required string Description { get; init; }
+
+    public required string ProcessIdText { get; init; }
+
+    public required string RoleText { get; init; }
+
+    public required Icon Icon { get; init; }
+
+    public required IReadOnlyList<AgentProcessDetailItemViewModel> Details { get; init; }
+
+    public static AgentProcessItemViewModel FromProcess(OneCProcessInfo process)
+    {
+        return new AgentProcessItemViewModel
+        {
+            Title = process.KindDisplayName,
+            Description = process.Name,
+            ProcessIdText = $"PID {process.ProcessIdText}",
+            RoleText = process.RoleText,
+            Icon = GetProcessIcon(process.Kind),
+            Details = BuildDetails(process)
+        };
+    }
+
+    private static Icon GetProcessIcon(OneCProcessKind kind)
+    {
+        return kind switch
+        {
+            OneCProcessKind.ServerAgent => Icon.ServerPlay,
+            OneCProcessKind.AdministrationServer => Icon.ServerPlay,
+            OneCProcessKind.DebugServer => Icon.DeveloperBoardLightning,
+            OneCProcessKind.ClusterManager => Icon.ServerMultiple,
+            OneCProcessKind.WorkerProcess => Icon.Box,
+            _ => Icon.AppGeneric
+        };
+    }
+
+    private static IReadOnlyList<AgentProcessDetailItemViewModel> BuildDetails(OneCProcessInfo process)
+    {
+        var details = new List<AgentProcessDetailItemViewModel>();
+
+        AddDetail(details, "Процесс", "Имя исполняемого файла", process.Name, Icon.AppGeneric, includeEmpty: true);
+        AddDetail(details, "PID", "Идентификатор процесса", process.ProcessIdText, Icon.NumberSymbol, includeEmpty: true);
+        AddDetail(details, "Родитель", "PID родительского процесса", process.ParentProcessIdText, Icon.ArrowFlowUpRightRectangleMultiple);
+        AddDetail(details, "Роль", "Назначение процесса 1С", process.RoleText, Icon.TaskListSquare);
+        AddDetail(details, "Служба Windows", "Сопоставление со службой", process.RelatedServiceText, Icon.ServiceBell);
+        AddDetail(details, "Владелец", "Пользователь процесса", process.OwnerText, Icon.Person);
+        AddDetail(details, "Версия", "Версия платформы 1С", process.VersionText, Icon.AppGeneric);
+        AddDetail(details, "Порты", "Порты 1С по назначению", process.PortsText, Icon.SerialPort);
+        AddDetail(details, "Каталог данных", "Рабочий каталог процесса", ToDisplayText(process.DataDirectory), Icon.Folder);
+        AddDetail(details, "Исполняемый файл", "Путь к файлу процесса", process.ExecutablePathText, Icon.AppFolder);
+        AddDetail(details, "Аргументы", "Параметры запуска", process.ArgumentsText, Icon.Code);
+
+        return details;
+    }
+
+    private static string ToDisplayText(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? "—" : value;
+    }
+
+    private static void AddDetail(
+        List<AgentProcessDetailItemViewModel> details,
+        string title,
+        string description,
+        string value,
+        Icon icon,
+        bool includeEmpty = false)
+    {
+        if (!includeEmpty && (string.IsNullOrWhiteSpace(value) || value == "—"))
+        {
+            return;
+        }
+
+        details.Add(new AgentProcessDetailItemViewModel
+        {
+            Title = title,
+            Description = description,
+            Value = string.IsNullOrWhiteSpace(value) ? "—" : value,
+            Icon = icon
+        });
+    }
+}
+
+public sealed record AgentProcessDetailItemViewModel
 {
     public required string Title { get; init; }
 
