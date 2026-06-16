@@ -124,13 +124,13 @@ public sealed partial class AgentsPageViewModel : ObservableObject
 
     public string PageTitle => SelectedProcessGroup is not null
         ? "Процессы"
-        : SelectedComponent?.Title ?? "Компоненты сервера";
+        : SelectedComponent?.Title ?? "Агенты сервера 1С";
 
-    public string OverviewPageTitle => "Компоненты сервера";
+    public string OverviewPageTitle => "Агенты сервера 1С";
 
     public string OverviewStatusText => GetOverviewStatusText();
 
-    public string ComponentPageTitle => SelectedComponent?.Title ?? "Компонент сервера";
+    public string ComponentPageTitle => SelectedComponent?.Title ?? "Агент сервера";
 
     public string ComponentStatusText => SelectedComponent is null
         ? string.Empty
@@ -184,17 +184,17 @@ public sealed partial class AgentsPageViewModel : ObservableObject
         {
             if (IsRefreshing)
             {
-                return "Обновление списка компонентов";
+                return "Обновление списка агентов";
             }
 
             if (HasError)
             {
-                return "Не удалось обновить сведения о компонентах сервера";
+                return "Не удалось обновить сведения об агентах сервера";
             }
 
             if (!HasLoaded)
             {
-                return "Сведения о компонентах еще не загружены";
+                return "Сведения об агентах еще не загружены";
             }
 
             if (SelectedProcessGroup is { } processGroup)
@@ -208,12 +208,12 @@ public sealed partial class AgentsPageViewModel : ObservableObject
             }
 
             return Components.Count == 0
-                ? "Нет данных о компонентах сервера"
+                ? "Нет данных об агентах сервера"
                 : $"{AgentComponentTextFormatter.FormatFoundServices(ServiceCount)}, {AgentComponentTextFormatter.FormatProcessCount(ProcessCount)}";
         }
     }
 
-    public string ComponentsStatusText => IsRefreshing ? "Обновление" : "Нет данных";
+    public string ComponentsStatusText => IsRefreshing ? "Обновление" : "Нет данных об агентах сервера";
 
     public bool HasError => !string.IsNullOrWhiteSpace(ErrorText);
 
@@ -541,21 +541,21 @@ public sealed partial class AgentsPageViewModel : ObservableObject
     {
         if (IsRefreshing)
         {
-            return "Обновление списка компонентов";
+            return "Обновление списка агентов";
         }
 
         if (HasError)
         {
-            return "Не удалось обновить сведения о компонентах сервера";
+            return "Не удалось обновить сведения об агентах сервера";
         }
 
         if (!HasLoaded)
         {
-            return "Сведения о компонентах еще не загружены";
+            return "Сведения об агентах еще не загружены";
         }
 
         return Components.Count == 0
-            ? "Нет данных о компонентах сервера"
+            ? "Нет данных об агентах сервера"
             : $"{AgentComponentTextFormatter.FormatFoundServices(ServiceCount)}, {AgentComponentTextFormatter.FormatProcessCount(ProcessCount)}";
     }
 

@@ -41,12 +41,12 @@
 
                 <TextBlock
                     Style="{StaticResource SettingsSectionHeaderTextBlockStyle}"
-                    Text="Агенты сервера 1С" />
+                    Text="Обнаруженные агенты" />
 
                 <controls:SettingsCard
                     Description="{Binding PageSubtitle}"
                     HorizontalAlignment="Stretch"
-                    Header="Компоненты сервера"
+                    Header="Агенты сервера не найдены"
                     Visibility="{Binding EmptyStateVisibility}">
                     <controls:SettingsCard.HeaderIcon>
                         <ic:FluentIcon
