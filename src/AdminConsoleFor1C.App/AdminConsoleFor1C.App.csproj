@@ -62,6 +62,34 @@
     <ProjectReference Include="..\AdminConsoleFor1C.Infrastructure\AdminConsoleFor1C.Infrastructure.csproj" />
   </ItemGroup>
 
+  <Target Name="CopyElevatedWorker" AfterTargets="Build">
+    <MSBuild
+      Projects="..\AdminConsoleFor1C.ElevatedWorker\AdminConsoleFor1C.ElevatedWorker.csproj"
+      Targets="Build"
+      Properties="Configuration=$(Configuration);Platform=$(Platform)" />
+
+    <PropertyGroup>
+      <ElevatedWorkerOutputDirectory>..\AdminConsoleFor1C.ElevatedWorker\bin\$(Platform)\$(Configuration)\net10.0\</ElevatedWorkerOutputDirectory>
+      <ElevatedWorkerOutputDirectory Condition="!Exists('$(ElevatedWorkerOutputDirectory)')">..\AdminConsoleFor1C.ElevatedWorker\bin\$(Configuration)\net10.0\</ElevatedWorkerOutputDirectory>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ElevatedWorkerOutput Include="$(ElevatedWorkerOutputDirectory)**\*.*" />
+    </ItemGroup>
+
+    <Copy
+      SourceFiles="@(ElevatedWorkerOutput)"
+      DestinationFiles="@(ElevatedWorkerOutput->'$(OutDir)ElevatedWorker\%(RecursiveDir)%(Filename)%(Extension)')"
+      SkipUnchangedFiles="true" />
+
+    <MakeDir Directories="$(OutDir)AppX\ElevatedWorker" />
+
+    <Copy
+      SourceFiles="@(ElevatedWorkerOutput)"
+      DestinationFiles="@(ElevatedWorkerOutput->'$(OutDir)AppX\ElevatedWorker\%(RecursiveDir)%(Filename)%(Extension)')"
+      SkipUnchangedFiles="true" />
+  </Target>
+
   <!--
     Defining the "HasPackageAndPublishMenuAddedByProject" property here allows the Solution
     Explorer "Package and Publish" context menu entry to be enabled for this project even if

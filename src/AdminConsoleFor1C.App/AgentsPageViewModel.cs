@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using FluentIcons.Common;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 
 namespace AdminConsoleFor1C.App;
 
@@ -12,55 +13,168 @@ public sealed partial class AgentsPageViewModel : ObservableObject
 {
     private readonly IOneCServiceInventory serviceInventory;
     private readonly IOneCProcessInventory processInventory;
+    private readonly IOneCServiceController serviceController;
 
     public AgentsPageViewModel(
         IOneCServiceInventory serviceInventory,
-        IOneCProcessInventory processInventory)
+        IOneCProcessInventory processInventory,
+        IOneCServiceController serviceController)
     {
         this.serviceInventory = serviceInventory;
         this.processInventory = processInventory;
+        this.serviceController = serviceController;
     }
 
     [NotifyPropertyChangedFor(nameof(StatusText))]
+    [NotifyPropertyChangedFor(nameof(OverviewStatusText))]
+    [NotifyPropertyChangedFor(nameof(HeaderSubtitle))]
     [NotifyPropertyChangedFor(nameof(RefreshProgressVisibility))]
     [NotifyPropertyChangedFor(nameof(EmptyStateVisibility))]
     [ObservableProperty]
     public partial bool IsRefreshing { get; set; }
 
     [NotifyPropertyChangedFor(nameof(StatusText))]
+    [NotifyPropertyChangedFor(nameof(OverviewStatusText))]
+    [NotifyPropertyChangedFor(nameof(HeaderSubtitle))]
     [NotifyPropertyChangedFor(nameof(EmptyStateVisibility))]
     [ObservableProperty]
     public partial bool HasLoaded { get; set; }
 
     [NotifyPropertyChangedFor(nameof(StatusText))]
+    [NotifyPropertyChangedFor(nameof(OverviewStatusText))]
+    [NotifyPropertyChangedFor(nameof(HeaderSubtitle))]
     [ObservableProperty]
     public partial int ServiceCount { get; set; }
 
     [NotifyPropertyChangedFor(nameof(StatusText))]
+    [NotifyPropertyChangedFor(nameof(OverviewStatusText))]
+    [NotifyPropertyChangedFor(nameof(HeaderSubtitle))]
     [ObservableProperty]
     public partial int ProcessCount { get; set; }
 
     [NotifyPropertyChangedFor(nameof(HasError))]
     [NotifyPropertyChangedFor(nameof(StatusText))]
+    [NotifyPropertyChangedFor(nameof(OverviewStatusText))]
+    [NotifyPropertyChangedFor(nameof(HeaderSubtitle))]
     [NotifyPropertyChangedFor(nameof(EmptyStateVisibility))]
     [ObservableProperty]
     public partial string? ErrorText { get; set; }
 
+    [NotifyPropertyChangedFor(nameof(HasServiceOperationMessage))]
+    [ObservableProperty]
+    public partial string? ServiceOperationMessage { get; set; }
+
+    [ObservableProperty]
+    public partial string ServiceOperationTitle { get; set; } = "Управление службой";
+
+    [ObservableProperty]
+    public partial InfoBarSeverity ServiceOperationSeverity { get; set; } = InfoBarSeverity.Informational;
+
+    [NotifyPropertyChangedFor(nameof(IsServiceActionRunning))]
+    [ObservableProperty]
+    public partial string? ActiveServiceComponentId { get; set; }
+
     public ObservableCollection<AgentComponentItemViewModel> Components { get; } = [];
 
-    public ObservableCollection<string> Breadcrumbs { get; } = [];
-
     [NotifyPropertyChangedFor(nameof(PageTitle))]
+    [NotifyPropertyChangedFor(nameof(ComponentPageTitle))]
+    [NotifyPropertyChangedFor(nameof(ComponentStatusText))]
+    [NotifyPropertyChangedFor(nameof(HeaderBreadcrumbs))]
+    [NotifyPropertyChangedFor(nameof(HeaderCurrentTitle))]
+    [NotifyPropertyChangedFor(nameof(HeaderSubtitle))]
     [NotifyPropertyChangedFor(nameof(StatusText))]
     [NotifyPropertyChangedFor(nameof(OverviewVisibility))]
+    [NotifyPropertyChangedFor(nameof(ComponentDetailsVisibility))]
+    [NotifyPropertyChangedFor(nameof(ProcessDetailsVisibility))]
+    [NotifyPropertyChangedFor(nameof(BreadcrumbVisibility))]
+    [ObservableProperty]
+    public partial AgentComponentItemViewModel? SelectedComponent { get; set; }
+
+    [NotifyPropertyChangedFor(nameof(PageTitle))]
+    [NotifyPropertyChangedFor(nameof(ProcessPageTitle))]
+    [NotifyPropertyChangedFor(nameof(ProcessStatusText))]
+    [NotifyPropertyChangedFor(nameof(HeaderBreadcrumbs))]
+    [NotifyPropertyChangedFor(nameof(HeaderCurrentTitle))]
+    [NotifyPropertyChangedFor(nameof(HeaderSubtitle))]
+    [NotifyPropertyChangedFor(nameof(StatusText))]
+    [NotifyPropertyChangedFor(nameof(OverviewVisibility))]
+    [NotifyPropertyChangedFor(nameof(ComponentDetailsVisibility))]
     [NotifyPropertyChangedFor(nameof(ProcessDetailsVisibility))]
     [NotifyPropertyChangedFor(nameof(BreadcrumbVisibility))]
     [ObservableProperty]
     public partial AgentProcessGroupViewModel? SelectedProcessGroup { get; set; }
 
-    public string PageTitle => SelectedProcessGroup is null
-        ? "Компоненты сервера"
-        : "Процессы";
+    private AgentsPageRoute currentRoute = AgentsPageRoute.Overview;
+    private bool isChangingRoute;
+
+    private void ChangeRoute(Action change)
+    {
+        isChangingRoute = true;
+
+        try
+        {
+            change();
+        }
+        finally
+        {
+            isChangingRoute = false;
+            NotifyHeaderStateChanged();
+        }
+    }
+
+    public string PageTitle => SelectedProcessGroup is not null
+        ? "Процессы"
+        : SelectedComponent?.Title ?? "Компоненты сервера";
+
+    public string OverviewPageTitle => "Компоненты сервера";
+
+    public string OverviewStatusText => GetOverviewStatusText();
+
+    public string ComponentPageTitle => SelectedComponent?.Title ?? "Компонент сервера";
+
+    public string ComponentStatusText => SelectedComponent is null
+        ? string.Empty
+        : $"{SelectedComponent.StatusText}, {SelectedComponent.ProcessSummaryText}";
+
+    public string ProcessPageTitle => "Процессы";
+
+    public string ProcessStatusText => SelectedProcessGroup is null
+        ? string.Empty
+        : $"{SelectedProcessGroup.ComponentTitle}: {AgentComponentTextFormatter.FormatProcessCount(SelectedProcessGroup.Processes.Count)}";
+
+    public IReadOnlyList<AgentsBreadcrumbItem> HeaderBreadcrumbs => currentRoute switch
+    {
+        AgentsPageRoute.Processes when SelectedComponent is not null =>
+        [
+            new(OverviewPageTitle, AgentsPageRoute.Overview),
+            new(SelectedComponent.Title, AgentsPageRoute.ComponentDetails),
+            new(ProcessPageTitle, AgentsPageRoute.Processes)
+        ],
+        AgentsPageRoute.ComponentDetails =>
+        [
+            new(OverviewPageTitle, AgentsPageRoute.Overview),
+            new(ComponentPageTitle, AgentsPageRoute.ComponentDetails)
+        ],
+        _ => []
+    };
+
+    public string HeaderCurrentTitle => currentRoute switch
+    {
+        AgentsPageRoute.Processes => ProcessPageTitle,
+        AgentsPageRoute.ComponentDetails => ComponentPageTitle,
+        _ => OverviewPageTitle
+    };
+
+    public string HeaderSubtitle => currentRoute switch
+    {
+        AgentsPageRoute.Processes => ProcessStatusText,
+        AgentsPageRoute.ComponentDetails => ComponentStatusText,
+        _ => OverviewStatusText
+    };
+
+    public Visibility HeaderOverviewTitleVisibility => currentRoute == AgentsPageRoute.Overview
+        ? Visibility.Visible
+        : Visibility.Collapsed;
 
     public string PageSubtitle => "Службы Windows и процессы 1С на этом компьютере";
 
@@ -88,6 +202,11 @@ public sealed partial class AgentsPageViewModel : ObservableObject
                 return $"{processGroup.ComponentTitle}: {AgentComponentTextFormatter.FormatProcessCount(processGroup.Processes.Count)}";
             }
 
+            if (SelectedComponent is { } component)
+            {
+                return $"{component.StatusText}, {component.ProcessSummaryText}";
+            }
+
             return Components.Count == 0
                 ? "Нет данных о компонентах сервера"
                 : $"{AgentComponentTextFormatter.FormatFoundServices(ServiceCount)}, {AgentComponentTextFormatter.FormatProcessCount(ProcessCount)}";
@@ -97,6 +216,10 @@ public sealed partial class AgentsPageViewModel : ObservableObject
     public string ComponentsStatusText => IsRefreshing ? "Обновление" : "Нет данных";
 
     public bool HasError => !string.IsNullOrWhiteSpace(ErrorText);
+
+    public bool HasServiceOperationMessage => !string.IsNullOrWhiteSpace(ServiceOperationMessage);
+
+    public bool IsServiceActionRunning => !string.IsNullOrWhiteSpace(ActiveServiceComponentId);
 
     public Visibility RefreshProgressVisibility => IsRefreshing
         ? Visibility.Visible
@@ -110,7 +233,11 @@ public sealed partial class AgentsPageViewModel : ObservableObject
         ? Visibility.Visible
         : Visibility.Collapsed;
 
-    public Visibility OverviewVisibility => SelectedProcessGroup is null
+    public Visibility OverviewVisibility => SelectedComponent is null && SelectedProcessGroup is null
+        ? Visibility.Visible
+        : Visibility.Collapsed;
+
+    public Visibility ComponentDetailsVisibility => SelectedComponent is not null && SelectedProcessGroup is null
         ? Visibility.Visible
         : Visibility.Collapsed;
 
@@ -118,15 +245,20 @@ public sealed partial class AgentsPageViewModel : ObservableObject
         ? Visibility.Collapsed
         : Visibility.Visible;
 
-    public Visibility BreadcrumbVisibility => SelectedProcessGroup is null
+    public Visibility BreadcrumbVisibility => currentRoute == AgentsPageRoute.Overview
         ? Visibility.Collapsed
         : Visibility.Visible;
+
+    public Visibility SelectedComponentServiceActionsVisibility => SelectedComponent?.HasService == true
+        ? Visibility.Visible
+        : Visibility.Collapsed;
 
     [RelayCommand(CanExecute = nameof(CanRefresh))]
     private async Task RefreshAsync()
     {
         IsRefreshing = true;
-        var selectedComponentId = SelectedProcessGroup?.ComponentId;
+        var selectedComponentId = SelectedProcessGroup?.ComponentId ?? SelectedComponent?.Id;
+        var restoreProcessDetails = currentRoute == AgentsPageRoute.Processes;
 
         try
         {
@@ -150,7 +282,7 @@ public sealed partial class AgentsPageViewModel : ObservableObject
             ServiceCount = services.Count;
             ProcessCount = processes.Count;
             HasLoaded = true;
-            RestoreProcessDetails(selectedComponentId);
+            RestoreSelectedComponent(selectedComponentId, restoreProcessDetails);
             NotifyComponentStateChanged();
         }
         catch (Exception exception)
@@ -170,20 +302,35 @@ public sealed partial class AgentsPageViewModel : ObservableObject
     partial void OnIsRefreshingChanged(bool value)
     {
         RefreshCommand.NotifyCanExecuteChanged();
+        NotifyServiceControlCommandsCanExecuteChanged();
+    }
+
+    partial void OnActiveServiceComponentIdChanged(string? value)
+    {
+        NotifyServiceControlCommandsCanExecuteChanged();
+    }
+
+    partial void OnSelectedComponentChanged(AgentComponentItemViewModel? value)
+    {
+        SelectedProcessGroup = null;
+        NotifyServiceControlCommandsCanExecuteChanged();
+        OnPropertyChanged(nameof(SelectedComponentServiceActionsVisibility));
+        NotifyHeaderStateChanged();
     }
 
     partial void OnSelectedProcessGroupChanged(AgentProcessGroupViewModel? value)
     {
-        Breadcrumbs.Clear();
+        NotifyHeaderStateChanged();
+    }
 
-        if (value is null)
+    [RelayCommand]
+    private void OpenComponentDetails(AgentComponentItemViewModel component)
+    {
+        ChangeRoute(() =>
         {
-            return;
-        }
-
-        Breadcrumbs.Add("Компоненты сервера");
-        Breadcrumbs.Add(value.ComponentTitle);
-        Breadcrumbs.Add("Процессы");
+            currentRoute = AgentsPageRoute.ComponentDetails;
+            SelectedComponent = component;
+        });
     }
 
     [RelayCommand]
@@ -203,22 +350,160 @@ public sealed partial class AgentsPageViewModel : ObservableObject
         SelectedProcessGroup = null;
     }
 
-    public void NavigateToBreadcrumb(int index)
+    [RelayCommand(CanExecute = nameof(CanStartSelectedService))]
+    private Task StartSelectedServiceAsync()
     {
-        if (index < Breadcrumbs.Count - 1)
-        {
-            CloseProcessDetails();
-        }
+        return ExecuteSelectedServiceActionAsync(OneCServiceControlAction.Start);
     }
 
-    private void RestoreProcessDetails(string? componentId)
+    [RelayCommand(CanExecute = nameof(CanStopSelectedService))]
+    private Task StopSelectedServiceAsync()
     {
-        if (componentId is null)
+        return ExecuteSelectedServiceActionAsync(OneCServiceControlAction.Stop);
+    }
+
+    [RelayCommand(CanExecute = nameof(CanRestartSelectedService))]
+    private Task RestartSelectedServiceAsync()
+    {
+        return ExecuteSelectedServiceActionAsync(OneCServiceControlAction.Restart);
+    }
+
+    private bool CanStartSelectedService()
+    {
+        return CanRunServiceAction() && SelectedComponent?.CanStartService == true;
+    }
+
+    private bool CanStopSelectedService()
+    {
+        return CanRunServiceAction() && SelectedComponent?.CanStopService == true;
+    }
+
+    private bool CanRestartSelectedService()
+    {
+        return CanRunServiceAction() && SelectedComponent?.CanRestartService == true;
+    }
+
+    private Task ExecuteSelectedServiceActionAsync(OneCServiceControlAction action)
+    {
+        return SelectedComponent is null
+            ? Task.CompletedTask
+            : ExecuteServiceActionAsync(SelectedComponent, action);
+    }
+
+    private bool CanRunServiceAction()
+    {
+        return !IsRefreshing && !IsServiceActionRunning;
+    }
+
+    private async Task ExecuteServiceActionAsync(
+        AgentComponentItemViewModel component,
+        OneCServiceControlAction action)
+    {
+        if (string.IsNullOrWhiteSpace(component.ServiceName))
         {
             return;
         }
 
-        ShowProcessDetails(componentId);
+        ActiveServiceComponentId = component.Id;
+        ServiceOperationTitle = GetServiceActionTitle(action);
+        ServiceOperationSeverity = InfoBarSeverity.Informational;
+        ServiceOperationMessage = $"{GetServiceActionProgressText(action)}: {component.ServiceDisplayName} ({component.ServiceName})";
+
+        try
+        {
+            await ExecuteServiceControllerActionAsync(action, component.ServiceName);
+
+            ServiceOperationSeverity = InfoBarSeverity.Success;
+            ServiceOperationMessage = $"{GetServiceActionSuccessText(action)}: {component.ServiceDisplayName} ({component.ServiceName})";
+
+            await RefreshAsync();
+        }
+        catch (OperationCanceledException exception)
+        {
+            ServiceOperationSeverity = InfoBarSeverity.Warning;
+            ServiceOperationMessage = exception.Message;
+        }
+        catch (Exception exception)
+        {
+            ServiceOperationSeverity = InfoBarSeverity.Error;
+            ServiceOperationMessage = exception.Message;
+        }
+        finally
+        {
+            ActiveServiceComponentId = null;
+        }
+    }
+
+    private Task ExecuteServiceControllerActionAsync(
+        OneCServiceControlAction action,
+        string serviceName)
+    {
+        return action switch
+        {
+            OneCServiceControlAction.Start => serviceController.StartAsync(serviceName),
+            OneCServiceControlAction.Stop => serviceController.StopAsync(serviceName),
+            OneCServiceControlAction.Restart => serviceController.RestartAsync(serviceName),
+            _ => throw new ArgumentOutOfRangeException(nameof(action), action, null)
+        };
+    }
+
+    public bool TryNavigateToBreadcrumb(AgentsBreadcrumbItem item, out AgentsPageRoute route)
+    {
+        route = item.Route;
+
+        if (route == currentRoute)
+        {
+            return false;
+        }
+
+        if (route == AgentsPageRoute.Overview)
+        {
+            ChangeRoute(() =>
+            {
+                currentRoute = AgentsPageRoute.Overview;
+                SelectedProcessGroup = null;
+                SelectedComponent = null;
+            });
+
+            return true;
+        }
+
+        if (route == AgentsPageRoute.ComponentDetails && SelectedComponent is not null)
+        {
+            ChangeRoute(() =>
+            {
+                currentRoute = AgentsPageRoute.ComponentDetails;
+                SelectedProcessGroup = null;
+            });
+
+            return true;
+        }
+
+        return false;
+    }
+
+    private void RestoreSelectedComponent(string? componentId, bool restoreProcessDetails)
+    {
+        if (componentId is null)
+        {
+            SelectedComponent = null;
+            SelectedProcessGroup = null;
+            return;
+        }
+
+        var component = FindComponent(componentId);
+        SelectedComponent = component;
+
+        if (component is null)
+        {
+            SelectedProcessGroup = null;
+            return;
+        }
+
+        if (restoreProcessDetails)
+        {
+            ShowProcessDetails(component.Id);
+        }
     }
 
     private void ShowProcessDetails(string? componentId)
@@ -228,10 +513,7 @@ public sealed partial class AgentsPageViewModel : ObservableObject
             return;
         }
 
-        var component = Components.FirstOrDefault(candidate => string.Equals(
-            candidate.Id,
-            componentId,
-            StringComparison.Ordinal));
+        var component = FindComponent(componentId);
 
         if (component is null || component.Processes.Count == 0)
         {
@@ -239,7 +521,82 @@ public sealed partial class AgentsPageViewModel : ObservableObject
             return;
         }
 
-        SelectedProcessGroup = AgentProcessGroupViewModel.FromComponent(component);
+        ChangeRoute(() =>
+        {
+            currentRoute = AgentsPageRoute.Processes;
+            SelectedComponent = component;
+            SelectedProcessGroup = AgentProcessGroupViewModel.FromComponent(component);
+        });
+    }
+
+    private AgentComponentItemViewModel? FindComponent(string componentId)
+    {
+        return Components.FirstOrDefault(candidate => string.Equals(
+            candidate.Id,
+            componentId,
+            StringComparison.Ordinal));
+    }
+
+    private string GetOverviewStatusText()
+    {
+        if (IsRefreshing)
+        {
+            return "Обновление списка компонентов";
+        }
+
+        if (HasError)
+        {
+            return "Не удалось обновить сведения о компонентах сервера";
+        }
+
+        if (!HasLoaded)
+        {
+            return "Сведения о компонентах еще не загружены";
+        }
+
+        return Components.Count == 0
+            ? "Нет данных о компонентах сервера"
+            : $"{AgentComponentTextFormatter.FormatFoundServices(ServiceCount)}, {AgentComponentTextFormatter.FormatProcessCount(ProcessCount)}";
+    }
+
+    private void NotifyServiceControlCommandsCanExecuteChanged()
+    {
+        StartSelectedServiceCommand.NotifyCanExecuteChanged();
+        StopSelectedServiceCommand.NotifyCanExecuteChanged();
+        RestartSelectedServiceCommand.NotifyCanExecuteChanged();
+    }
+
+    private static string GetServiceActionTitle(OneCServiceControlAction action)
+    {
+        return action switch
+        {
+            OneCServiceControlAction.Start => "Запуск службы",
+            OneCServiceControlAction.Stop => "Остановка службы",
+            OneCServiceControlAction.Restart => "Перезапуск службы",
+            _ => "Управление службой"
+        };
+    }
+
+    private static string GetServiceActionProgressText(OneCServiceControlAction action)
+    {
+        return action switch
+        {
+            OneCServiceControlAction.Start => "Запускается служба Windows",
+            OneCServiceControlAction.Stop => "Останавливается служба Windows",
+            OneCServiceControlAction.Restart => "Перезапускается служба Windows",
+            _ => "Выполняется действие со службой Windows"
+        };
+    }
+
+    private static string GetServiceActionSuccessText(OneCServiceControlAction action)
+    {
+        return action switch
+        {
+            OneCServiceControlAction.Start => "Служба Windows запущена",
+            OneCServiceControlAction.Stop => "Служба Windows остановлена",
+            OneCServiceControlAction.Restart => "Служба Windows перезапущена",
+            _ => "Действие со службой Windows выполнено"
+        };
     }
 
     private static IReadOnlyList<AgentComponentItemViewModel> BuildComponents(
@@ -293,11 +650,6 @@ public sealed partial class AgentsPageViewModel : ObservableObject
             .ThenBy(static component => component.SummaryDescription, StringComparer.CurrentCultureIgnoreCase)
             .ToList();
 
-        if (orderedComponents.Count == 1)
-        {
-            orderedComponents[0].IsExpanded = true;
-        }
-
         return orderedComponents;
     }
 
@@ -343,13 +695,42 @@ public sealed partial class AgentsPageViewModel : ObservableObject
     private void NotifyComponentStateChanged()
     {
         OnPropertyChanged(nameof(StatusText));
+        OnPropertyChanged(nameof(OverviewStatusText));
         OnPropertyChanged(nameof(ComponentsListVisibility));
         OnPropertyChanged(nameof(EmptyStateVisibility));
         OnPropertyChanged(nameof(ComponentsStatusText));
+        NotifyHeaderStateChanged();
     }
+
+    private void NotifyHeaderStateChanged()
+    {
+        if (isChangingRoute)
+        {
+            return;
+        }
+
+        OnPropertyChanged(nameof(HeaderBreadcrumbs));
+        OnPropertyChanged(nameof(HeaderCurrentTitle));
+        OnPropertyChanged(nameof(HeaderSubtitle));
+        OnPropertyChanged(nameof(HeaderOverviewTitleVisibility));
+        OnPropertyChanged(nameof(BreadcrumbVisibility));
+    }
+
 }
 
-public sealed partial class AgentComponentItemViewModel : ObservableObject
+public enum AgentsPageRoute
+{
+    Overview,
+    ComponentDetails,
+    Processes
+}
+
+public sealed record AgentsBreadcrumbItem(string Title, AgentsPageRoute Route)
+{
+    public override string ToString() => Title;
+}
+
+public sealed record AgentComponentItemViewModel
 {
     public required string Id { get; init; }
 
@@ -369,8 +750,17 @@ public sealed partial class AgentComponentItemViewModel : ObservableObject
 
     public required IReadOnlyList<AgentProcessItemViewModel> Processes { get; init; }
 
-    [ObservableProperty]
-    public partial bool IsExpanded { get; set; }
+    public required string? ServiceName { get; init; }
+
+    public required string ServiceDisplayName { get; init; }
+
+    public required bool CanStartService { get; init; }
+
+    public required bool CanStopService { get; init; }
+
+    public required bool CanRestartService { get; init; }
+
+    public bool HasService => !string.IsNullOrWhiteSpace(ServiceName);
 
     public static AgentComponentItemViewModel FromService(
         OneCServiceInfo service,
@@ -403,7 +793,12 @@ public sealed partial class AgentComponentItemViewModel : ObservableObject
                 _ => Icon.PuzzlePiece
             },
             Details = BuildServiceDetails(componentId, service, processes),
-            Processes = processItems
+            Processes = processItems,
+            ServiceName = service.Name,
+            ServiceDisplayName = service.DisplayNameText,
+            CanStartService = CanStart(service),
+            CanStopService = CanStop(service),
+            CanRestartService = CanRestart(service)
         };
     }
 
@@ -442,8 +837,31 @@ public sealed partial class AgentComponentItemViewModel : ObservableObject
                 _ => Icon.AppGeneric
             },
             Details = BuildProcessDetails(componentId, process, relatedProcesses),
-            Processes = processItems
+            Processes = processItems,
+            ServiceName = null,
+            ServiceDisplayName = "—",
+            CanStartService = false,
+            CanStopService = false,
+            CanRestartService = false
         };
+    }
+
+    private static bool CanStart(OneCServiceInfo service)
+    {
+        return !string.IsNullOrWhiteSpace(service.Name)
+            && string.Equals(service.State, "Stopped", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(service.StartMode, "Disabled", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool CanStop(OneCServiceInfo service)
+    {
+        return !string.IsNullOrWhiteSpace(service.Name)
+            && string.Equals(service.State, "Running", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool CanRestart(OneCServiceInfo service)
+    {
+        return CanStop(service);
     }
 
     private static string GetServiceComponentId(OneCServiceInfo service)

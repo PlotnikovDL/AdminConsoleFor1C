@@ -2,6 +2,7 @@ using AdminConsoleFor1C.Infrastructure.Services;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media.Animation;
 
 namespace AdminConsoleFor1C.App;
 
@@ -15,9 +16,18 @@ public sealed partial class AgentsPage : Page
 
         viewModel = new AgentsPageViewModel(
             new WindowsOneCServiceInventory(),
-            new WindowsOneCProcessInventory());
+            new WindowsOneCProcessInventory(),
+            new ElevatedWorkerOneCServiceController(
+                ElevatedWorkerPaths.ResolveWorkerPath(),
+                ElevatedWorkerPaths.ResolveResultDirectory()));
 
         DataContext = viewModel;
+
+        ContentFrame.Navigate(
+            typeof(AgentsOverviewPage),
+            viewModel,
+            new SuppressNavigationTransitionInfo());
+
         Loaded += AgentsPage_Loaded;
     }
 
@@ -31,16 +41,44 @@ public sealed partial class AgentsPage : Page
         }
     }
 
-    private void DetailCard_Click(object sender, RoutedEventArgs e)
+    private void HeaderBreadcrumb_ItemClicked(
+        BreadcrumbBar sender,
+        BreadcrumbBarItemClickedEventArgs args)
     {
-        if (sender is FrameworkElement { DataContext: AgentComponentDetailItemViewModel detail })
+        if (args.Item is not AgentsBreadcrumbItem item)
         {
-            viewModel.OpenProcessDetailsCommand.Execute(detail);
+            return;
         }
+
+        if (!viewModel.TryNavigateToBreadcrumb(item, out var route))
+        {
+            return;
+        }
+
+        NavigateToRoute(route);
     }
 
-    private void BreadcrumbBar_ItemClicked(BreadcrumbBar sender, BreadcrumbBarItemClickedEventArgs args)
+    private void NavigateToRoute(AgentsPageRoute route)
     {
-        viewModel.NavigateToBreadcrumb(args.Index);
+        var pageType = route switch
+        {
+            AgentsPageRoute.Overview => typeof(AgentsOverviewPage),
+            AgentsPageRoute.ComponentDetails => typeof(AgentComponentDetailsPage),
+            AgentsPageRoute.Processes => typeof(AgentProcessesPage),
+            _ => typeof(AgentsOverviewPage)
+        };
+
+        if (ContentFrame.Content?.GetType() == pageType)
+        {
+            return;
+        }
+
+        ContentFrame.Navigate(
+            pageType,
+            viewModel,
+            new SlideNavigationTransitionInfo
+            {
+                Effect = SlideNavigationTransitionEffect.FromLeft
+            });
     }
 }

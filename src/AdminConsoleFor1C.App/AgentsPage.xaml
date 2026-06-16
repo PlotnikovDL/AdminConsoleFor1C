@@ -3,272 +3,142 @@
     x:Class="AdminConsoleFor1C.App.AgentsPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:controls="using:CommunityToolkit.WinUI.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:ic="using:FluentIcons.WinUI"
-    xmlns:local="using:AdminConsoleFor1C.App"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
     <Page.Resources>
-        <x:Double x:Key="SettingsCardSpacing">4</x:Double>
-
         <Style
-            x:Key="SettingsSectionHeaderTextBlockStyle"
-            BasedOn="{StaticResource BodyStrongTextBlockStyle}"
+            x:Key="PageTitleTextBlockStyle"
+            BasedOn="{StaticResource TitleTextBlockStyle}"
             TargetType="TextBlock">
-            <Setter Property="Margin" Value="1,30,0,6" />
+            <Setter Property="TextWrapping" Value="NoWrap" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+            <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
     </Page.Resources>
 
     <ScrollViewer
+        x:Name="PageScrollViewer"
         HorizontalScrollBarVisibility="Disabled"
         HorizontalScrollMode="Disabled"
         VerticalScrollBarVisibility="Auto"
         VerticalScrollMode="Enabled">
         <Grid
+            x:Name="PageLayoutRoot"
             Padding="48,44,48,48"
             HorizontalAlignment="Stretch">
-            <StackPanel
+            <VisualStateManager.VisualStateGroups>
+                <VisualStateGroup>
+                    <VisualState x:Name="WideLayout">
+                        <VisualState.StateTriggers>
+                            <AdaptiveTrigger MinWindowWidth="1180" />
+                        </VisualState.StateTriggers>
+                        <VisualState.Setters>
+                            <Setter Target="PageLayoutRoot.Padding" Value="48,44,48,48" />
+                        </VisualState.Setters>
+                    </VisualState>
+
+                    <VisualState x:Name="MediumLayout">
+                        <VisualState.StateTriggers>
+                            <AdaptiveTrigger MinWindowWidth="720" />
+                        </VisualState.StateTriggers>
+                        <VisualState.Setters>
+                            <Setter Target="PageLayoutRoot.Padding" Value="32,36,32,40" />
+                        </VisualState.Setters>
+                    </VisualState>
+
+                    <VisualState x:Name="NarrowLayout">
+                        <VisualState.Setters>
+                            <Setter Target="PageLayoutRoot.Padding" Value="20,28,20,32" />
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateManager.VisualStateGroups>
+
+            <Grid
+                x:Name="PageContentHost"
                 MaxWidth="1000"
-                HorizontalAlignment="Stretch"
-                Spacing="{StaticResource SettingsCardSpacing}">
-                <StackPanel.ChildrenTransitions>
-                    <EntranceThemeTransition FromVerticalOffset="32" />
-                    <RepositionThemeTransition IsStaggeringEnabled="False" />
-                </StackPanel.ChildrenTransitions>
-
-                <BreadcrumbBar
-                    ItemClicked="BreadcrumbBar_ItemClicked"
-                    ItemsSource="{Binding Breadcrumbs}"
-                    Visibility="{Binding BreadcrumbVisibility}" />
-
-                <Grid
-                    ColumnSpacing="16"
-                    RowSpacing="8">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-
-                    <TextBlock
-                        FontSize="34"
-                        FontWeight="SemiBold"
-                        Text="{Binding PageTitle}"
-                        TextWrapping="WrapWholeWords" />
-
+                HorizontalAlignment="Stretch">
                     <StackPanel
-                        Grid.Column="1"
-                        Margin="0,4,0,0"
-                        VerticalAlignment="Top"
-                        Orientation="Horizontal"
-                        Spacing="10">
-                        <ProgressRing
-                            Width="20"
-                            Height="20"
-                            IsActive="{Binding IsRefreshing}"
-                            Visibility="{Binding RefreshProgressVisibility}" />
-                        <Button Command="{Binding RefreshCommand}">
-                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                <ic:FluentIcon
-                                    Icon="ArrowClockwise"
-                                    IconSize="Size16"
-                                    IconVariant="Regular" />
-                                <TextBlock Text="Обновить" />
-                            </StackPanel>
-                        </Button>
-                    </StackPanel>
-
-                    <TextBlock
-                        Grid.Row="1"
-                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                        Text="{Binding StatusText}"
-                        TextWrapping="WrapWholeWords" />
-                </Grid>
-
-                <InfoBar
-                    Margin="0,18,0,0"
-                    IsOpen="{Binding HasError}"
-                    Message="{Binding ErrorText}"
-                    Severity="Error"
-                    Title="Не удалось обновить компоненты" />
-
-                <StackPanel Visibility="{Binding OverviewVisibility}">
-                    <TextBlock
-                        Style="{StaticResource SettingsSectionHeaderTextBlockStyle}"
-                        Text="Агенты сервера 1С" />
-
-                    <controls:SettingsCard
-                        Description="{Binding PageSubtitle}"
+                        x:Name="PageContent"
                         HorizontalAlignment="Stretch"
-                        Header="Компоненты сервера"
-                        Visibility="{Binding EmptyStateVisibility}">
-                        <controls:SettingsCard.HeaderIcon>
-                            <ic:FluentIcon
-                                Icon="PuzzlePiece"
-                                IconSize="Size20"
-                                IconVariant="Regular" />
-                        </controls:SettingsCard.HeaderIcon>
+                        Spacing="8">
+                        <Grid MinHeight="132" RowSpacing="6">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
 
-                        <TextBlock
-                            FontWeight="SemiBold"
-                            Text="{Binding ComponentsStatusText}" />
-                    </controls:SettingsCard>
+                            <BreadcrumbBar
+                                x:Name="HeaderBreadcrumbBar"
+                                MinHeight="32"
+                                HorizontalAlignment="Stretch"
+                                VerticalAlignment="Center"
+                                ItemClicked="HeaderBreadcrumb_ItemClicked"
+                                ItemsSource="{Binding HeaderBreadcrumbs}"
+                                Visibility="{Binding BreadcrumbVisibility}" />
 
-                    <ItemsRepeater
-                        ItemsSource="{Binding Components}"
-                        Visibility="{Binding ComponentsListVisibility}">
-                        <ItemsRepeater.Layout>
-                            <StackLayout Spacing="{StaticResource SettingsCardSpacing}" />
-                        </ItemsRepeater.Layout>
+                            <Grid Grid.Row="1" ColumnSpacing="16">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
 
-                        <ItemsRepeater.ItemTemplate>
-                            <DataTemplate x:DataType="local:AgentComponentItemViewModel">
-                                <controls:SettingsExpander
-                                    Description="{Binding SummaryDescription}"
-                                    HorizontalAlignment="Stretch"
-                                    Header="{Binding Title}"
-                                    IsExpanded="{Binding IsExpanded, Mode=TwoWay}"
-                                    ItemsSource="{Binding Details}">
-                                    <controls:SettingsExpander.HeaderIcon>
+                                <TextBlock
+                                    Style="{StaticResource PageTitleTextBlockStyle}"
+                                    Text="{Binding HeaderCurrentTitle}" />
+
+                                <Button
+                                    Grid.Column="1"
+                                    VerticalAlignment="Center"
+                                    Command="{Binding RefreshCommand}">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
                                         <ic:FluentIcon
-                                            Icon="{Binding Icon}"
-                                            IconSize="Size20"
+                                            Icon="ArrowClockwise"
+                                            IconSize="Size16"
                                             IconVariant="Regular" />
-                                    </controls:SettingsExpander.HeaderIcon>
+                                        <TextBlock Text="Обновить" />
+                                    </StackPanel>
+                                </Button>
+                            </Grid>
 
-                                    <controls:SettingsExpander.Content>
-                                        <StackPanel
-                                            MinWidth="128"
-                                            HorizontalAlignment="Right"
-                                            Spacing="2">
-                                            <TextBlock
-                                                HorizontalAlignment="Right"
-                                                FontWeight="SemiBold"
-                                                Text="{Binding StatusText}"
-                                                TextWrapping="NoWrap" />
-                                            <TextBlock
-                                                HorizontalAlignment="Right"
-                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                Text="{Binding ProcessSummaryText}"
-                                                TextWrapping="NoWrap" />
-                                        </StackPanel>
-                                    </controls:SettingsExpander.Content>
+                            <Grid Grid.Row="2" ColumnSpacing="16">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
 
-                                    <controls:SettingsExpander.ItemTemplate>
-                                        <DataTemplate x:DataType="local:AgentComponentDetailItemViewModel">
-                                            <controls:SettingsCard
-                                                ActionIconToolTip="{Binding ActionToolTip}"
-                                                Click="DetailCard_Click"
-                                                ContentAlignment="Right"
-                                                Description="{Binding Description}"
-                                                Header="{Binding Title}"
-                                                HorizontalAlignment="Stretch"
-                                                HorizontalContentAlignment="Right"
-                                                IsClickEnabled="{Binding IsClickEnabled}">
-                                                <controls:SettingsCard.HeaderIcon>
-                                                    <ic:FluentIcon
-                                                        Icon="{Binding Icon}"
-                                                        IconSize="Size20"
-                                                        IconVariant="Regular" />
-                                                </controls:SettingsCard.HeaderIcon>
+                                <TextBlock
+                                    VerticalAlignment="Center"
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                    Text="{Binding HeaderSubtitle}"
+                                    TextWrapping="WrapWholeWords" />
 
-                                                <TextBlock
-                                                    MaxWidth="520"
-                                                    HorizontalAlignment="Right"
-                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                    IsTextSelectionEnabled="True"
-                                                    Text="{Binding Value}"
-                                                    TextAlignment="Right"
-                                                    TextWrapping="WrapWholeWords" />
-                                            </controls:SettingsCard>
-                                        </DataTemplate>
-                                    </controls:SettingsExpander.ItemTemplate>
-                                </controls:SettingsExpander>
-                            </DataTemplate>
-                        </ItemsRepeater.ItemTemplate>
-                    </ItemsRepeater>
-                </StackPanel>
+                                <ProgressRing
+                                    Grid.Column="1"
+                                    Width="20"
+                                    Height="20"
+                                    VerticalAlignment="Center"
+                                    IsActive="{Binding IsRefreshing}"
+                                    Visibility="{Binding RefreshProgressVisibility}" />
+                            </Grid>
+                        </Grid>
 
-                <StackPanel Visibility="{Binding ProcessDetailsVisibility}">
-                    <TextBlock
-                        Style="{StaticResource SettingsSectionHeaderTextBlockStyle}"
-                        Text="Процессы 1С" />
-
-                    <ItemsRepeater ItemsSource="{Binding SelectedProcessGroup.Processes}">
-                        <ItemsRepeater.Layout>
-                            <StackLayout Spacing="{StaticResource SettingsCardSpacing}" />
-                        </ItemsRepeater.Layout>
-
-                        <ItemsRepeater.ItemTemplate>
-                            <DataTemplate x:DataType="local:AgentProcessItemViewModel">
-                                <controls:SettingsExpander
-                                    Description="{Binding Description}"
-                                    Header="{Binding Title}"
-                                    HorizontalAlignment="Stretch"
-                                    IsExpanded="False"
-                                    ItemsSource="{Binding Details}">
-                                    <controls:SettingsExpander.HeaderIcon>
-                                        <ic:FluentIcon
-                                            Icon="{Binding Icon}"
-                                            IconSize="Size20"
-                                            IconVariant="Regular" />
-                                    </controls:SettingsExpander.HeaderIcon>
-
-                                    <controls:SettingsExpander.Content>
-                                        <StackPanel
-                                            MinWidth="128"
-                                            HorizontalAlignment="Right"
-                                            Spacing="2">
-                                            <TextBlock
-                                                HorizontalAlignment="Right"
-                                                FontWeight="SemiBold"
-                                                Text="{Binding ProcessIdText}"
-                                                TextWrapping="NoWrap" />
-                                            <TextBlock
-                                                HorizontalAlignment="Right"
-                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                Text="{Binding RoleText}"
-                                                TextWrapping="NoWrap" />
-                                        </StackPanel>
-                                    </controls:SettingsExpander.Content>
-
-                                    <controls:SettingsExpander.ItemTemplate>
-                                        <DataTemplate x:DataType="local:AgentProcessDetailItemViewModel">
-                                            <controls:SettingsCard
-                                                ContentAlignment="Right"
-                                                Description="{Binding Description}"
-                                                Header="{Binding Title}"
-                                                HorizontalAlignment="Stretch"
-                                                HorizontalContentAlignment="Right">
-                                                <controls:SettingsCard.HeaderIcon>
-                                                    <ic:FluentIcon
-                                                        Icon="{Binding Icon}"
-                                                        IconSize="Size20"
-                                                        IconVariant="Regular" />
-                                                </controls:SettingsCard.HeaderIcon>
-
-                                                <TextBlock
-                                                    MaxWidth="520"
-                                                    HorizontalAlignment="Right"
-                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                    IsTextSelectionEnabled="True"
-                                                    Text="{Binding Value}"
-                                                    TextAlignment="Right"
-                                                    TextWrapping="WrapWholeWords" />
-                                            </controls:SettingsCard>
-                                        </DataTemplate>
-                                    </controls:SettingsExpander.ItemTemplate>
-                                </controls:SettingsExpander>
-                            </DataTemplate>
-                        </ItemsRepeater.ItemTemplate>
-                    </ItemsRepeater>
-                </StackPanel>
-            </StackPanel>
+                        <Frame
+                            x:Name="ContentFrame"
+                            Margin="0,0,0,0"
+                            IsNavigationStackEnabled="True">
+                            <Frame.ContentTransitions>
+                                <TransitionCollection>
+                                    <NavigationThemeTransition />
+                                </TransitionCollection>
+                            </Frame.ContentTransitions>
+                        </Frame>
+                    </StackPanel>
+            </Grid>
         </Grid>
     </ScrollViewer>
 </Page>

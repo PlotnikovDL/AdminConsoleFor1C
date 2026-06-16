@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="AdminConsoleFor1C.App.AgentsOverviewPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:CommunityToolkit.WinUI.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:ic="using:FluentIcons.WinUI"
+    xmlns:local="using:AdminConsoleFor1C.App"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <x:Double x:Key="SettingsCardSpacing">4</x:Double>
+
+        <Style
+            x:Key="SettingsSectionHeaderTextBlockStyle"
+            BasedOn="{StaticResource BodyStrongTextBlockStyle}"
+            TargetType="TextBlock">
+            <Setter Property="Margin" Value="1,30,0,6" />
+        </Style>
+    </Page.Resources>
+
+    <Grid HorizontalAlignment="Stretch">
+        <StackPanel
+            HorizontalAlignment="Stretch"
+            Spacing="{StaticResource SettingsCardSpacing}">
+                <InfoBar
+                    Margin="0,18,0,0"
+                    IsOpen="{Binding HasError}"
+                    Message="{Binding ErrorText}"
+                    Severity="Error"
+                    Title="Не удалось обновить компоненты" />
+
+                <InfoBar
+                    Margin="0,10,0,0"
+                    IsOpen="{Binding HasServiceOperationMessage}"
+                    Message="{Binding ServiceOperationMessage}"
+                    Severity="{Binding ServiceOperationSeverity}"
+                    Title="{Binding ServiceOperationTitle}" />
+
+                <TextBlock
+                    Style="{StaticResource SettingsSectionHeaderTextBlockStyle}"
+                    Text="Агенты сервера 1С" />
+
+                <controls:SettingsCard
+                    Description="{Binding PageSubtitle}"
+                    HorizontalAlignment="Stretch"
+                    Header="Компоненты сервера"
+                    Visibility="{Binding EmptyStateVisibility}">
+                    <controls:SettingsCard.HeaderIcon>
+                        <ic:FluentIcon
+                            Icon="PuzzlePiece"
+                            IconSize="Size20"
+                            IconVariant="Regular" />
+                    </controls:SettingsCard.HeaderIcon>
+
+                    <TextBlock
+                        FontWeight="SemiBold"
+                        Text="{Binding ComponentsStatusText}" />
+                </controls:SettingsCard>
+
+                <ItemsRepeater
+                    ItemsSource="{Binding Components}"
+                    Visibility="{Binding ComponentsListVisibility}">
+                    <ItemsRepeater.Layout>
+                        <StackLayout Spacing="{StaticResource SettingsCardSpacing}" />
+                    </ItemsRepeater.Layout>
+
+                    <ItemsRepeater.ItemTemplate>
+                        <DataTemplate x:DataType="local:AgentComponentItemViewModel">
+                            <controls:SettingsCard
+                                ActionIconToolTip="Открыть сведения"
+                                Click="ComponentCard_Click"
+                                ContentAlignment="Right"
+                                Description="{Binding SummaryDescription}"
+                                Header="{Binding Title}"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Right"
+                                IsClickEnabled="True">
+                                <controls:SettingsCard.HeaderIcon>
+                                    <ic:FluentIcon
+                                        Icon="{Binding Icon}"
+                                        IconSize="Size20"
+                                        IconVariant="Regular" />
+                                </controls:SettingsCard.HeaderIcon>
+
+                                <StackPanel
+                                    MinWidth="128"
+                                    HorizontalAlignment="Right"
+                                    Spacing="2">
+                                    <TextBlock
+                                        HorizontalAlignment="Right"
+                                        FontWeight="SemiBold"
+                                        Text="{Binding StatusText}"
+                                        TextWrapping="NoWrap" />
+                                    <TextBlock
+                                        HorizontalAlignment="Right"
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                        Text="{Binding ProcessSummaryText}"
+                                        TextWrapping="NoWrap" />
+                                </StackPanel>
+                            </controls:SettingsCard>
+                        </DataTemplate>
+                    </ItemsRepeater.ItemTemplate>
+                </ItemsRepeater>
+        </StackPanel>
+    </Grid>
+</Page>
