@@ -30,7 +30,7 @@
                     IsOpen="{Binding HasError}"
                     Message="{Binding ErrorText}"
                     Severity="Error"
-                    Title="Не удалось обновить компоненты" />
+                    Title="Не удалось обновить агентов" />
 
                 <InfoBar
                     Margin="0,10,0,0"

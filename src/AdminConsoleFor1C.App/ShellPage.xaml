@@ -30,6 +30,18 @@
             </NavigationViewItem>
 
             <NavigationViewItem
+                x:Name="ProcessesNavigationItem"
+                Content="Процессы"
+                Tag="processes">
+                <NavigationViewItem.Icon>
+                    <ic:FluentIcon
+                        Icon="AppsListDetail"
+                        IconSize="Size20"
+                        IconVariant="Regular" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+
+            <NavigationViewItem
                 x:Name="InfobasesNavigationItem"
                 Content="Информационные базы"
                 Tag="infobases">

@@ -5,6 +5,7 @@ namespace AdminConsoleFor1C.App;
 public static class AdminConsoleSections
 {
     public const string AgentsTag = "agents";
+    public const string ProcessesTag = "processes";
     public const string InfobasesTag = "infobases";
     public const string ClustersTag = "clusters";
     public const string LicensesTag = "licenses";
@@ -15,6 +16,7 @@ public static class AdminConsoleSections
         return tag switch
         {
             AgentsTag => AdminConsoleSection.Agents,
+            ProcessesTag => AdminConsoleSection.Processes,
             InfobasesTag => AdminConsoleSection.Infobases,
             ClustersTag => AdminConsoleSection.Clusters,
             LicensesTag => AdminConsoleSection.Licenses,
@@ -30,8 +32,13 @@ public static class AdminConsoleSections
             AdminConsoleSection.Agents => new AdminConsoleSectionInfo(
                 section,
                 "Агенты сервера 1С",
-                "Службы Windows и процессы 1С на этом компьютере",
+                "Службы Windows агентов сервера 1С на этом компьютере",
                 Icon.PuzzlePiece),
+            AdminConsoleSection.Processes => new AdminConsoleSectionInfo(
+                section,
+                "Процессы",
+                "Процессы 1С, PID, роли, порты и параметры запуска",
+                Icon.AppsListDetail),
             AdminConsoleSection.Infobases => new AdminConsoleSectionInfo(
                 section,
                 "Информационные базы",

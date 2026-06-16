@@ -39,6 +39,12 @@ public sealed partial class ShellPage : Page
             return;
         }
 
+        if (section == AdminConsoleSection.Processes)
+        {
+            ContentFrame.Navigate(typeof(ProcessesPage));
+            return;
+        }
+
         ContentFrame.Navigate(
             typeof(AdminConsolePlaceholderPage),
             AdminConsoleSections.GetInfo(section));

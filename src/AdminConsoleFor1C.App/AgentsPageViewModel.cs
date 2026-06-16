@@ -11,6 +11,9 @@ namespace AdminConsoleFor1C.App;
 
 public sealed partial class AgentsPageViewModel : ObservableObject
 {
+    private static readonly TimeSpan RelatedProcessExitTimeout = TimeSpan.FromSeconds(45);
+    private static readonly TimeSpan RelatedProcessExitPollInterval = TimeSpan.FromMilliseconds(500);
+
     private readonly IOneCServiceInventory serviceInventory;
     private readonly IOneCProcessInventory processInventory;
     private readonly IOneCServiceController serviceController;
@@ -85,24 +88,9 @@ public sealed partial class AgentsPageViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(StatusText))]
     [NotifyPropertyChangedFor(nameof(OverviewVisibility))]
     [NotifyPropertyChangedFor(nameof(ComponentDetailsVisibility))]
-    [NotifyPropertyChangedFor(nameof(ProcessDetailsVisibility))]
     [NotifyPropertyChangedFor(nameof(BreadcrumbVisibility))]
     [ObservableProperty]
     public partial AgentComponentItemViewModel? SelectedComponent { get; set; }
-
-    [NotifyPropertyChangedFor(nameof(PageTitle))]
-    [NotifyPropertyChangedFor(nameof(ProcessPageTitle))]
-    [NotifyPropertyChangedFor(nameof(ProcessStatusText))]
-    [NotifyPropertyChangedFor(nameof(HeaderBreadcrumbs))]
-    [NotifyPropertyChangedFor(nameof(HeaderCurrentTitle))]
-    [NotifyPropertyChangedFor(nameof(HeaderSubtitle))]
-    [NotifyPropertyChangedFor(nameof(StatusText))]
-    [NotifyPropertyChangedFor(nameof(OverviewVisibility))]
-    [NotifyPropertyChangedFor(nameof(ComponentDetailsVisibility))]
-    [NotifyPropertyChangedFor(nameof(ProcessDetailsVisibility))]
-    [NotifyPropertyChangedFor(nameof(BreadcrumbVisibility))]
-    [ObservableProperty]
-    public partial AgentProcessGroupViewModel? SelectedProcessGroup { get; set; }
 
     private AgentsPageRoute currentRoute = AgentsPageRoute.Overview;
     private bool isChangingRoute;
@@ -122,9 +110,7 @@ public sealed partial class AgentsPageViewModel : ObservableObject
         }
     }
 
-    public string PageTitle => SelectedProcessGroup is not null
-        ? "Процессы"
-        : SelectedComponent?.Title ?? "Агенты сервера 1С";
+    public string PageTitle => SelectedComponent?.Title ?? "Агенты сервера 1С";
 
     public string OverviewPageTitle => "Агенты сервера 1С";
 
@@ -136,20 +122,8 @@ public sealed partial class AgentsPageViewModel : ObservableObject
         ? string.Empty
         : $"{SelectedComponent.StatusText}, {SelectedComponent.ProcessSummaryText}";
 
-    public string ProcessPageTitle => "Процессы";
-
-    public string ProcessStatusText => SelectedProcessGroup is null
-        ? string.Empty
-        : $"{SelectedProcessGroup.ComponentTitle}: {AgentComponentTextFormatter.FormatProcessCount(SelectedProcessGroup.Processes.Count)}";
-
     public IReadOnlyList<AgentsBreadcrumbItem> HeaderBreadcrumbs => currentRoute switch
     {
-        AgentsPageRoute.Processes when SelectedComponent is not null =>
-        [
-            new(OverviewPageTitle, AgentsPageRoute.Overview),
-            new(SelectedComponent.Title, AgentsPageRoute.ComponentDetails),
-            new(ProcessPageTitle, AgentsPageRoute.Processes)
-        ],
         AgentsPageRoute.ComponentDetails =>
         [
             new(OverviewPageTitle, AgentsPageRoute.Overview),
@@ -160,14 +134,12 @@ public sealed partial class AgentsPageViewModel : ObservableObject
 
     public string HeaderCurrentTitle => currentRoute switch
     {
-        AgentsPageRoute.Processes => ProcessPageTitle,
         AgentsPageRoute.ComponentDetails => ComponentPageTitle,
         _ => OverviewPageTitle
     };
 
     public string HeaderSubtitle => currentRoute switch
     {
-        AgentsPageRoute.Processes => ProcessStatusText,
         AgentsPageRoute.ComponentDetails => ComponentStatusText,
         _ => OverviewStatusText
     };
@@ -176,7 +148,7 @@ public sealed partial class AgentsPageViewModel : ObservableObject
         ? Visibility.Visible
         : Visibility.Collapsed;
 
-    public string PageSubtitle => "Службы Windows и процессы 1С на этом компьютере";
+    public string PageSubtitle => "Службы Windows агентов сервера 1С на этом компьютере";
 
     public string StatusText
     {
@@ -195,11 +167,6 @@ public sealed partial class AgentsPageViewModel : ObservableObject
             if (!HasLoaded)
             {
                 return "Сведения об агентах еще не загружены";
-            }
-
-            if (SelectedProcessGroup is { } processGroup)
-            {
-                return $"{processGroup.ComponentTitle}: {AgentComponentTextFormatter.FormatProcessCount(processGroup.Processes.Count)}";
             }
 
             if (SelectedComponent is { } component)
@@ -233,17 +200,13 @@ public sealed partial class AgentsPageViewModel : ObservableObject
         ? Visibility.Visible
         : Visibility.Collapsed;
 
-    public Visibility OverviewVisibility => SelectedComponent is null && SelectedProcessGroup is null
+    public Visibility OverviewVisibility => SelectedComponent is null
         ? Visibility.Visible
         : Visibility.Collapsed;
 
-    public Visibility ComponentDetailsVisibility => SelectedComponent is not null && SelectedProcessGroup is null
+    public Visibility ComponentDetailsVisibility => SelectedComponent is not null
         ? Visibility.Visible
         : Visibility.Collapsed;
-
-    public Visibility ProcessDetailsVisibility => SelectedProcessGroup is null
-        ? Visibility.Collapsed
-        : Visibility.Visible;
 
     public Visibility BreadcrumbVisibility => currentRoute == AgentsPageRoute.Overview
         ? Visibility.Collapsed
@@ -257,8 +220,7 @@ public sealed partial class AgentsPageViewModel : ObservableObject
     private async Task RefreshAsync()
     {
         IsRefreshing = true;
-        var selectedComponentId = SelectedProcessGroup?.ComponentId ?? SelectedComponent?.Id;
-        var restoreProcessDetails = currentRoute == AgentsPageRoute.Processes;
+        var selectedComponentId = SelectedComponent?.Id;
 
         try
         {
@@ -282,7 +244,7 @@ public sealed partial class AgentsPageViewModel : ObservableObject
             ServiceCount = services.Count;
             ProcessCount = processes.Count;
             HasLoaded = true;
-            RestoreSelectedComponent(selectedComponentId, restoreProcessDetails);
+            RestoreSelectedComponent(selectedComponentId);
             NotifyComponentStateChanged();
         }
         catch (Exception exception)
@@ -312,14 +274,8 @@ public sealed partial class AgentsPageViewModel : ObservableObject
 
     partial void OnSelectedComponentChanged(AgentComponentItemViewModel? value)
     {
-        SelectedProcessGroup = null;
         NotifyServiceControlCommandsCanExecuteChanged();
         OnPropertyChanged(nameof(SelectedComponentServiceActionsVisibility));
-        NotifyHeaderStateChanged();
-    }
-
-    partial void OnSelectedProcessGroupChanged(AgentProcessGroupViewModel? value)
-    {
         NotifyHeaderStateChanged();
     }
 
@@ -331,23 +287,6 @@ public sealed partial class AgentsPageViewModel : ObservableObject
             currentRoute = AgentsPageRoute.ComponentDetails;
             SelectedComponent = component;
         });
-    }
-
-    [RelayCommand]
-    private void OpenProcessDetails(AgentComponentDetailItemViewModel detail)
-    {
-        if (detail.NavigationTarget != AgentComponentDetailNavigationTarget.Processes)
-        {
-            return;
-        }
-
-        ShowProcessDetails(detail.ComponentId);
-    }
-
-    [RelayCommand]
-    private void CloseProcessDetails()
-    {
-        SelectedProcessGroup = null;
     }
 
     [RelayCommand(CanExecute = nameof(CanStartSelectedService))]
@@ -411,7 +350,12 @@ public sealed partial class AgentsPageViewModel : ObservableObject
 
         try
         {
-            await ExecuteServiceControllerActionAsync(action, component.ServiceName);
+            var relatedProcessIds = component.Processes
+                .Select(static process => process.ProcessId)
+                .Where(static processId => processId != 0)
+                .ToHashSet();
+
+            await ExecuteServiceControllerActionAsync(action, component, relatedProcessIds);
 
             ServiceOperationSeverity = InfoBarSeverity.Success;
             ServiceOperationMessage = $"{GetServiceActionSuccessText(action)}: {component.ServiceDisplayName} ({component.ServiceName})";
@@ -434,17 +378,84 @@ public sealed partial class AgentsPageViewModel : ObservableObject
         }
     }
 
-    private Task ExecuteServiceControllerActionAsync(
+    private async Task ExecuteServiceControllerActionAsync(
         OneCServiceControlAction action,
-        string serviceName)
+        AgentComponentItemViewModel component,
+        IReadOnlySet<uint> relatedProcessIds)
     {
-        return action switch
+        var serviceName = component.ServiceName;
+        if (string.IsNullOrWhiteSpace(serviceName))
         {
-            OneCServiceControlAction.Start => serviceController.StartAsync(serviceName),
-            OneCServiceControlAction.Stop => serviceController.StopAsync(serviceName),
-            OneCServiceControlAction.Restart => serviceController.RestartAsync(serviceName),
-            _ => throw new ArgumentOutOfRangeException(nameof(action), action, null)
-        };
+            return;
+        }
+
+        switch (action)
+        {
+            case OneCServiceControlAction.Start:
+                await serviceController.StartAsync(serviceName);
+                break;
+
+            case OneCServiceControlAction.Stop:
+                await serviceController.StopAsync(serviceName);
+                await WaitForRelatedProcessesExitAsync(component, relatedProcessIds);
+                break;
+
+            case OneCServiceControlAction.Restart:
+                ServiceOperationMessage = $"Останавливается служба Windows: {component.ServiceDisplayName} ({serviceName})";
+                await serviceController.StopAsync(serviceName);
+                await WaitForRelatedProcessesExitAsync(component, relatedProcessIds);
+                ServiceOperationMessage = $"Запускается служба Windows: {component.ServiceDisplayName} ({serviceName})";
+                await serviceController.StartAsync(serviceName);
+                break;
+
+            default:
+                throw new ArgumentOutOfRangeException(nameof(action), action, null);
+        }
+    }
+
+    private async Task WaitForRelatedProcessesExitAsync(
+        AgentComponentItemViewModel component,
+        IReadOnlySet<uint> relatedProcessIds)
+    {
+        if (relatedProcessIds.Count == 0)
+        {
+            return;
+        }
+
+        var deadline = DateTimeOffset.UtcNow.Add(RelatedProcessExitTimeout);
+        ServiceOperationMessage =
+            $"Ожидается завершение процессов службы Windows: {FormatProcessIds(relatedProcessIds)}";
+
+        while (true)
+        {
+            var processes = await processInventory.GetProcessesAsync();
+            var remainingProcessIds = processes
+                .Select(static process => process.ProcessId)
+                .Where(relatedProcessIds.Contains)
+                .Order()
+                .ToArray();
+
+            if (remainingProcessIds.Length == 0)
+            {
+                return;
+            }
+
+            if (DateTimeOffset.UtcNow >= deadline)
+            {
+                throw new TimeoutException(
+                    $"Не завершились процессы службы {component.ServiceDisplayName}: {FormatProcessIds(remainingProcessIds)}");
+            }
+
+            ServiceOperationMessage =
+                $"Ожидается завершение процессов службы Windows: {FormatProcessIds(remainingProcessIds)}";
+
+            await Task.Delay(RelatedProcessExitPollInterval);
+        }
+    }
+
+    private static string FormatProcessIds(IEnumerable<uint> processIds)
+    {
+        return "PID " + string.Join(", ", processIds.Order());
     }
 
     public bool TryNavigateToBreadcrumb(AgentsBreadcrumbItem item, out AgentsPageRoute route)
@@ -461,7 +472,6 @@ public sealed partial class AgentsPageViewModel : ObservableObject
             ChangeRoute(() =>
             {
                 currentRoute = AgentsPageRoute.Overview;
-                SelectedProcessGroup = null;
                 SelectedComponent = null;
             });
 
@@ -473,7 +483,6 @@ public sealed partial class AgentsPageViewModel : ObservableObject
             ChangeRoute(() =>
             {
                 currentRoute = AgentsPageRoute.ComponentDetails;
-                SelectedProcessGroup = null;
             });
 
             return true;
@@ -482,51 +491,16 @@ public sealed partial class AgentsPageViewModel : ObservableObject
         return false;
     }
 
-    private void RestoreSelectedComponent(string? componentId, bool restoreProcessDetails)
+    private void RestoreSelectedComponent(string? componentId)
     {
         if (componentId is null)
         {
             SelectedComponent = null;
-            SelectedProcessGroup = null;
             return;
         }
 
         var component = FindComponent(componentId);
         SelectedComponent = component;
-
-        if (component is null)
-        {
-            SelectedProcessGroup = null;
-            return;
-        }
-
-        if (restoreProcessDetails)
-        {
-            ShowProcessDetails(component.Id);
-        }
-    }
-
-    private void ShowProcessDetails(string? componentId)
-    {
-        if (string.IsNullOrWhiteSpace(componentId))
-        {
-            return;
-        }
-
-        var component = FindComponent(componentId);
-
-        if (component is null || component.Processes.Count == 0)
-        {
-            SelectedProcessGroup = null;
-            return;
-        }
-
-        ChangeRoute(() =>
-        {
-            currentRoute = AgentsPageRoute.Processes;
-            SelectedComponent = component;
-            SelectedProcessGroup = AgentProcessGroupViewModel.FromComponent(component);
-        });
     }
 
     private AgentComponentItemViewModel? FindComponent(string componentId)
@@ -638,12 +612,6 @@ public sealed partial class AgentsPageViewModel : ObservableObject
             components.Add(AgentComponentItemViewModel.FromProcess(process, relatedProcesses));
         }
 
-        foreach (var process in processes.Where(process => !assignedProcessIds.Contains(process.ProcessId)))
-        {
-            assignedProcessIds.Add(process.ProcessId);
-            components.Add(AgentComponentItemViewModel.FromProcess(process, [process]));
-        }
-
         var orderedComponents = components
             .OrderBy(static component => component.SortOrder)
             .ThenBy(static component => component.Title, StringComparer.CurrentCultureIgnoreCase)
@@ -721,8 +689,7 @@ public sealed partial class AgentsPageViewModel : ObservableObject
 public enum AgentsPageRoute
 {
     Overview,
-    ComponentDetails,
-    Processes
+    ComponentDetails
 }
 
 public sealed record AgentsBreadcrumbItem(string Title, AgentsPageRoute Route)
@@ -792,7 +759,7 @@ public sealed record AgentComponentItemViewModel
                 OneCServiceKind.DebugServer => Icon.DeveloperBoardLightning,
                 _ => Icon.PuzzlePiece
             },
-            Details = BuildServiceDetails(componentId, service, processes),
+            Details = BuildServiceDetails(service, processes),
             Processes = processItems,
             ServiceName = service.Name,
             ServiceDisplayName = service.DisplayNameText,
@@ -836,7 +803,7 @@ public sealed record AgentComponentItemViewModel
                 OneCProcessKind.WorkerProcess => Icon.Box,
                 _ => Icon.AppGeneric
             },
-            Details = BuildProcessDetails(componentId, process, relatedProcesses),
+            Details = BuildProcessDetails(process, relatedProcesses),
             Processes = processItems,
             ServiceName = null,
             ServiceDisplayName = "—",
@@ -880,7 +847,6 @@ public sealed record AgentComponentItemViewModel
     }
 
     private static IReadOnlyList<AgentComponentDetailItemViewModel> BuildServiceDetails(
-        string componentId,
         OneCServiceInfo service,
         IReadOnlyList<OneCProcessInfo> processes)
     {
@@ -902,10 +868,7 @@ public sealed record AgentComponentItemViewModel
                 "Процессы",
                 AgentComponentTextFormatter.FormatProcessCount(processes.Count),
                 processNames,
-                Icon.AppsListDetail,
-                componentId: componentId,
-                navigationTarget: AgentComponentDetailNavigationTarget.Processes,
-                actionToolTip: "Открыть процессы");
+                Icon.AppsListDetail);
         }
 
         AddDetail(details, "Каталог данных", "Рабочий каталог сервера", service.DataDirectoryText, Icon.Folder);
@@ -916,7 +879,6 @@ public sealed record AgentComponentItemViewModel
     }
 
     private static IReadOnlyList<AgentComponentDetailItemViewModel> BuildProcessDetails(
-        string componentId,
         OneCProcessInfo process,
         IReadOnlyList<OneCProcessInfo> relatedProcesses)
     {
@@ -937,10 +899,7 @@ public sealed record AgentComponentItemViewModel
                 "Связанные процессы",
                 AgentComponentTextFormatter.FormatProcessCount(relatedProcesses.Count),
                 processNames,
-                Icon.AppsListDetail,
-                componentId: componentId,
-                navigationTarget: AgentComponentDetailNavigationTarget.Processes,
-                actionToolTip: "Открыть процессы");
+                Icon.AppsListDetail);
         }
 
         AddDetail(details, "Исполняемый файл", "Путь к файлу процесса", process.ExecutablePathText, Icon.AppFolder);
@@ -955,10 +914,7 @@ public sealed record AgentComponentItemViewModel
         string description,
         string value,
         Icon icon,
-        bool includeEmpty = false,
-        string? componentId = null,
-        AgentComponentDetailNavigationTarget navigationTarget = AgentComponentDetailNavigationTarget.None,
-        string actionToolTip = "")
+        bool includeEmpty = false)
     {
         if (!includeEmpty && (string.IsNullOrWhiteSpace(value) || value == "—"))
         {
@@ -970,10 +926,7 @@ public sealed record AgentComponentItemViewModel
             Title = title,
             Description = description,
             Value = string.IsNullOrWhiteSpace(value) ? "—" : value,
-            Icon = icon,
-            ComponentId = componentId,
-            NavigationTarget = navigationTarget,
-            ActionToolTip = actionToolTip
+            Icon = icon
         });
     }
 
@@ -998,43 +951,12 @@ public sealed record AgentComponentDetailItemViewModel
     public required string Value { get; init; }
 
     public required Icon Icon { get; init; }
-
-    public required string? ComponentId { get; init; }
-
-    public required AgentComponentDetailNavigationTarget NavigationTarget { get; init; }
-
-    public required string ActionToolTip { get; init; }
-
-    public bool IsClickEnabled => NavigationTarget != AgentComponentDetailNavigationTarget.None;
-}
-
-public enum AgentComponentDetailNavigationTarget
-{
-    None,
-    Processes
-}
-
-public sealed record AgentProcessGroupViewModel
-{
-    public required string ComponentId { get; init; }
-
-    public required string ComponentTitle { get; init; }
-
-    public required IReadOnlyList<AgentProcessItemViewModel> Processes { get; init; }
-
-    public static AgentProcessGroupViewModel FromComponent(AgentComponentItemViewModel component)
-    {
-        return new AgentProcessGroupViewModel
-        {
-            ComponentId = component.Id,
-            ComponentTitle = component.Title,
-            Processes = component.Processes
-        };
-    }
 }
 
 public sealed record AgentProcessItemViewModel
 {
+    public required uint ProcessId { get; init; }
+
     public required string Title { get; init; }
 
     public required string Description { get; init; }
@@ -1051,6 +973,7 @@ public sealed record AgentProcessItemViewModel
     {
         return new AgentProcessItemViewModel
         {
+            ProcessId = process.ProcessId,
             Title = process.KindDisplayName,
             Description = process.Name,
             ProcessIdText = $"PID {process.ProcessIdText}",

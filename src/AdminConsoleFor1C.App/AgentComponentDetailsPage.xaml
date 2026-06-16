@@ -30,7 +30,7 @@
                     IsOpen="{Binding HasError}"
                     Message="{Binding ErrorText}"
                     Severity="Error"
-                    Title="Не удалось обновить компоненты" />
+                    Title="Не удалось обновить агента" />
 
                 <InfoBar
                     Margin="0,10,0,0"
@@ -113,14 +113,11 @@
                     <ItemsRepeater.ItemTemplate>
                         <DataTemplate x:DataType="local:AgentComponentDetailItemViewModel">
                             <controls:SettingsCard
-                                ActionIconToolTip="{Binding ActionToolTip}"
-                                Click="DetailCard_Click"
                                 ContentAlignment="Right"
                                 Description="{Binding Description}"
                                 Header="{Binding Title}"
                                 HorizontalAlignment="Stretch"
-                                HorizontalContentAlignment="Right"
-                                IsClickEnabled="{Binding IsClickEnabled}">
+                                HorizontalContentAlignment="Right">
                                 <controls:SettingsCard.HeaderIcon>
                                     <ic:FluentIcon
                                         Icon="{Binding Icon}"

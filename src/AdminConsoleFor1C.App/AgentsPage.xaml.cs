@@ -64,7 +64,6 @@ public sealed partial class AgentsPage : Page
         {
             AgentsPageRoute.Overview => typeof(AgentsOverviewPage),
             AgentsPageRoute.ComponentDetails => typeof(AgentComponentDetailsPage),
-            AgentsPageRoute.Processes => typeof(AgentProcessesPage),
             _ => typeof(AgentsOverviewPage)
         };
 
