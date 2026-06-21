@@ -84,8 +84,8 @@
                                 </controls:SettingsCard.HeaderIcon>
 
                                 <StackPanel
-                                    MinWidth="360"
-                                    MaxWidth="560"
+                                    MinWidth="300"
+                                    MaxWidth="480"
                                     HorizontalAlignment="Right"
                                     Spacing="2">
                                     <TextBlock
@@ -94,10 +94,20 @@
                                         Text="{Binding StatusSummaryText}"
                                         TextTrimming="CharacterEllipsis" />
 
-                                    <TextBlock
-                                        Style="{StaticResource AdminConsoleSummaryMetricTextBlockStyle}"
-                                        Text="{Binding TechnicalSummaryText}"
-                                        TextTrimming="CharacterEllipsis" />
+                                    <StackPanel
+                                        HorizontalAlignment="Right"
+                                        Orientation="Horizontal"
+                                        Spacing="12">
+                                        <TextBlock
+                                            Style="{StaticResource AdminConsoleSummaryMetricTextBlockStyle}"
+                                            Text="{Binding PrimaryPortSummaryText}"
+                                            TextTrimming="CharacterEllipsis" />
+
+                                        <TextBlock
+                                            Style="{StaticResource AdminConsoleSummaryMetricTextBlockStyle}"
+                                            Text="{Binding VersionSummaryText}"
+                                            TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
                                 </StackPanel>
                             </controls:SettingsCard>
                         </DataTemplate>
@@ -135,8 +145,8 @@
                                 </controls:SettingsCard.HeaderIcon>
 
                                 <StackPanel
-                                    MinWidth="300"
-                                    MaxWidth="520"
+                                    MinWidth="220"
+                                    MaxWidth="360"
                                     HorizontalAlignment="Right"
                                     Spacing="2">
                                     <TextBlock

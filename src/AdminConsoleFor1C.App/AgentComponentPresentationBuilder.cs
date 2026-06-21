@@ -53,8 +53,8 @@ public sealed partial class AgentComponentPresentationBuilder
 
         return new AgentServiceCandidateItemViewModel
         {
-            Title = "Сервер 1С",
-            SummaryDescription = "ragent.exe",
+            Title = "ragent.exe",
+            SummaryDescription = candidate.ExecutablePathText,
             ExecutablePathText = candidate.ExecutablePathText,
             StatusSummaryText = "Не зарегистрирован",
             StatusKind = AgentStatusKind.Information,
@@ -71,7 +71,6 @@ public sealed partial class AgentComponentPresentationBuilder
             .Select(BuildProcessItem)
             .ToList();
 
-        var statusSummaryText = $"{service.StateDisplayName} · {AgentComponentTextFormatter.FormatLinkedProcessCount(processes.Count)}";
         var primaryPortSummaryText = GetPrimaryServicePortSummaryText(service);
         var versionSummaryText = GetVersionSummaryText(service.VersionText);
         var startModeSummaryText = $"Запуск: {service.StartModeDisplayName}";
@@ -83,12 +82,12 @@ public sealed partial class AgentComponentPresentationBuilder
             SummaryDescription = GetServiceDisplayNameSummaryText(service),
             StatusText = service.StateDisplayName,
             ProcessSummaryText = AgentComponentTextFormatter.FormatLinkedProcessCount(processes.Count),
-            StatusSummaryText = statusSummaryText,
+            StatusSummaryText = service.StateDisplayName,
             StatusKind = GetServiceStatusKind(service),
             PrimaryPortSummaryText = primaryPortSummaryText,
             VersionSummaryText = versionSummaryText,
             StartModeSummaryText = startModeSummaryText,
-            TechnicalSummaryText = $"{primaryPortSummaryText} · {versionSummaryText} · {startModeSummaryText}",
+            TechnicalSummaryText = $"{primaryPortSummaryText} {versionSummaryText}",
             SortOrder = service.Kind switch
             {
                 OneCServiceKind.ServerAgent => 0,
