@@ -32,7 +32,7 @@
                     IsOpen="{Binding HasError}"
                     Message="{Binding ErrorText}"
                     Severity="Error"
-                    Title="Не удалось обновить агентов"
+                    Title="Не удалось обновить службы агента"
                     Visibility="{Binding ErrorInfoBarVisibility}" />
 
                 <InfoBar
@@ -45,12 +45,12 @@
 
                 <TextBlock
                     Style="{StaticResource SettingsSectionHeaderTextBlockStyle}"
-                    Text="Обнаруженные агенты" />
+                    Text="Службы агента" />
 
                 <controls:SettingsCard
-                    Description="{Binding PageSubtitle}"
+                    Description="{Binding EmptyStateDescription}"
                     HorizontalAlignment="Stretch"
-                    Header="Агенты сервера не найдены"
+                    Header="Службы агента 1С не найдены"
                     Visibility="{Binding EmptyStateVisibility}">
                     <controls:SettingsCard.HeaderIcon>
                         <ic:FluentIcon
@@ -90,7 +90,7 @@
                                 </controls:SettingsCard.HeaderIcon>
 
                                 <StackPanel
-                                    MinWidth="128"
+                                    MinWidth="168"
                                     HorizontalAlignment="Right"
                                     Spacing="2">
                                     <TextBlock
@@ -102,6 +102,21 @@
                                         HorizontalAlignment="Right"
                                         Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                         Text="{Binding ProcessSummaryText}"
+                                        TextWrapping="NoWrap" />
+                                    <TextBlock
+                                        HorizontalAlignment="Right"
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                        Text="{Binding PrimaryPortSummaryText}"
+                                        TextWrapping="NoWrap" />
+                                    <TextBlock
+                                        HorizontalAlignment="Right"
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                        Text="{Binding VersionSummaryText}"
+                                        TextWrapping="NoWrap" />
+                                    <TextBlock
+                                        HorizontalAlignment="Right"
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                        Text="{Binding StartModeSummaryText}"
                                         TextWrapping="NoWrap" />
                                 </StackPanel>
                             </controls:SettingsCard>

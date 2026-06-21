@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using AdminConsoleFor1C.Application.Services;
+using AdminConsoleFor1C.Core.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
@@ -54,7 +55,17 @@ public sealed partial class AgentsPageViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(OverviewStatusText))]
     [NotifyPropertyChangedFor(nameof(HeaderSubtitle))]
     [ObservableProperty]
+    public partial int RunningServiceCount { get; set; }
+
+    [NotifyPropertyChangedFor(nameof(StatusText))]
+    [NotifyPropertyChangedFor(nameof(OverviewStatusText))]
+    [NotifyPropertyChangedFor(nameof(HeaderSubtitle))]
+    [ObservableProperty]
     public partial int ProcessCount { get; set; }
+
+    [NotifyPropertyChangedFor(nameof(HeaderSubtitle))]
+    [ObservableProperty]
+    public partial DateTimeOffset? LastRefreshedAt { get; set; }
 
     [NotifyPropertyChangedFor(nameof(HasError))]
     [NotifyPropertyChangedFor(nameof(ErrorInfoBarVisibility))]
@@ -104,7 +115,7 @@ public sealed partial class AgentsPageViewModel : ObservableObject
 
     public string OverviewStatusText => GetOverviewStatusText();
 
-    public string ComponentPageTitle => SelectedComponent?.Title ?? "Агент сервера";
+    public string ComponentPageTitle => SelectedComponent?.Title ?? "Агент сервера 1С";
 
     public string ComponentStatusText => SelectedComponent is null
         ? string.Empty
@@ -136,7 +147,8 @@ public sealed partial class AgentsPageViewModel : ObservableObject
         ? Visibility.Visible
         : Visibility.Collapsed;
 
-    public string PageSubtitle => "Службы Windows агентов сервера 1С на этом компьютере";
+    public string EmptyStateDescription =>
+        "На этом компьютере не обнаружены службы сервера 1С. Проверьте установку сервера 1С или обновите список.";
 
     public string StatusText
     {
@@ -164,11 +176,11 @@ public sealed partial class AgentsPageViewModel : ObservableObject
 
             return Components.Count == 0
                 ? "Нет данных об агентах сервера"
-                : $"{AgentComponentTextFormatter.FormatFoundServices(ServiceCount)}, {AgentComponentTextFormatter.FormatProcessCount(ProcessCount)}";
+                : BuildOverviewStatusText();
         }
     }
 
-    public string ComponentsStatusText => IsRefreshing ? "Обновление" : "Нет данных об агентах сервера";
+    public string ComponentsStatusText => IsRefreshing ? "Обновление" : "Нет найденных служб";
 
     public bool HasError => !string.IsNullOrWhiteSpace(ErrorText);
 
@@ -238,7 +250,10 @@ public sealed partial class AgentsPageViewModel : ObservableObject
             }
 
             ServiceCount = services.Count;
+            RunningServiceCount = services.Count(static service =>
+                string.Equals(service.State, "Running", StringComparison.OrdinalIgnoreCase));
             ProcessCount = processes.Count;
+            LastRefreshedAt = DateTimeOffset.Now;
             HasLoaded = true;
             RestoreSelectedComponent(selectedComponentId);
             NotifyComponentStateChanged();
@@ -536,7 +551,16 @@ public sealed partial class AgentsPageViewModel : ObservableObject
 
         return Components.Count == 0
             ? "Нет данных об агентах сервера"
-            : $"{AgentComponentTextFormatter.FormatFoundServices(ServiceCount)}, {AgentComponentTextFormatter.FormatProcessCount(ProcessCount)}";
+            : BuildOverviewStatusText();
+    }
+
+    private string BuildOverviewStatusText()
+    {
+        var statusText = $"{AgentComponentTextFormatter.FormatRunningServiceSummary(ServiceCount, RunningServiceCount)}, {AgentComponentTextFormatter.FormatLinkedProcessCount(ProcessCount)}";
+
+        return LastRefreshedAt is null
+            ? statusText
+            : $"{statusText}. Обновлено: {LastRefreshedAt.Value:HH:mm}";
     }
 
     private void NotifyServiceControlCommandsCanExecuteChanged()

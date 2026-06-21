@@ -42,7 +42,7 @@
 
                 <TextBlock
                     Style="{StaticResource SettingsSectionHeaderTextBlockStyle}"
-                    Text="Управление" />
+                    Text="Действия" />
 
                 <controls:SettingsCard
                     Description="Запуск, остановка и перезапуск службы Windows"
@@ -104,7 +104,7 @@
 
                 <TextBlock
                     Style="{StaticResource SettingsSectionHeaderTextBlockStyle}"
-                    Text="Сведения службы" />
+                    Text="Параметры службы" />
 
                 <ItemsRepeater ItemsSource="{Binding SelectedComponent.Details}">
                     <ItemsRepeater.Layout>
