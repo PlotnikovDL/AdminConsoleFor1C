@@ -1,4 +1,3 @@
-using AdminConsoleFor1C.Infrastructure.Services;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -13,7 +12,7 @@ public sealed partial class ProcessesPage : Page
     {
         InitializeComponent();
 
-        viewModel = new ProcessesPageViewModel(new WindowsOneCProcessInventory());
+        viewModel = AdminConsoleViewModelFactory.CreateProcessesPageViewModel();
         DataContext = viewModel;
 
         Loaded += ProcessesPage_Loaded;

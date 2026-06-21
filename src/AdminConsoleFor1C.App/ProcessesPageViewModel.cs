@@ -9,13 +9,17 @@ namespace AdminConsoleFor1C.App;
 public sealed partial class ProcessesPageViewModel : ObservableObject
 {
     private readonly IOneCProcessInventory processInventory;
+    private readonly AgentComponentPresentationBuilder componentBuilder;
 
-    public ProcessesPageViewModel(IOneCProcessInventory processInventory)
+    public ProcessesPageViewModel(
+        IOneCProcessInventory processInventory,
+        AgentComponentPresentationBuilder componentBuilder)
     {
         this.processInventory = processInventory;
+        this.componentBuilder = componentBuilder;
     }
 
-    public ObservableCollection<AgentProcessItemViewModel> Processes { get; } = [];
+    public ObservableCollection<OneCProcessItemViewModel> Processes { get; } = [];
 
     [NotifyPropertyChangedFor(nameof(HeaderSubtitle))]
     [NotifyPropertyChangedFor(nameof(RefreshProgressVisibility))]
@@ -94,11 +98,7 @@ public sealed partial class ProcessesPageViewModel : ObservableObject
             ErrorText = null;
 
             var processes = await processInventory.GetProcessesAsync();
-            var orderedProcesses = processes
-                .OrderBy(static process => process.Kind)
-                .ThenBy(static process => process.ProcessId)
-                .Select(AgentProcessItemViewModel.FromProcess)
-                .ToList();
+            var orderedProcesses = componentBuilder.BuildProcessItems(processes);
 
             Processes.Clear();
             foreach (var process in orderedProcesses)

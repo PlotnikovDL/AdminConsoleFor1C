@@ -1,4 +1,3 @@
-using AdminConsoleFor1C.Infrastructure.Services;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -14,13 +13,7 @@ public sealed partial class AgentsPage : Page
     {
         InitializeComponent();
 
-        viewModel = new AgentsPageViewModel(
-            new WindowsOneCServiceInventory(),
-            new WindowsOneCProcessInventory(),
-            new ElevatedWorkerOneCServiceController(
-                ElevatedWorkerPaths.ResolveWorkerPath(),
-                ElevatedWorkerPaths.ResolveResultDirectory()));
-
+        viewModel = AdminConsoleViewModelFactory.CreateAgentsPageViewModel();
         DataContext = viewModel;
 
         ContentFrame.Navigate(

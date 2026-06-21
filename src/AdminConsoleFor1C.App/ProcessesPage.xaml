@@ -158,7 +158,7 @@
                         </ItemsRepeater.Layout>
 
                         <ItemsRepeater.ItemTemplate>
-                            <DataTemplate x:DataType="local:AgentProcessItemViewModel">
+                            <DataTemplate x:DataType="local:OneCProcessItemViewModel">
                                 <controls:SettingsExpander
                                     Description="{Binding Description}"
                                     Header="{Binding Title}"
@@ -191,7 +191,7 @@
                                     </controls:SettingsExpander.Content>
 
                                     <controls:SettingsExpander.ItemTemplate>
-                                        <DataTemplate x:DataType="local:AgentProcessDetailItemViewModel">
+                                        <DataTemplate x:DataType="local:OneCProcessDetailItemViewModel">
                                             <controls:SettingsCard
                                                 ContentAlignment="Right"
                                                 Description="{Binding Description}"
