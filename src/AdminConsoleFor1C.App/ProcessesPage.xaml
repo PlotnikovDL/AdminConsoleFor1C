@@ -17,7 +17,7 @@
             x:Key="SettingsSectionHeaderTextBlockStyle"
             BasedOn="{StaticResource BodyStrongTextBlockStyle}"
             TargetType="TextBlock">
-            <Setter Property="Margin" Value="1,30,0,6" />
+            <Setter Property="Margin" Value="1,4,0,6" />
         </Style>
 
         <Style
@@ -73,7 +73,7 @@
                 <StackPanel
                     HorizontalAlignment="Stretch"
                     Spacing="{StaticResource SettingsCardSpacing}">
-                    <Grid MinHeight="132" RowSpacing="6">
+                    <Grid RowSpacing="4">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
@@ -123,11 +123,11 @@
                     </Grid>
 
                     <InfoBar
-                        Margin="0,18,0,0"
                         IsOpen="{Binding HasError}"
                         Message="{Binding ErrorText}"
                         Severity="Error"
-                        Title="Не удалось обновить процессы" />
+                        Title="Не удалось обновить процессы"
+                        Visibility="{Binding ErrorInfoBarVisibility}" />
 
                     <TextBlock
                         Style="{StaticResource SettingsSectionHeaderTextBlockStyle}"

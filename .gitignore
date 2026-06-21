@@ -6,6 +6,7 @@ TestResults/
 packages/
 artifacts/
 publish/
+.codex/
 
 *.user
 *.suo

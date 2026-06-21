@@ -61,11 +61,16 @@
                 x:Name="PageContentHost"
                 MaxWidth="1000"
                 HorizontalAlignment="Stretch">
-                    <StackPanel
+                    <Grid
                         x:Name="PageContent"
                         HorizontalAlignment="Stretch"
-                        Spacing="8">
-                        <Grid MinHeight="132" RowSpacing="6">
+                        RowSpacing="32">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <Grid RowSpacing="4">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
@@ -129,7 +134,9 @@
 
                         <Frame
                             x:Name="ContentFrame"
+                            Grid.Row="1"
                             Margin="0,0,0,0"
+                            VerticalAlignment="Top"
                             IsNavigationStackEnabled="True">
                             <Frame.ContentTransitions>
                                 <TransitionCollection>
@@ -137,7 +144,7 @@
                                 </TransitionCollection>
                             </Frame.ContentTransitions>
                         </Frame>
-                    </StackPanel>
+                    </Grid>
             </Grid>
         </Grid>
     </ScrollViewer>

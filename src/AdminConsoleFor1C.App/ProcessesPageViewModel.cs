@@ -33,6 +33,7 @@ public sealed partial class ProcessesPageViewModel : ObservableObject
     public partial int ProcessCount { get; set; }
 
     [NotifyPropertyChangedFor(nameof(HasError))]
+    [NotifyPropertyChangedFor(nameof(ErrorInfoBarVisibility))]
     [NotifyPropertyChangedFor(nameof(HeaderSubtitle))]
     [NotifyPropertyChangedFor(nameof(EmptyStateVisibility))]
     [ObservableProperty]
@@ -66,6 +67,10 @@ public sealed partial class ProcessesPageViewModel : ObservableObject
     public string ProcessesStatusText => IsRefreshing ? "Обновление" : "Нет данных о процессах 1С";
 
     public bool HasError => !string.IsNullOrWhiteSpace(ErrorText);
+
+    public Visibility ErrorInfoBarVisibility => HasError
+        ? Visibility.Visible
+        : Visibility.Collapsed;
 
     public Visibility RefreshProgressVisibility => IsRefreshing
         ? Visibility.Visible

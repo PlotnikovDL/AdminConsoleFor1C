@@ -17,27 +17,31 @@
             x:Key="SettingsSectionHeaderTextBlockStyle"
             BasedOn="{StaticResource BodyStrongTextBlockStyle}"
             TargetType="TextBlock">
-            <Setter Property="Margin" Value="1,30,0,6" />
+            <Setter Property="Margin" Value="1,4,0,6" />
         </Style>
     </Page.Resources>
 
-    <Grid HorizontalAlignment="Stretch">
+    <Grid
+        HorizontalAlignment="Stretch"
+        VerticalAlignment="Top">
         <StackPanel
             HorizontalAlignment="Stretch"
+            VerticalAlignment="Top"
             Spacing="{StaticResource SettingsCardSpacing}">
                 <InfoBar
-                    Margin="0,18,0,0"
                     IsOpen="{Binding HasError}"
                     Message="{Binding ErrorText}"
                     Severity="Error"
-                    Title="Не удалось обновить агентов" />
+                    Title="Не удалось обновить агентов"
+                    Visibility="{Binding ErrorInfoBarVisibility}" />
 
                 <InfoBar
-                    Margin="0,10,0,0"
+                    Margin="0,8,0,0"
                     IsOpen="{Binding HasServiceOperationMessage}"
                     Message="{Binding ServiceOperationMessage}"
                     Severity="{Binding ServiceOperationSeverity}"
-                    Title="{Binding ServiceOperationTitle}" />
+                    Title="{Binding ServiceOperationTitle}"
+                    Visibility="{Binding ServiceOperationInfoBarVisibility}" />
 
                 <TextBlock
                     Style="{StaticResource SettingsSectionHeaderTextBlockStyle}"

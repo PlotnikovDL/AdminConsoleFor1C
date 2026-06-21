@@ -56,6 +56,7 @@ public sealed partial class AgentsPageViewModel : ObservableObject
     public partial int ProcessCount { get; set; }
 
     [NotifyPropertyChangedFor(nameof(HasError))]
+    [NotifyPropertyChangedFor(nameof(ErrorInfoBarVisibility))]
     [NotifyPropertyChangedFor(nameof(StatusText))]
     [NotifyPropertyChangedFor(nameof(OverviewStatusText))]
     [NotifyPropertyChangedFor(nameof(HeaderSubtitle))]
@@ -64,6 +65,7 @@ public sealed partial class AgentsPageViewModel : ObservableObject
     public partial string? ErrorText { get; set; }
 
     [NotifyPropertyChangedFor(nameof(HasServiceOperationMessage))]
+    [NotifyPropertyChangedFor(nameof(ServiceOperationInfoBarVisibility))]
     [ObservableProperty]
     public partial string? ServiceOperationMessage { get; set; }
 
@@ -187,6 +189,14 @@ public sealed partial class AgentsPageViewModel : ObservableObject
     public bool HasServiceOperationMessage => !string.IsNullOrWhiteSpace(ServiceOperationMessage);
 
     public bool IsServiceActionRunning => !string.IsNullOrWhiteSpace(ActiveServiceComponentId);
+
+    public Visibility ErrorInfoBarVisibility => HasError
+        ? Visibility.Visible
+        : Visibility.Collapsed;
+
+    public Visibility ServiceOperationInfoBarVisibility => HasServiceOperationMessage
+        ? Visibility.Visible
+        : Visibility.Collapsed;
 
     public Visibility RefreshProgressVisibility => IsRefreshing
         ? Visibility.Visible
