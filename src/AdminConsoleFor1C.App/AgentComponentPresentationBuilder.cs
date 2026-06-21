@@ -70,6 +70,11 @@ public sealed partial class AgentComponentPresentationBuilder
             .Select(BuildProcessItem)
             .ToList();
 
+        var statusSummaryText = $"{service.StateDisplayName} · {AgentComponentTextFormatter.FormatLinkedProcessCount(processes.Count)}";
+        var primaryPortSummaryText = GetPrimaryServicePortSummaryText(service);
+        var versionSummaryText = GetVersionSummaryText(service.VersionText);
+        var startModeSummaryText = $"Запуск: {service.StartModeDisplayName}";
+
         return new AgentComponentItemViewModel
         {
             Id = GetServiceComponentId(service),
@@ -77,9 +82,11 @@ public sealed partial class AgentComponentPresentationBuilder
             SummaryDescription = $"Служба Windows: {GetServiceDisplayNameSummaryText(service)}",
             StatusText = service.StateDisplayName,
             ProcessSummaryText = AgentComponentTextFormatter.FormatLinkedProcessCount(processes.Count),
-            PrimaryPortSummaryText = GetPrimaryServicePortSummaryText(service),
-            VersionSummaryText = GetVersionSummaryText(service.VersionText),
-            StartModeSummaryText = $"Запуск: {service.StartModeDisplayName}",
+            StatusSummaryText = statusSummaryText,
+            PrimaryPortSummaryText = primaryPortSummaryText,
+            VersionSummaryText = versionSummaryText,
+            StartModeSummaryText = startModeSummaryText,
+            TechnicalSummaryText = $"{primaryPortSummaryText} · {versionSummaryText} · {startModeSummaryText}",
             SortOrder = service.Kind switch
             {
                 OneCServiceKind.ServerAgent => 0,
@@ -112,16 +119,24 @@ public sealed partial class AgentComponentPresentationBuilder
             .Select(BuildProcessItem)
             .ToList();
 
+        var statusText = "Без службы";
+        var statusSummaryText = $"{statusText} · {AgentComponentTextFormatter.FormatLinkedProcessCount(relatedProcesses.Count)}";
+        var primaryPortSummaryText = GetPrimaryProcessPortSummaryText(process);
+        var versionSummaryText = GetVersionSummaryText(process.VersionText);
+        const string startModeSummaryText = "Без службы Windows";
+
         return new AgentComponentItemViewModel
         {
             Id = GetProcessComponentId(process),
             Title = process.KindDisplayName,
             SummaryDescription = $"Процесс без службы Windows: {process.Name}",
-            StatusText = "Без службы",
+            StatusText = statusText,
             ProcessSummaryText = AgentComponentTextFormatter.FormatLinkedProcessCount(relatedProcesses.Count),
-            PrimaryPortSummaryText = GetPrimaryProcessPortSummaryText(process),
-            VersionSummaryText = GetVersionSummaryText(process.VersionText),
-            StartModeSummaryText = "Без службы Windows",
+            StatusSummaryText = statusSummaryText,
+            PrimaryPortSummaryText = primaryPortSummaryText,
+            VersionSummaryText = versionSummaryText,
+            StartModeSummaryText = startModeSummaryText,
+            TechnicalSummaryText = $"{primaryPortSummaryText} · {versionSummaryText} · {startModeSummaryText}",
             SortOrder = process.Kind switch
             {
                 OneCProcessKind.ServerAgent => 1,

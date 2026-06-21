@@ -14,11 +14,15 @@ public sealed record AgentComponentItemViewModel
 
     public required string ProcessSummaryText { get; init; }
 
+    public required string StatusSummaryText { get; init; }
+
     public required string PrimaryPortSummaryText { get; init; }
 
     public required string VersionSummaryText { get; init; }
 
     public required string StartModeSummaryText { get; init; }
+
+    public required string TechnicalSummaryText { get; init; }
 
     public required int SortOrder { get; init; }
 

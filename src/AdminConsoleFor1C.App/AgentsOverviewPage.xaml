@@ -17,7 +17,16 @@
             x:Key="SettingsSectionHeaderTextBlockStyle"
             BasedOn="{StaticResource BodyStrongTextBlockStyle}"
             TargetType="TextBlock">
-            <Setter Property="Margin" Value="1,4,0,6" />
+            <Setter Property="Margin" Value="1,0,0,6" />
+        </Style>
+
+        <Style
+            x:Key="ComponentSummaryMetricTextBlockStyle"
+            BasedOn="{StaticResource CaptionTextBlockStyle}"
+            TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+            <Setter Property="HorizontalAlignment" Value="Right" />
+            <Setter Property="TextWrapping" Value="NoWrap" />
         </Style>
     </Page.Resources>
 
@@ -90,34 +99,21 @@
                                 </controls:SettingsCard.HeaderIcon>
 
                                 <StackPanel
-                                    MinWidth="168"
+                                    MinWidth="360"
+                                    MaxWidth="560"
                                     HorizontalAlignment="Right"
                                     Spacing="2">
                                     <TextBlock
                                         HorizontalAlignment="Right"
                                         FontWeight="SemiBold"
-                                        Text="{Binding StatusText}"
+                                        Text="{Binding StatusSummaryText}"
+                                        TextTrimming="CharacterEllipsis"
                                         TextWrapping="NoWrap" />
+
                                     <TextBlock
-                                        HorizontalAlignment="Right"
-                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                        Text="{Binding ProcessSummaryText}"
-                                        TextWrapping="NoWrap" />
-                                    <TextBlock
-                                        HorizontalAlignment="Right"
-                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                        Text="{Binding PrimaryPortSummaryText}"
-                                        TextWrapping="NoWrap" />
-                                    <TextBlock
-                                        HorizontalAlignment="Right"
-                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                        Text="{Binding VersionSummaryText}"
-                                        TextWrapping="NoWrap" />
-                                    <TextBlock
-                                        HorizontalAlignment="Right"
-                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                        Text="{Binding StartModeSummaryText}"
-                                        TextWrapping="NoWrap" />
+                                        Style="{StaticResource ComponentSummaryMetricTextBlockStyle}"
+                                        Text="{Binding TechnicalSummaryText}"
+                                        TextTrimming="CharacterEllipsis" />
                                 </StackPanel>
                             </controls:SettingsCard>
                         </DataTemplate>

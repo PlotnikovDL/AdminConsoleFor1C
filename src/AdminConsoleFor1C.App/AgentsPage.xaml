@@ -27,7 +27,7 @@
         VerticalScrollMode="Enabled">
         <Grid
             x:Name="PageLayoutRoot"
-            Padding="48,44,48,48"
+            Padding="48,36,48,48"
             HorizontalAlignment="Stretch">
             <VisualStateManager.VisualStateGroups>
                 <VisualStateGroup>
@@ -36,7 +36,9 @@
                             <AdaptiveTrigger MinWindowWidth="1180" />
                         </VisualState.StateTriggers>
                         <VisualState.Setters>
-                            <Setter Target="PageLayoutRoot.Padding" Value="48,44,48,48" />
+                            <Setter Target="PageLayoutRoot.Padding" Value="48,36,48,48" />
+                            <Setter Target="PageContentHost.HorizontalAlignment" Value="Left" />
+                            <Setter Target="PageContentHost.MinWidth" Value="1000" />
                         </VisualState.Setters>
                     </VisualState>
 
@@ -45,13 +47,17 @@
                             <AdaptiveTrigger MinWindowWidth="720" />
                         </VisualState.StateTriggers>
                         <VisualState.Setters>
-                            <Setter Target="PageLayoutRoot.Padding" Value="32,36,32,40" />
+                            <Setter Target="PageLayoutRoot.Padding" Value="32,32,32,40" />
+                            <Setter Target="PageContentHost.HorizontalAlignment" Value="Stretch" />
+                            <Setter Target="PageContentHost.MinWidth" Value="0" />
                         </VisualState.Setters>
                     </VisualState>
 
                     <VisualState x:Name="NarrowLayout">
                         <VisualState.Setters>
-                            <Setter Target="PageLayoutRoot.Padding" Value="20,28,20,32" />
+                            <Setter Target="PageLayoutRoot.Padding" Value="20,24,20,32" />
+                            <Setter Target="PageContentHost.HorizontalAlignment" Value="Stretch" />
+                            <Setter Target="PageContentHost.MinWidth" Value="0" />
                         </VisualState.Setters>
                     </VisualState>
                 </VisualStateGroup>
@@ -59,12 +65,12 @@
 
             <Grid
                 x:Name="PageContentHost"
-                MaxWidth="1000"
+                MaxWidth="1120"
                 HorizontalAlignment="Stretch">
                     <Grid
                         x:Name="PageContent"
                         HorizontalAlignment="Stretch"
-                        RowSpacing="32">
+                        RowSpacing="16">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
