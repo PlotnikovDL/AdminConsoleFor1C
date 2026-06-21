@@ -16,6 +16,8 @@ public sealed record AgentComponentItemViewModel
 
     public required string StatusSummaryText { get; init; }
 
+    public required AgentStatusKind StatusKind { get; init; }
+
     public required string PrimaryPortSummaryText { get; init; }
 
     public required string VersionSummaryText { get; init; }

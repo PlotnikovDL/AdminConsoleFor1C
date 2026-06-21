@@ -11,38 +11,12 @@ public sealed partial class AgentComponentPresentationBuilder
         IReadOnlyList<OneCProcessInfo> processes)
     {
         var components = new List<AgentComponentItemViewModel>();
-        var assignedProcessIds = new HashSet<uint>();
 
         foreach (var service in services)
         {
             var relatedProcesses = GetRelatedProcesses(service, processes).ToList();
-            foreach (var process in relatedProcesses)
-            {
-                assignedProcessIds.Add(process.ProcessId);
-            }
 
             components.Add(BuildComponent(service, relatedProcesses));
-        }
-
-        foreach (var process in processes.Where(static process => process.Kind == OneCProcessKind.ServerAgent))
-        {
-            if (assignedProcessIds.Contains(process.ProcessId))
-            {
-                continue;
-            }
-
-            var relatedProcesses = processes
-                .Where(candidate => candidate.ProcessId == process.ProcessId || candidate.ParentProcessId == process.ProcessId)
-                .OrderBy(static candidate => candidate.Kind)
-                .ThenBy(static candidate => candidate.ProcessId)
-                .ToList();
-
-            foreach (var relatedProcess in relatedProcesses)
-            {
-                assignedProcessIds.Add(relatedProcess.ProcessId);
-            }
-
-            components.Add(BuildComponent(process, relatedProcesses));
         }
 
         return components
@@ -62,6 +36,33 @@ public sealed partial class AgentComponentPresentationBuilder
             .ToList();
     }
 
+    public IReadOnlyList<AgentServiceCandidateItemViewModel> BuildServiceCandidateItems(
+        IReadOnlyList<OneCServerAgentServiceCandidate> candidates)
+    {
+        return candidates
+            .Select(BuildServiceCandidateItem)
+            .ToList();
+    }
+
+    private static AgentServiceCandidateItemViewModel BuildServiceCandidateItem(
+        OneCServerAgentServiceCandidate candidate)
+    {
+        var versionText = candidate.VersionText == "—"
+            ? "Версия: —"
+            : $"Версия: {candidate.VersionText}";
+
+        return new AgentServiceCandidateItemViewModel
+        {
+            Title = "Сервер 1С",
+            SummaryDescription = "ragent.exe",
+            ExecutablePathText = candidate.ExecutablePathText,
+            StatusSummaryText = "Не зарегистрирован",
+            StatusKind = AgentStatusKind.Information,
+            TechnicalSummaryText = versionText,
+            Icon = Icon.AppFolder
+        };
+    }
+
     private static AgentComponentItemViewModel BuildComponent(
         OneCServiceInfo service,
         IReadOnlyList<OneCProcessInfo> processes)
@@ -79,10 +80,11 @@ public sealed partial class AgentComponentPresentationBuilder
         {
             Id = GetServiceComponentId(service),
             Title = GetServiceTitle(service),
-            SummaryDescription = $"Служба Windows: {GetServiceDisplayNameSummaryText(service)}",
+            SummaryDescription = GetServiceDisplayNameSummaryText(service),
             StatusText = service.StateDisplayName,
             ProcessSummaryText = AgentComponentTextFormatter.FormatLinkedProcessCount(processes.Count),
             StatusSummaryText = statusSummaryText,
+            StatusKind = GetServiceStatusKind(service),
             PrimaryPortSummaryText = primaryPortSummaryText,
             VersionSummaryText = versionSummaryText,
             StartModeSummaryText = startModeSummaryText,
@@ -96,10 +98,10 @@ public sealed partial class AgentComponentPresentationBuilder
             },
             Icon = service.Kind switch
             {
-                OneCServiceKind.ServerAgent => Icon.PuzzlePiece,
+                OneCServiceKind.ServerAgent => Icon.ServiceBell,
                 OneCServiceKind.AdministrationServer => Icon.ServerPlay,
                 OneCServiceKind.DebugServer => Icon.DeveloperBoardLightning,
-                _ => Icon.PuzzlePiece
+                _ => Icon.ServiceBell
             },
             Details = BuildServiceDetails(service, processes),
             Processes = processItems,
@@ -111,57 +113,13 @@ public sealed partial class AgentComponentPresentationBuilder
         };
     }
 
-    private static AgentComponentItemViewModel BuildComponent(
-        OneCProcessInfo process,
-        IReadOnlyList<OneCProcessInfo> relatedProcesses)
+    private static AgentStatusKind GetServiceStatusKind(OneCServiceInfo service)
     {
-        var processItems = relatedProcesses
-            .Select(BuildProcessItem)
-            .ToList();
-
-        var statusText = "Без службы";
-        var statusSummaryText = $"{statusText} · {AgentComponentTextFormatter.FormatLinkedProcessCount(relatedProcesses.Count)}";
-        var primaryPortSummaryText = GetPrimaryProcessPortSummaryText(process);
-        var versionSummaryText = GetVersionSummaryText(process.VersionText);
-        const string startModeSummaryText = "Без службы Windows";
-
-        return new AgentComponentItemViewModel
+        return service.State switch
         {
-            Id = GetProcessComponentId(process),
-            Title = process.KindDisplayName,
-            SummaryDescription = $"Процесс без службы Windows: {process.Name}",
-            StatusText = statusText,
-            ProcessSummaryText = AgentComponentTextFormatter.FormatLinkedProcessCount(relatedProcesses.Count),
-            StatusSummaryText = statusSummaryText,
-            PrimaryPortSummaryText = primaryPortSummaryText,
-            VersionSummaryText = versionSummaryText,
-            StartModeSummaryText = startModeSummaryText,
-            TechnicalSummaryText = $"{primaryPortSummaryText} · {versionSummaryText} · {startModeSummaryText}",
-            SortOrder = process.Kind switch
-            {
-                OneCProcessKind.ServerAgent => 1,
-                OneCProcessKind.AdministrationServer => 11,
-                OneCProcessKind.DebugServer => 21,
-                OneCProcessKind.ClusterManager => 30,
-                OneCProcessKind.WorkerProcess => 40,
-                _ => 100
-            },
-            Icon = process.Kind switch
-            {
-                OneCProcessKind.ServerAgent => Icon.ServerPlay,
-                OneCProcessKind.AdministrationServer => Icon.ServerPlay,
-                OneCProcessKind.DebugServer => Icon.DeveloperBoardLightning,
-                OneCProcessKind.ClusterManager => Icon.ServerMultiple,
-                OneCProcessKind.WorkerProcess => Icon.Box,
-                _ => Icon.AppGeneric
-            },
-            Details = BuildProcessComponentDetails(process, relatedProcesses),
-            Processes = processItems,
-            ServiceName = null,
-            ServiceDisplayName = "—",
-            CanStartService = false,
-            CanStopService = false,
-            CanRestartService = false
+            "Running" => AgentStatusKind.Success,
+            "Start Pending" or "Continue Pending" or "Pause Pending" or "Paused" or "Stop Pending" => AgentStatusKind.Attention,
+            _ => AgentStatusKind.Neutral
         };
     }
 
@@ -209,21 +167,6 @@ public sealed partial class AgentComponentPresentationBuilder
             OneCServiceKind.AdministrationServer => service.AdministrationServerPort is null ? "RAS: —" : $"RAS: {service.AdministrationServerPort}",
             OneCServiceKind.DebugServer => service.DebugServerPort is null ? "Отладка HTTP: —" : $"Отладка HTTP: {service.DebugServerPort}",
             _ => service.PortsText == "—" ? "Порты: —" : service.PortsText.Replace(Environment.NewLine, ", ")
-        };
-    }
-
-    private static string GetPrimaryProcessPortSummaryText(OneCProcessInfo process)
-    {
-        return process.Kind switch
-        {
-            OneCProcessKind.ServerAgent => process.AgentPort is null ? "Агент: —" : $"Агент: {process.AgentPort}",
-            OneCProcessKind.AdministrationServer => process.AdministrationServerPort is null ? "RAS: —" : $"RAS: {process.AdministrationServerPort}",
-            OneCProcessKind.DebugServer => process.DebugServerPort is null ? "Отладка HTTP: —" : $"Отладка HTTP: {process.DebugServerPort}",
-            OneCProcessKind.ClusterManager => process.ClusterPort is null ? "Кластер: —" : $"Кластер: {process.ClusterPort}",
-            OneCProcessKind.WorkerProcess => process.WorkerPort is not null
-                ? $"Рабочий: {process.WorkerPort}"
-                : string.IsNullOrWhiteSpace(process.PortRange) ? "Рабочие процессы: —" : $"Рабочие процессы: {process.PortRange}",
-            _ => process.PortsText == "—" ? "Порты: —" : process.PortsText.Replace(Environment.NewLine, ", ")
         };
     }
 
@@ -283,11 +226,6 @@ public sealed partial class AgentComponentPresentationBuilder
         return $"service:{service.Kind}:{service.DisplayNameText}";
     }
 
-    private static string GetProcessComponentId(OneCProcessInfo process)
-    {
-        return $"process:{process.ProcessId}";
-    }
-
     private static IReadOnlyList<AgentComponentDetailItemViewModel> BuildServiceDetails(
         OneCServiceInfo service,
         IReadOnlyList<OneCProcessInfo> processes)
@@ -315,35 +253,6 @@ public sealed partial class AgentComponentPresentationBuilder
         AddComponentDetail(details, "Каталог данных", "Рабочий каталог сервера", service.DataDirectoryText, Icon.Folder);
         AddComponentDetail(details, "Исполняемый файл", "Путь к файлу службы", service.ExecutablePathText, Icon.AppFolder);
         AddComponentDetail(details, "Аргументы", "Параметры запуска", service.ArgumentsText, Icon.Code);
-
-        return details;
-    }
-
-    private static IReadOnlyList<AgentComponentDetailItemViewModel> BuildProcessComponentDetails(
-        OneCProcessInfo process,
-        IReadOnlyList<OneCProcessInfo> relatedProcesses)
-    {
-        var details = new List<AgentComponentDetailItemViewModel>();
-
-        AddComponentDetail(details, "Процесс", "Имя исполняемого файла", process.Name, Icon.AppGeneric, includeEmpty: true);
-        AddComponentDetail(details, "PID", "Идентификатор процесса", process.ProcessIdText, Icon.NumberSymbol, includeEmpty: true);
-        AddComponentDetail(details, "Родитель", "PID родительского процесса", process.ParentProcessIdText, Icon.ArrowFlowUpRightRectangleMultiple);
-        AddComponentDetail(details, "Версия", "Версия платформы 1С", process.VersionText, Icon.AppGeneric);
-        AddComponentDetail(details, "Владелец", "Пользователь процесса", process.OwnerText, Icon.Person);
-        AddProcessPortDetails(details, process);
-
-        if (relatedProcesses.Count > 1)
-        {
-            AddComponentDetail(
-                details,
-                "Связанные процессы",
-                "Подробности доступны в разделе Процессы",
-                AgentComponentTextFormatter.FormatLinkedProcessCount(relatedProcesses.Count),
-                Icon.AppsListDetail);
-        }
-
-        AddComponentDetail(details, "Исполняемый файл", "Путь к файлу процесса", process.ExecutablePathText, Icon.AppFolder);
-        AddComponentDetail(details, "Аргументы", "Параметры запуска", process.ArgumentsText, Icon.Code);
 
         return details;
     }
@@ -377,18 +286,6 @@ public sealed partial class AgentComponentPresentationBuilder
         AddComponentDetail(details, "RAS", "Порт сервера администрирования", service.AdministrationServerPortText, Icon.ServerPlay);
         AddComponentDetail(details, "Отладка HTTP", "Порт сервера отладки", service.DebugServerPortText, Icon.DeveloperBoardLightning);
         AddComponentDetail(details, "Рабочие процессы", "Диапазон портов рабочих процессов", service.PortRangeText, Icon.Box);
-    }
-
-    private static void AddProcessPortDetails(
-        List<AgentComponentDetailItemViewModel> details,
-        OneCProcessInfo process)
-    {
-        AddComponentDetail(details, "Агент", "Порт агента кластера", process.AgentPort?.ToString() ?? "—", Icon.SerialPort);
-        AddComponentDetail(details, "Кластер", "Порт главного менеджера кластера", process.ClusterPort?.ToString() ?? "—", Icon.ServerMultiple);
-        AddComponentDetail(details, "Рабочий", "Порт рабочего процесса", process.WorkerPort?.ToString() ?? "—", Icon.Box);
-        AddComponentDetail(details, "RAS", "Порт сервера администрирования", process.AdministrationServerPort?.ToString() ?? "—", Icon.ServerPlay);
-        AddComponentDetail(details, "Отладка HTTP", "Порт сервера отладки", process.DebugServerPort?.ToString() ?? "—", Icon.DeveloperBoardLightning);
-        AddComponentDetail(details, "Рабочие процессы", "Диапазон портов рабочих процессов", ToDisplayText(process.PortRange), Icon.Box);
     }
 
     private static void AddProcessPortDetails(

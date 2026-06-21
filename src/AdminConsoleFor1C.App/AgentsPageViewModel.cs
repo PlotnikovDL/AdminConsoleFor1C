@@ -15,17 +15,20 @@ public sealed partial class AgentsPageViewModel : ObservableObject
 
     private readonly IOneCServiceInventory serviceInventory;
     private readonly IOneCProcessInventory processInventory;
+    private readonly IOneCServiceCandidateInventory serviceCandidateInventory;
     private readonly IOneCServiceController serviceController;
     private readonly AgentComponentPresentationBuilder componentBuilder;
 
     public AgentsPageViewModel(
         IOneCServiceInventory serviceInventory,
         IOneCProcessInventory processInventory,
+        IOneCServiceCandidateInventory serviceCandidateInventory,
         IOneCServiceController serviceController,
         AgentComponentPresentationBuilder componentBuilder)
     {
         this.serviceInventory = serviceInventory;
         this.processInventory = processInventory;
+        this.serviceCandidateInventory = serviceCandidateInventory;
         this.serviceController = serviceController;
         this.componentBuilder = componentBuilder;
     }
@@ -34,6 +37,7 @@ public sealed partial class AgentsPageViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(OverviewStatusText))]
     [NotifyPropertyChangedFor(nameof(HeaderSubtitle))]
     [NotifyPropertyChangedFor(nameof(RefreshProgressVisibility))]
+    [NotifyPropertyChangedFor(nameof(ServiceCandidatesListVisibility))]
     [NotifyPropertyChangedFor(nameof(EmptyStateVisibility))]
     [ObservableProperty]
     public partial bool IsRefreshing { get; set; }
@@ -41,6 +45,7 @@ public sealed partial class AgentsPageViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(StatusText))]
     [NotifyPropertyChangedFor(nameof(OverviewStatusText))]
     [NotifyPropertyChangedFor(nameof(HeaderSubtitle))]
+    [NotifyPropertyChangedFor(nameof(ServiceCandidatesListVisibility))]
     [NotifyPropertyChangedFor(nameof(EmptyStateVisibility))]
     [ObservableProperty]
     public partial bool HasLoaded { get; set; }
@@ -63,6 +68,14 @@ public sealed partial class AgentsPageViewModel : ObservableObject
     [ObservableProperty]
     public partial int ProcessCount { get; set; }
 
+    [NotifyPropertyChangedFor(nameof(StatusText))]
+    [NotifyPropertyChangedFor(nameof(OverviewStatusText))]
+    [NotifyPropertyChangedFor(nameof(HeaderSubtitle))]
+    [NotifyPropertyChangedFor(nameof(ServiceCandidatesListVisibility))]
+    [NotifyPropertyChangedFor(nameof(EmptyStateVisibility))]
+    [ObservableProperty]
+    public partial int ServiceCandidateCount { get; set; }
+
     [NotifyPropertyChangedFor(nameof(HeaderSubtitle))]
     [ObservableProperty]
     public partial DateTimeOffset? LastRefreshedAt { get; set; }
@@ -72,6 +85,7 @@ public sealed partial class AgentsPageViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(StatusText))]
     [NotifyPropertyChangedFor(nameof(OverviewStatusText))]
     [NotifyPropertyChangedFor(nameof(HeaderSubtitle))]
+    [NotifyPropertyChangedFor(nameof(ServiceCandidatesListVisibility))]
     [NotifyPropertyChangedFor(nameof(EmptyStateVisibility))]
     [ObservableProperty]
     public partial string? ErrorText { get; set; }
@@ -93,6 +107,8 @@ public sealed partial class AgentsPageViewModel : ObservableObject
 
     public ObservableCollection<AgentComponentItemViewModel> Components { get; } = [];
 
+    public ObservableCollection<AgentServiceCandidateItemViewModel> ServiceCandidates { get; } = [];
+
     [NotifyPropertyChangedFor(nameof(PageTitle))]
     [NotifyPropertyChangedFor(nameof(ComponentPageTitle))]
     [NotifyPropertyChangedFor(nameof(ComponentStatusText))]
@@ -109,13 +125,13 @@ public sealed partial class AgentsPageViewModel : ObservableObject
     private AgentsPageRoute currentRoute = AgentsPageRoute.Overview;
     private bool isChangingRoute;
 
-    public string PageTitle => SelectedComponent?.Title ?? "Агенты сервера 1С";
+    public string PageTitle => SelectedComponent?.Title ?? "Службы";
 
-    public string OverviewPageTitle => "Агенты сервера 1С";
+    public string OverviewPageTitle => "Службы";
 
     public string OverviewStatusText => GetOverviewStatusText();
 
-    public string ComponentPageTitle => SelectedComponent?.Title ?? "Агент сервера 1С";
+    public string ComponentPageTitle => SelectedComponent?.Title ?? "Служба";
 
     public string ComponentStatusText => SelectedComponent is null
         ? string.Empty
@@ -148,7 +164,7 @@ public sealed partial class AgentsPageViewModel : ObservableObject
         : Visibility.Collapsed;
 
     public string EmptyStateDescription =>
-        "На этом компьютере не обнаружены службы сервера 1С. Проверьте установку сервера 1С или обновите список.";
+        "На этом компьютере не обнаружены службы Windows и установки сервера 1С без службы. Проверьте установку сервера или обновите список.";
 
     public string StatusText
     {
@@ -156,17 +172,17 @@ public sealed partial class AgentsPageViewModel : ObservableObject
         {
             if (IsRefreshing)
             {
-                return "Обновление списка агентов";
+                return HasLoaded ? BuildOverviewStatusText() : "Обновление списка служб";
             }
 
             if (HasError)
             {
-                return "Не удалось обновить сведения об агентах сервера";
+                return "Не удалось обновить сведения о службах";
             }
 
             if (!HasLoaded)
             {
-                return "Сведения об агентах еще не загружены";
+                return "Сведения о службах еще не загружены";
             }
 
             if (SelectedComponent is { } component)
@@ -174,13 +190,13 @@ public sealed partial class AgentsPageViewModel : ObservableObject
                 return $"{component.StatusText}, {component.ProcessSummaryText}";
             }
 
-            return Components.Count == 0
-                ? "Нет данных об агентах сервера"
+            return Components.Count == 0 && ServiceCandidateCount == 0
+                ? "Нет данных о службах"
                 : BuildOverviewStatusText();
         }
     }
 
-    public string ComponentsStatusText => IsRefreshing ? "Обновление" : "Нет найденных служб";
+    public string ComponentsStatusText => IsRefreshing ? "Обновление" : "Службы Windows не найдены";
 
     public bool HasError => !string.IsNullOrWhiteSpace(ErrorText);
 
@@ -204,7 +220,15 @@ public sealed partial class AgentsPageViewModel : ObservableObject
         ? Visibility.Visible
         : Visibility.Collapsed;
 
-    public Visibility EmptyStateVisibility => HasLoaded && !IsRefreshing && !HasError && Components.Count == 0
+    public Visibility ServiceCandidatesListVisibility => HasLoaded && !HasError && ServiceCandidates.Count > 0
+        ? Visibility.Visible
+        : Visibility.Collapsed;
+
+    public Visibility EmptyStateVisibility => HasLoaded
+        && !IsRefreshing
+        && !HasError
+        && Components.Count == 0
+        && ServiceCandidates.Count == 0
         ? Visibility.Visible
         : Visibility.Collapsed;
 
@@ -241,7 +265,9 @@ public sealed partial class AgentsPageViewModel : ObservableObject
 
             var services = await servicesTask;
             var processes = await processesTask;
+            var candidates = await serviceCandidateInventory.GetServerAgentCandidatesAsync(services);
             var components = componentBuilder.BuildComponents(services, processes);
+            var candidateItems = componentBuilder.BuildServiceCandidateItems(candidates);
 
             Components.Clear();
             foreach (var component in components)
@@ -249,10 +275,17 @@ public sealed partial class AgentsPageViewModel : ObservableObject
                 Components.Add(component);
             }
 
+            ServiceCandidates.Clear();
+            foreach (var candidate in candidateItems)
+            {
+                ServiceCandidates.Add(candidate);
+            }
+
             ServiceCount = services.Count;
             RunningServiceCount = services.Count(static service =>
                 string.Equals(service.State, "Running", StringComparison.OrdinalIgnoreCase));
-            ProcessCount = processes.Count;
+            ProcessCount = components.Sum(static component => component.Processes.Count);
+            ServiceCandidateCount = candidates.Count;
             LastRefreshedAt = DateTimeOffset.Now;
             HasLoaded = true;
             RestoreSelectedComponent(selectedComponentId);
@@ -536,27 +569,40 @@ public sealed partial class AgentsPageViewModel : ObservableObject
     {
         if (IsRefreshing)
         {
-            return "Обновление списка агентов";
+            return HasLoaded ? BuildOverviewStatusText() : "Обновление списка служб";
         }
 
         if (HasError)
         {
-            return "Не удалось обновить сведения об агентах сервера";
+            return "Не удалось обновить сведения о службах";
         }
 
         if (!HasLoaded)
         {
-            return "Сведения об агентах еще не загружены";
+            return "Сведения о службах еще не загружены";
         }
 
-        return Components.Count == 0
-            ? "Нет данных об агентах сервера"
+        return Components.Count == 0 && ServiceCandidateCount == 0
+            ? "Нет данных о службах"
             : BuildOverviewStatusText();
     }
 
     private string BuildOverviewStatusText()
     {
-        var statusText = $"{AgentComponentTextFormatter.FormatRunningServiceSummary(ServiceCount, RunningServiceCount)}, {AgentComponentTextFormatter.FormatLinkedProcessCount(ProcessCount)}";
+        var statusParts = new List<string>();
+        if (ServiceCount > 0)
+        {
+            statusParts.Add(AgentComponentTextFormatter.FormatRunningServiceSummary(ServiceCount, RunningServiceCount));
+            statusParts.Add(AgentComponentTextFormatter.FormatLinkedProcessCount(ProcessCount));
+        }
+        if (ServiceCount == 0 && ServiceCandidateCount > 0)
+        {
+            statusParts.Add(AgentComponentTextFormatter.FormatServerAgentCandidateCount(ServiceCandidateCount));
+        }
+
+        var statusText = statusParts.Count == 0
+            ? "Нет данных о службах"
+            : string.Join(", ", statusParts);
 
         return LastRefreshedAt is null
             ? statusText
@@ -575,6 +621,7 @@ public sealed partial class AgentsPageViewModel : ObservableObject
         OnPropertyChanged(nameof(StatusText));
         OnPropertyChanged(nameof(OverviewStatusText));
         OnPropertyChanged(nameof(ComponentsListVisibility));
+        OnPropertyChanged(nameof(ServiceCandidatesListVisibility));
         OnPropertyChanged(nameof(EmptyStateVisibility));
         OnPropertyChanged(nameof(ComponentsStatusText));
         NotifyHeaderStateChanged();

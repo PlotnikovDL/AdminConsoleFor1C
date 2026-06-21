@@ -11,23 +11,7 @@
     mc:Ignorable="d">
 
     <Page.Resources>
-        <x:Double x:Key="SettingsCardSpacing">4</x:Double>
-
-        <Style
-            x:Key="SettingsSectionHeaderTextBlockStyle"
-            BasedOn="{StaticResource BodyStrongTextBlockStyle}"
-            TargetType="TextBlock">
-            <Setter Property="Margin" Value="1,0,0,6" />
-        </Style>
-
-        <Style
-            x:Key="ComponentSummaryMetricTextBlockStyle"
-            BasedOn="{StaticResource CaptionTextBlockStyle}"
-            TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
-            <Setter Property="HorizontalAlignment" Value="Right" />
-            <Setter Property="TextWrapping" Value="NoWrap" />
-        </Style>
+        <local:AgentStatusKindToBrushConverter x:Key="AgentStatusKindToBrushConverter" />
     </Page.Resources>
 
     <Grid
@@ -36,12 +20,12 @@
         <StackPanel
             HorizontalAlignment="Stretch"
             VerticalAlignment="Top"
-            Spacing="{StaticResource SettingsCardSpacing}">
+            Spacing="{StaticResource AdminConsoleSettingsCardSpacing}">
                 <InfoBar
                     IsOpen="{Binding HasError}"
                     Message="{Binding ErrorText}"
                     Severity="Error"
-                    Title="Не удалось обновить службы агента"
+                    Title="Не удалось обновить службы"
                     Visibility="{Binding ErrorInfoBarVisibility}" />
 
                 <InfoBar
@@ -53,17 +37,17 @@
                     Visibility="{Binding ServiceOperationInfoBarVisibility}" />
 
                 <TextBlock
-                    Style="{StaticResource SettingsSectionHeaderTextBlockStyle}"
-                    Text="Службы агента" />
+                    Style="{StaticResource AdminConsoleSettingsSectionHeaderTextBlockStyle}"
+                    Text="Службы Windows" />
 
                 <controls:SettingsCard
                     Description="{Binding EmptyStateDescription}"
                     HorizontalAlignment="Stretch"
-                    Header="Службы агента 1С не найдены"
+                    Header="Службы Windows не найдены"
                     Visibility="{Binding EmptyStateVisibility}">
                     <controls:SettingsCard.HeaderIcon>
                         <ic:FluentIcon
-                            Icon="PuzzlePiece"
+                            Icon="ServiceBell"
                             IconSize="Size20"
                             IconVariant="Regular" />
                     </controls:SettingsCard.HeaderIcon>
@@ -74,10 +58,11 @@
                 </controls:SettingsCard>
 
                 <ItemsRepeater
+                    HorizontalAlignment="Stretch"
                     ItemsSource="{Binding Components}"
                     Visibility="{Binding ComponentsListVisibility}">
                     <ItemsRepeater.Layout>
-                        <StackLayout Spacing="{StaticResource SettingsCardSpacing}" />
+                        <StackLayout Spacing="{StaticResource AdminConsoleSettingsCardSpacing}" />
                     </ItemsRepeater.Layout>
 
                     <ItemsRepeater.ItemTemplate>
@@ -104,14 +89,64 @@
                                     HorizontalAlignment="Right"
                                     Spacing="2">
                                     <TextBlock
-                                        HorizontalAlignment="Right"
-                                        FontWeight="SemiBold"
+                                        Foreground="{Binding StatusKind, Converter={StaticResource AgentStatusKindToBrushConverter}}"
+                                        Style="{StaticResource AdminConsoleSummaryStatusTextBlockStyle}"
                                         Text="{Binding StatusSummaryText}"
-                                        TextTrimming="CharacterEllipsis"
-                                        TextWrapping="NoWrap" />
+                                        TextTrimming="CharacterEllipsis" />
 
                                     <TextBlock
-                                        Style="{StaticResource ComponentSummaryMetricTextBlockStyle}"
+                                        Style="{StaticResource AdminConsoleSummaryMetricTextBlockStyle}"
+                                        Text="{Binding TechnicalSummaryText}"
+                                        TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </controls:SettingsCard>
+                        </DataTemplate>
+                    </ItemsRepeater.ItemTemplate>
+                </ItemsRepeater>
+
+                <TextBlock
+                    Margin="1,12,0,6"
+                    Style="{StaticResource AdminConsoleSettingsSectionHeaderTextBlockStyle}"
+                    Text="Найдено без службы"
+                    Visibility="{Binding ServiceCandidatesListVisibility}" />
+
+                <ItemsRepeater
+                    HorizontalAlignment="Stretch"
+                    ItemsSource="{Binding ServiceCandidates}"
+                    Visibility="{Binding ServiceCandidatesListVisibility}">
+                    <ItemsRepeater.Layout>
+                        <StackLayout Spacing="{StaticResource AdminConsoleSettingsCardSpacing}" />
+                    </ItemsRepeater.Layout>
+
+                    <ItemsRepeater.ItemTemplate>
+                        <DataTemplate x:DataType="local:AgentServiceCandidateItemViewModel">
+                            <controls:SettingsCard
+                                ContentAlignment="Right"
+                                Description="{Binding SummaryDescription}"
+                                Header="{Binding Title}"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Right"
+                                ToolTipService.ToolTip="{Binding ExecutablePathText}">
+                                <controls:SettingsCard.HeaderIcon>
+                                    <ic:FluentIcon
+                                        Icon="{Binding Icon}"
+                                        IconSize="Size20"
+                                        IconVariant="Regular" />
+                                </controls:SettingsCard.HeaderIcon>
+
+                                <StackPanel
+                                    MinWidth="300"
+                                    MaxWidth="520"
+                                    HorizontalAlignment="Right"
+                                    Spacing="2">
+                                    <TextBlock
+                                        Foreground="{Binding StatusKind, Converter={StaticResource AgentStatusKindToBrushConverter}}"
+                                        Style="{StaticResource AdminConsoleSummaryStatusTextBlockStyle}"
+                                        Text="{Binding StatusSummaryText}"
+                                        TextTrimming="CharacterEllipsis" />
+
+                                    <TextBlock
+                                        Style="{StaticResource AdminConsoleSummaryMetricTextBlockStyle}"
                                         Text="{Binding TechnicalSummaryText}"
                                         TextTrimming="CharacterEllipsis" />
                                 </StackPanel>

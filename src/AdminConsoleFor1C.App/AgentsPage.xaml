@@ -37,7 +37,7 @@
                         </VisualState.StateTriggers>
                         <VisualState.Setters>
                             <Setter Target="PageLayoutRoot.Padding" Value="48,36,48,48" />
-                            <Setter Target="PageContentHost.HorizontalAlignment" Value="Left" />
+                            <Setter Target="PageContentHost.HorizontalAlignment" Value="Center" />
                             <Setter Target="PageContentHost.MinWidth" Value="1000" />
                         </VisualState.Setters>
                     </VisualState>
@@ -116,7 +116,10 @@
                                 </Button>
                             </Grid>
 
-                            <Grid Grid.Row="2" ColumnSpacing="16">
+                            <Grid
+                                Grid.Row="2"
+                                MinHeight="24"
+                                ColumnSpacing="16">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
@@ -128,13 +131,17 @@
                                     Text="{Binding HeaderSubtitle}"
                                     TextWrapping="WrapWholeWords" />
 
-                                <ProgressRing
+                                <Grid
                                     Grid.Column="1"
                                     Width="20"
                                     Height="20"
-                                    VerticalAlignment="Center"
-                                    IsActive="{Binding IsRefreshing}"
-                                    Visibility="{Binding RefreshProgressVisibility}" />
+                                    VerticalAlignment="Center">
+                                    <ProgressRing
+                                        Width="20"
+                                        Height="20"
+                                        IsActive="{Binding IsRefreshing}"
+                                        Visibility="{Binding RefreshProgressVisibility}" />
+                                </Grid>
                             </Grid>
                         </Grid>
 

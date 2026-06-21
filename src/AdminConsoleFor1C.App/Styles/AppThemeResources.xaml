@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <x:Double x:Key="AdminConsoleSettingsCardSpacing">4</x:Double>
+
+    <Style
+        x:Key="AdminConsoleSettingsSectionHeaderTextBlockStyle"
+        BasedOn="{StaticResource BodyStrongTextBlockStyle}"
+        TargetType="TextBlock">
+        <Setter Property="Margin" Value="1,0,0,6" />
+    </Style>
+
+    <Style
+        x:Key="AdminConsoleSummaryStatusTextBlockStyle"
+        TargetType="TextBlock">
+        <Setter Property="HorizontalAlignment" Value="Right" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        <Setter Property="TextWrapping" Value="NoWrap" />
+    </Style>
+
+    <Style
+        x:Key="AdminConsoleSummaryMetricTextBlockStyle"
+        BasedOn="{StaticResource CaptionTextBlockStyle}"
+        TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+        <Setter Property="HorizontalAlignment" Value="Right" />
+        <Setter Property="TextWrapping" Value="NoWrap" />
+    </Style>
+</ResourceDictionary>

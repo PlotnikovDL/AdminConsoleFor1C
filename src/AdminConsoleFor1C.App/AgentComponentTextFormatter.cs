@@ -16,14 +16,19 @@ internal static class AgentComponentTextFormatter
     {
         return count == 1
             ? "Найдена 1 служба"
-            : $"Найдено {FormatServiceCount(count)}";
+            : $"Найдено {FormatAgentServiceCount(count)}";
+    }
+
+    public static string FormatServerAgentCandidateCount(int count)
+    {
+        return $"{count} {FormatCountWord(count, "установка сервера 1С", "установки сервера 1С", "установок сервера 1С")} без службы";
     }
 
     public static string FormatRunningServiceSummary(int serviceCount, int runningServiceCount)
     {
         if (serviceCount == 0)
         {
-            return "Нет данных о службах агента";
+            return "Нет данных о службах";
         }
 
         if (serviceCount == 1)
@@ -33,10 +38,10 @@ internal static class AgentComponentTextFormatter
                 : "1 служба не работает";
         }
 
-        return $"{FormatServiceCount(serviceCount)}, работает {runningServiceCount}";
+        return $"{FormatAgentServiceCount(serviceCount)}, работает {runningServiceCount}";
     }
 
-    private static string FormatServiceCount(int count)
+    private static string FormatAgentServiceCount(int count)
     {
         return FormatCount(count, "служба", "службы", "служб");
     }

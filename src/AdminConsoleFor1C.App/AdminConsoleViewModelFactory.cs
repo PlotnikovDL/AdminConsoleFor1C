@@ -9,6 +9,7 @@ internal static class AdminConsoleViewModelFactory
         return new AgentsPageViewModel(
             new WindowsOneCServiceInventory(),
             new WindowsOneCProcessInventory(),
+            new WindowsOneCServiceCandidateInventory(),
             new ElevatedWorkerOneCServiceController(
                 ElevatedWorkerPaths.ResolveWorkerPath(),
                 ElevatedWorkerPaths.ResolveResultDirectory()),

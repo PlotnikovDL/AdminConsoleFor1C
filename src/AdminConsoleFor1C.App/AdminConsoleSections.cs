@@ -31,9 +31,9 @@ public static class AdminConsoleSections
         {
             AdminConsoleSection.Agents => new AdminConsoleSectionInfo(
                 section,
-                "Агенты сервера 1С",
-                "Службы Windows агентов сервера 1С на этом компьютере",
-                Icon.PuzzlePiece),
+                "Службы",
+                "Службы Windows и установки сервера 1С на этом компьютере",
+                Icon.ServiceBell),
             AdminConsoleSection.Processes => new AdminConsoleSectionInfo(
                 section,
                 "Процессы",

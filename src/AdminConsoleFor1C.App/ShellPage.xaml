@@ -19,11 +19,11 @@
         <NavigationView.MenuItems>
             <NavigationViewItem
                 x:Name="AgentsNavigationItem"
-                Content="Агенты сервера 1С"
+                Content="Службы"
                 Tag="agents">
                 <NavigationViewItem.Icon>
                     <ic:FluentIcon
-                        Icon="PuzzlePiece"
+                        Icon="ServiceBell"
                         IconSize="Size20"
                         IconVariant="Regular" />
                 </NavigationViewItem.Icon>
