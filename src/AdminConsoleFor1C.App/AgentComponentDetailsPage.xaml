@@ -45,7 +45,7 @@
                     Text="Действия" />
 
                 <controls:SettingsCard
-                    Description="Запуск, остановка и перезапуск службы Windows"
+                    Description="Запуск, остановка, перезапуск и удаление службы Windows"
                     Header="Управление службой"
                     HorizontalAlignment="Stretch"
                     Visibility="{Binding SelectedComponentServiceActionsVisibility}">
@@ -100,6 +100,17 @@
                             </AppBarButton.Icon>
                         </AppBarButton>
                     </CommandBar>
+                </controls:SettingsCard>
+
+                <controls:SettingsCard Header="Удаление службы"
+                    Description="Остановить и удалить службу Windows. Можно также удалить её каталог данных."
+                    Visibility="{Binding SelectedComponentServiceActionsVisibility}">
+                    <controls:SettingsCard.HeaderIcon>
+                        <ic:FluentIcon Icon="Delete" IconSize="Size20" IconVariant="Regular" />
+                    </controls:SettingsCard.HeaderIcon>
+                    <Button Content="Удалить службу…" Click="DeleteService_Click"
+                        AutomationProperties.AutomationId="DeleteServiceButton"
+                        IsEnabled="{Binding CanDeleteSelectedService}" />
                 </controls:SettingsCard>
 
                 <TextBlock

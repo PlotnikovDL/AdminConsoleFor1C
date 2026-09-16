@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentDialog x:Class="AdminConsoleFor1C.App.ServiceDeletionDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Удаление службы" PrimaryButtonText="Удалить" CloseButtonText="Отмена"
+    DefaultButton="Close" PrimaryButtonClick="Delete_Click" Closing="Dialog_Closing">
+    <StackPanel Spacing="16" MaxWidth="560">
+        <TextBlock Text="Служба будет остановлена и удалена из Windows. Подключения пользователей к этому серверу будут прерваны."
+            TextWrapping="Wrap" />
+        <TextBox Header="Служба Windows" Text="{Binding DisplayName}" IsReadOnly="True" TextWrapping="Wrap" />
+        <TextBox Header="Системное имя" Text="{Binding Name}" IsReadOnly="True" TextWrapping="Wrap" />
+        <TextBox Header="Каталог данных · /d" Text="{Binding DataDirectoryText}" IsReadOnly="True"
+            TextWrapping="Wrap" AutomationProperties.AutomationId="DeletionDataDirectory" />
+        <CheckBox x:Name="DeleteData" Content="Также удалить каталог данных со всем содержимым"
+            Checked="DeleteData_Changed" Unchecked="DeleteData_Changed"
+            AutomationProperties.AutomationId="DeleteServiceData" />
+        <TextBlock x:Name="DataWarning" Text="Будут безвозвратно удалены файлы кластера, его настройки и все остальные файлы в указанном каталоге."
+            TextWrapping="Wrap" />
+        <InfoBar x:Name="ErrorBar" IsOpen="False" IsClosable="False" Severity="Error" Title="Удаление не завершено" />
+        <ProgressBar x:Name="Progress" IsIndeterminate="True" Visibility="Collapsed" />
+        <TextBlock Text="Windows запросит права администратора." TextWrapping="Wrap"
+            Style="{StaticResource CaptionTextBlockStyle}" />
+    </StackPanel>
+</ContentDialog>

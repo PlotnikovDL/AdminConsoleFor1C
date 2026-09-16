@@ -18,6 +18,7 @@ public sealed partial class AgentsPageViewModel : ObservableObject
     private readonly IOneCServiceCandidateInventory serviceCandidateInventory;
     private readonly IOneCServiceController serviceController;
     private readonly AgentComponentPresentationBuilder componentBuilder;
+    private IReadOnlyList<OneCServiceInfo> knownServices = [];
 
     public AgentsPageViewModel(
         IOneCServiceInventory serviceInventory,
@@ -204,6 +205,70 @@ public sealed partial class AgentsPageViewModel : ObservableObject
 
     public bool IsServiceActionRunning => !string.IsNullOrWhiteSpace(ActiveServiceComponentId);
 
+    public bool CanRegisterService => HasLoaded && !HasError && !IsRefreshing && !IsServiceActionRunning;
+
+    public bool CanDeleteSelectedService => CanRegisterService && SelectedComponent?.HasService == true;
+
+    public OneCServiceInfo? SelectedService => knownServices.FirstOrDefault(service =>
+        string.Equals(service.Name, SelectedComponent?.ServiceName, StringComparison.OrdinalIgnoreCase));
+
+    public async Task DeleteServiceAsync(OneCServiceDeletionRequest request)
+    {
+        if (!CanDeleteSelectedService)
+            throw new InvalidOperationException("Дождитесь завершения текущего действия со службой.");
+        request.ValidateAndGetDataDirectory(knownServices);
+        ActiveServiceComponentId = SelectedComponent!.Id;
+        try
+        {
+            await serviceController.DeleteAsync(request);
+            ServiceOperationTitle = "Служба удалена";
+            ServiceOperationSeverity = InfoBarSeverity.Success;
+            ServiceOperationMessage = request.DataDirectory is null
+                ? $"{request.ServiceName}. Каталог данных сохранён."
+                : $"{request.ServiceName}. Удалён каталог: {request.DataDirectory}";
+        }
+        catch (Exception exception)
+        {
+            ServiceOperationTitle = "Удаление службы";
+            ServiceOperationSeverity = InfoBarSeverity.Error;
+            ServiceOperationMessage = exception.Message;
+            throw;
+        }
+        finally
+        {
+            await RefreshAsync();
+            ActiveServiceComponentId = null;
+        }
+    }
+
+    public ServiceRegistrationViewModel CreateRegistrationViewModel(string? executablePath = null)
+    {
+        var paths = ServiceCandidates.Select(candidate => candidate.ExecutablePathText)
+            .Concat(knownServices.Where(service => service.Kind == OneCServiceKind.ServerAgent)
+                .Select(service => service.ExecutablePath).OfType<string>());
+        return AdminConsoleViewModelFactory.CreateServiceRegistrationViewModel(knownServices, paths, executablePath);
+    }
+
+    public async Task RegisterServiceAsync(OneCServiceRegistrationRequest request, string? password = null)
+    {
+        if (!CanRegisterService)
+            throw new InvalidOperationException("Дождитесь обновления списка и завершения текущего действия со службой.");
+
+        ActiveServiceComponentId = request.ServiceName;
+        try
+        {
+            await serviceController.RegisterAsync(request, password);
+            ServiceOperationTitle = "Служба зарегистрирована";
+            ServiceOperationSeverity = InfoBarSeverity.Success;
+            ServiceOperationMessage = $"{request.DisplayName} ({request.ServiceName}). Для запуска откройте сведения о службе.";
+            await RefreshAsync();
+        }
+        finally
+        {
+            ActiveServiceComponentId = null;
+        }
+    }
+
     public Visibility ErrorInfoBarVisibility => HasError
         ? Visibility.Visible
         : Visibility.Collapsed;
@@ -268,6 +333,7 @@ public sealed partial class AgentsPageViewModel : ObservableObject
             var candidates = await serviceCandidateInventory.GetServerAgentCandidatesAsync(services);
             var components = componentBuilder.BuildComponents(services, processes);
             var candidateItems = componentBuilder.BuildServiceCandidateItems(candidates);
+            knownServices = services;
 
             Components.Clear();
             foreach (var component in components)
@@ -611,6 +677,8 @@ public sealed partial class AgentsPageViewModel : ObservableObject
 
     private void NotifyServiceControlCommandsCanExecuteChanged()
     {
+        OnPropertyChanged(nameof(CanRegisterService));
+        OnPropertyChanged(nameof(CanDeleteSelectedService));
         StartSelectedServiceCommand.NotifyCanExecuteChanged();
         StopSelectedServiceCommand.NotifyCanExecuteChanged();
         RestartSelectedServiceCommand.NotifyCanExecuteChanged();
@@ -618,6 +686,7 @@ public sealed partial class AgentsPageViewModel : ObservableObject
 
     private void NotifyComponentStateChanged()
     {
+        OnPropertyChanged(nameof(CanRegisterService));
         OnPropertyChanged(nameof(StatusText));
         OnPropertyChanged(nameof(OverviewStatusText));
         OnPropertyChanged(nameof(ComponentsListVisibility));

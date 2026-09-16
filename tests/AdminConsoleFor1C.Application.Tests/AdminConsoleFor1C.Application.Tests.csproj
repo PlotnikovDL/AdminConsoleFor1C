@@ -21,6 +21,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\AdminConsoleFor1C.Core\AdminConsoleFor1C.Core.csproj" />
     <ProjectReference Include="..\..\src\AdminConsoleFor1C.Application\AdminConsoleFor1C.Application.csproj" />
+    <ProjectReference Include="..\..\src\AdminConsoleFor1C.Infrastructure\AdminConsoleFor1C.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

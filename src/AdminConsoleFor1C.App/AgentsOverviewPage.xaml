@@ -36,9 +36,24 @@
                     Title="{Binding ServiceOperationTitle}"
                     Visibility="{Binding ServiceOperationInfoBarVisibility}" />
 
-                <TextBlock
-                    Style="{StaticResource AdminConsoleSettingsSectionHeaderTextBlockStyle}"
-                    Text="Службы Windows" />
+                <Grid Margin="0,0,0,8" ColumnSpacing="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock VerticalAlignment="Center"
+                        Style="{StaticResource AdminConsoleSettingsSectionHeaderTextBlockStyle}"
+                        Text="Службы Windows" />
+                    <Button Grid.Column="1" Click="RegisterService_Click"
+                        IsEnabled="{Binding CanRegisterService}"
+                        AutomationProperties.AutomationId="RegisterServiceButton"
+                        Style="{StaticResource AccentButtonStyle}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <ic:FluentIcon Icon="Add" IconSize="Size16" IconVariant="Regular" />
+                            <TextBlock Text="Зарегистрировать службу" />
+                        </StackPanel>
+                    </Button>
+                </Grid>
 
                 <controls:SettingsCard
                     Description="{Binding EmptyStateDescription}"
@@ -132,6 +147,9 @@
                         <DataTemplate x:DataType="local:AgentServiceCandidateItemViewModel">
                             <controls:SettingsCard
                                 ContentAlignment="Right"
+                                Click="RegisterCandidate_Click"
+                                IsClickEnabled="True"
+                                ActionIconToolTip="Зарегистрировать службу"
                                 Description="{Binding SummaryDescription}"
                                 Header="{Binding Title}"
                                 HorizontalAlignment="Stretch"

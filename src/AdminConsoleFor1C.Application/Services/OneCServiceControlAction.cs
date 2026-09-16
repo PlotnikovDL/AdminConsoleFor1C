@@ -5,5 +5,6 @@ public enum OneCServiceControlAction
     Start,
     Stop,
     Restart,
-    Delete
+    Delete,
+    Register
 }

@@ -1,0 +1,122 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentDialog
+    x:Class="AdminConsoleFor1C.App.ServiceRegistrationDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Регистрация службы"
+    PrimaryButtonText="Зарегистрировать"
+    CloseButtonText="Отмена"
+    DefaultButton="Primary"
+    IsPrimaryButtonEnabled="{Binding CanEdit}"
+    PrimaryButtonClick="Register_Click"
+    Closing="Dialog_Closing">
+    <ContentDialog.Resources>
+        <x:Double x:Key="ContentDialogMaxWidth">720</x:Double>
+    </ContentDialog.Resources>
+    <Grid x:Name="DialogContent" RowSpacing="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <TextBlock Text="Новая служба агента сервера 1С на этом компьютере" TextWrapping="Wrap" />
+        <ScrollViewer x:Name="RegistrationFields" IsEnabled="{Binding CanEdit}" Grid.Row="1"
+            VerticalScrollMode="Enabled" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Spacing="16" Padding="0,0,12,4">
+                <ComboBox
+                    Header="Сервер 1С · ragent.exe"
+                    AutomationProperties.AutomationId="RegistrationExecutablePath"
+                    HorizontalAlignment="Stretch"
+                    IsEditable="True"
+                    ItemsSource="{Binding ExecutablePaths}"
+                    Text="{Binding ExecutablePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                    PlaceholderText="Выберите установку или введите полный путь" />
+                <StackPanel Spacing="4">
+                    <TextBox Header="Имя службы" IsReadOnly="True"
+                        AutomationProperties.AutomationId="RegistrationServiceName"
+                        PlaceholderText="Выберите сервер и укажите порт агента"
+                        Text="{Binding ServiceName}" />
+                    <TextBlock Text="Одинаковое в Службах Windows и Диспетчере задач. Формируется из версии платформы и порта агента."
+                        Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                </StackPanel>
+                <StackPanel Spacing="4">
+                    <TextBox Header="Каталог данных кластера"
+                        AutomationProperties.AutomationId="RegistrationDataDirectory"
+                        Text="{Binding DataDirectory, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Text="Новый каталог будет создан при регистрации. Доступ получит выбранная учетная запись службы."
+                        Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                </StackPanel>
+                <Grid ColumnSpacing="16" RowSpacing="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <NumberBox Header="Порт агента" Value="{Binding AgentPort, Mode=TwoWay}"
+                        AutomationProperties.AutomationId="RegistrationAgentPort"
+                        Minimum="1" Maximum="65535" SpinButtonPlacementMode="Compact" />
+                    <NumberBox Grid.Column="1" Header="Порт кластера" Value="{Binding ClusterPort, Mode=TwoWay}"
+                        Minimum="1" Maximum="65535" SpinButtonPlacementMode="Compact" />
+                    <NumberBox Grid.Row="1" Header="Рабочие процессы · от" Value="{Binding ProcessPortStart, Mode=TwoWay}"
+                        Minimum="1" Maximum="65535" SpinButtonPlacementMode="Compact" />
+                    <NumberBox Grid.Row="1" Grid.Column="1" Header="Рабочие процессы · до" Value="{Binding ProcessPortEnd, Mode=TwoWay}"
+                        Minimum="1" Maximum="65535" SpinButtonPlacementMode="Compact" />
+                </Grid>
+                <Expander Header="Вход в систему" IsExpanded="True" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                    <StackPanel Spacing="12">
+                        <ComboBox Header="Запускать службу от имени" HorizontalAlignment="Stretch"
+                            AutomationProperties.AutomationId="RegistrationAccountType"
+                            ItemsSource="{Binding Accounts}" SelectedIndex="{Binding AccountIndex, Mode=TwoWay}" />
+                        <StackPanel Spacing="12" Visibility="{Binding UserAccountVisibility}">
+                            <ComboBox Header="Пользователь Windows" IsEditable="True" HorizontalAlignment="Stretch"
+                                AutomationProperties.AutomationId="RegistrationUserName"
+                                ItemsSource="{Binding UserNames}" Text="{Binding UserName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                PlaceholderText="Выберите пользователя или введите ДОМЕН\пользователь" />
+                            <Button Content="Текущий пользователь" Command="{Binding UseCurrentUserCommand}" />
+                            <TextBlock Text="{Binding AccountDiscoveryMessage}" TextWrapping="Wrap"
+                                Style="{StaticResource CaptionTextBlockStyle}" />
+                            <Grid ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <PasswordBox x:Name="UserPassword" Header="Пароль Windows"
+                                    AutomationProperties.AutomationId="RegistrationPassword" />
+                                <PasswordBox x:Name="ConfirmPassword" Grid.Column="1" Header="Подтверждение пароля"
+                                    AutomationProperties.AutomationId="RegistrationPasswordConfirmation" />
+                            </Grid>
+                            <TextBlock Text="Введите пароль, а не PIN-код. При регистрации будут настроены вход в качестве службы и доступ к новому каталогу данных."
+                                Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </StackPanel>
+                </Expander>
+                <Expander Header="Параметры запуска и отладки" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                    <StackPanel Spacing="12">
+                        <CheckBox Content="Автоматически при запуске Windows" IsChecked="{Binding AutomaticStart, Mode=TwoWay}" />
+                        <CheckBox Content="Разрешить отладку по HTTP" IsChecked="{Binding EnableDebug, Mode=TwoWay}"
+                            AutomationProperties.AutomationId="RegistrationEnableDebug" />
+                        <TextBlock Text="Отладку включают для серверов разработки: этот режим снижает производительность сервера."
+                            Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="Wrap" />
+                        <NumberBox Header="Порт отладки HTTP" Value="{Binding DebugPort, Mode=TwoWay}"
+                            IsEnabled="{Binding EnableDebug}" Minimum="1" Maximum="65535" SpinButtonPlacementMode="Compact" />
+                    </StackPanel>
+                </Expander>
+                <Expander Header="Командная строка службы" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                    <TextBox Text="{Binding CommandLinePreview}" IsReadOnly="True" AcceptsReturn="True"
+                        TextWrapping="Wrap" AutomationProperties.AutomationId="RegistrationCommandPreview"
+                        FontFamily="Consolas" FontSize="12" />
+                </Expander>
+            </StackPanel>
+        </ScrollViewer>
+        <StackPanel Grid.Row="2" Spacing="8">
+            <InfoBar IsOpen="{Binding HasError}" IsClosable="False" Severity="Error"
+                Title="Не удалось зарегистрировать службу" Message="{Binding ErrorMessage}" />
+            <ProgressBar IsIndeterminate="{Binding IsBusy}" Visibility="{Binding BusyVisibility}" />
+            <TextBlock Text="Windows запросит права администратора. Служба будет создана без запуска."
+                Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+        </StackPanel>
+    </Grid>
+</ContentDialog>

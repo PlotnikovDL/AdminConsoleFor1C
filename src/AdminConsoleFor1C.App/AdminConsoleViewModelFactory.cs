@@ -1,9 +1,14 @@
 using AdminConsoleFor1C.Infrastructure.Services;
+using AdminConsoleFor1C.Core.Services;
 
 namespace AdminConsoleFor1C.App;
 
 internal static class AdminConsoleViewModelFactory
 {
+    public static ServiceRegistrationViewModel CreateServiceRegistrationViewModel(
+        IReadOnlyList<OneCServiceInfo> services, IEnumerable<string> paths, string? selectedPath)
+        => new(services, paths, selectedPath, new WindowsUserAccountInventory());
+
     public static AgentsPageViewModel CreateAgentsPageViewModel()
     {
         return new AgentsPageViewModel(

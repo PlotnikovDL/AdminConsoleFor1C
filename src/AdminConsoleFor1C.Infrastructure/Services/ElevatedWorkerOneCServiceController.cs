@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Runtime.Versioning;
 using System.Text.Json;
 using AdminConsoleFor1C.Application.Services;
+using AdminConsoleFor1C.Core.Services;
 
 namespace AdminConsoleFor1C.Infrastructure.Services;
 
@@ -28,6 +29,18 @@ public sealed class ElevatedWorkerOneCServiceController : IOneCServiceController
         return ExecuteAsync(OneCServiceControlAction.Start, serviceName, cancellationToken);
     }
 
+    public Task RegisterAsync(OneCServiceRegistrationRequest request, string? password = null, CancellationToken cancellationToken = default)
+    {
+        var errors = request.Validate();
+        if (errors.Count > 0)
+            throw new ArgumentException(string.Join(Environment.NewLine, errors));
+        if (request.Account == OneCServiceAccount.WindowsUser && string.IsNullOrEmpty(password))
+            throw new ArgumentException("Укажите пароль учетной записи Windows.");
+
+        return ExecuteAsync(OneCServiceControlAction.Register, request.ServiceName, cancellationToken, request,
+            request.Account == OneCServiceAccount.WindowsUser ? password : null);
+    }
+
     public Task StopAsync(string serviceName, CancellationToken cancellationToken = default)
     {
         return ExecuteAsync(OneCServiceControlAction.Stop, serviceName, cancellationToken);
@@ -38,15 +51,18 @@ public sealed class ElevatedWorkerOneCServiceController : IOneCServiceController
         return ExecuteAsync(OneCServiceControlAction.Restart, serviceName, cancellationToken);
     }
 
-    public Task DeleteAsync(string serviceName, CancellationToken cancellationToken = default)
+    public Task DeleteAsync(OneCServiceDeletionRequest request, CancellationToken cancellationToken = default)
     {
-        return ExecuteAsync(OneCServiceControlAction.Delete, serviceName, cancellationToken);
+        return ExecuteAsync(OneCServiceControlAction.Delete, request.ServiceName, cancellationToken, deletion: request);
     }
 
     private async Task ExecuteAsync(
         OneCServiceControlAction action,
         string serviceName,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        OneCServiceRegistrationRequest? registration = null,
+        string? password = null,
+        OneCServiceDeletionRequest? deletion = null)
     {
         if (string.IsNullOrWhiteSpace(serviceName))
         {
@@ -63,7 +79,22 @@ public sealed class ElevatedWorkerOneCServiceController : IOneCServiceController
 
         try
         {
-            using var process = StartWorker(action, serviceName, resultPath);
+            string? pipeName = null;
+            using var pipe = registration is null ? null : ServiceRegistrationPipe.CreateServer(out pipeName);
+            using var process = StartWorker(action, serviceName, resultPath, pipeName, deletion);
+            if (pipe is not null)
+            {
+                using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                timeout.CancelAfter(TimeSpan.FromSeconds(30));
+                try
+                {
+                    await ServiceRegistrationPipe.SendAsync(pipe, process.Id, registration!, password, timeout.Token);
+                }
+                catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+                {
+                    throw new TimeoutException("Не удалось передать параметры регистрации процессу с правами администратора.");
+                }
+            }
             await process.WaitForExitAsync(cancellationToken);
             await ValidateResultAsync(process.ExitCode, resultPath, cancellationToken);
         }
@@ -76,7 +107,9 @@ public sealed class ElevatedWorkerOneCServiceController : IOneCServiceController
     private Process StartWorker(
         OneCServiceControlAction action,
         string serviceName,
-        string resultPath)
+        string resultPath,
+        string? registrationPipe,
+        OneCServiceDeletionRequest? deletion)
     {
         var startInfo = new ProcessStartInfo
         {
@@ -92,6 +125,18 @@ public sealed class ElevatedWorkerOneCServiceController : IOneCServiceController
         startInfo.ArgumentList.Add(serviceName);
         startInfo.ArgumentList.Add("--result");
         startInfo.ArgumentList.Add(resultPath);
+        if (registrationPipe is not null)
+        {
+            startInfo.ArgumentList.Add("--registration-pipe");
+            startInfo.ArgumentList.Add(registrationPipe);
+            startInfo.ArgumentList.Add("--parent-pid");
+            startInfo.ArgumentList.Add(Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        }
+        if (deletion is not null)
+        {
+            startInfo.ArgumentList.Add("--deletion");
+            startInfo.ArgumentList.Add(Convert.ToBase64String(JsonSerializer.SerializeToUtf8Bytes(deletion)));
+        }
 
         try
         {
@@ -134,6 +179,7 @@ public sealed class ElevatedWorkerOneCServiceController : IOneCServiceController
             OneCServiceControlAction.Stop => "stop",
             OneCServiceControlAction.Restart => "restart",
             OneCServiceControlAction.Delete => "delete",
+            OneCServiceControlAction.Register => "register",
             _ => throw new ArgumentOutOfRangeException(nameof(action), action, null)
         };
     }
