@@ -7,5 +7,6 @@ public enum AdminConsoleSection
     Infobases,
     Clusters,
     Licenses,
-    Settings
+    Settings,
+    Sessions
 }

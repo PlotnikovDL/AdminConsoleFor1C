@@ -33,6 +33,12 @@ public sealed partial class ShellPage : Page
 
         currentSection = section;
 
+        if (section == AdminConsoleSection.Sessions)
+        {
+            ContentFrame.Navigate(typeof(SessionsPage));
+            return;
+        }
+
         if (section == AdminConsoleSection.Agents)
         {
             ContentFrame.Navigate(typeof(AgentsPage));

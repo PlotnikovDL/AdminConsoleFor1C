@@ -10,6 +10,7 @@ public static class AdminConsoleSections
     public const string ClustersTag = "clusters";
     public const string LicensesTag = "licenses";
     public const string SettingsTag = "settings";
+    public const string SessionsTag = "sessions";
 
     public static AdminConsoleSection FromTag(string tag)
     {
@@ -21,6 +22,7 @@ public static class AdminConsoleSections
             ClustersTag => AdminConsoleSection.Clusters,
             LicensesTag => AdminConsoleSection.Licenses,
             SettingsTag => AdminConsoleSection.Settings,
+            SessionsTag => AdminConsoleSection.Sessions,
             _ => AdminConsoleSection.Agents
         };
     }
@@ -29,6 +31,7 @@ public static class AdminConsoleSections
     {
         return section switch
         {
+            AdminConsoleSection.Sessions => new AdminConsoleSectionInfo(section, "Сеансы", "Подключения к серверам разных версий и управление сеансами", Icon.People),
             AdminConsoleSection.Agents => new AdminConsoleSectionInfo(
                 section,
                 "Службы",

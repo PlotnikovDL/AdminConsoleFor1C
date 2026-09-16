@@ -76,6 +76,9 @@
                         IconVariant="Regular" />
                 </NavigationViewItem.Icon>
             </NavigationViewItem>
+            <NavigationViewItem x:Name="SessionsNavigationItem" Content="Сеансы" Tag="sessions">
+                <NavigationViewItem.Icon><ic:FluentIcon Icon="People" IconSize="Size20" IconVariant="Regular" /></NavigationViewItem.Icon>
+            </NavigationViewItem>
         </NavigationView.MenuItems>
 
         <NavigationView.FooterMenuItems>

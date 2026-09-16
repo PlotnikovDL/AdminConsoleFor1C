@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentDialog x:Class="AdminConsoleFor1C.App.ServerConnectionDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Подключение к серверу 1С" PrimaryButtonText="Сохранить и подключить" CloseButtonText="Отмена"
+    DefaultButton="Primary" PrimaryButtonClick="Save_Click">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Width="440" Spacing="12" Padding="0,0,12,0">
+            <TextBlock Text="Укажите адрес сервера в сети или VPN. Служба 1С на этом компьютере не требуется."
+                TextWrapping="Wrap" />
+            <Grid ColumnSpacing="12">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="130" /></Grid.ColumnDefinitions>
+                <TextBox Header="Сервер" Text="{Binding Host, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                    PlaceholderText="server.company.local" AutomationProperties.AutomationId="ConnectionHost" />
+                <NumberBox Grid.Column="1" Header="Порт агента" Value="{Binding AgentPort, Mode=TwoWay}"
+                    Minimum="1" Maximum="65535" SpinButtonPlacementMode="Compact" AutomationProperties.AutomationId="ConnectionAgentPort" />
+            </Grid>
+            <TextBox Header="Название подключения" Text="{Binding Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                AutomationProperties.AutomationId="ConnectionName" />
+            <ComboBox Header="Платформа сервера · каталог bin" IsEditable="True"
+                ItemsSource="{Binding PlatformDirectories}" HorizontalAlignment="Stretch"
+                Text="{Binding PlatformDirectory, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                AutomationProperties.AutomationId="ConnectionPlatform" />
+            <TextBlock Text="Каталог на этом компьютере со средствами администрирования той же сборки, что на сервере. У каждого подключения своя версия."
+                TextWrapping="Wrap" Style="{StaticResource CaptionTextBlockStyle}" />
+            <TextBlock Text="{Binding DiscoveryMessage}" TextWrapping="Wrap" Style="{StaticResource CaptionTextBlockStyle}" />
+            <TextBox Header="Администратор кластера 1С" Text="{Binding ClusterUser, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                PlaceholderText="Если администратор задан в кластере" AutomationProperties.AutomationId="ConnectionClusterUser" />
+            <PasswordBox x:Name="ClusterPassword" Header="Пароль администратора кластера" />
+            <TextBlock Text="Если администраторы в кластере не заданы, оставьте поля пустыми. Пароль хранится только до закрытия приложения. Вход по учётной записи Windows здесь не поддерживается."
+                TextWrapping="Wrap" Style="{StaticResource CaptionTextBlockStyle}" />
+            <Expander Header="Заполнить из локальной службы" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                <ComboBox ItemsSource="{Binding LocalAgents}" PlaceholderText="Выберите службу, если она есть"
+                    SelectedItem="{Binding LocalAgent, Mode=TwoWay}" HorizontalAlignment="Stretch"
+                    AutomationProperties.AutomationId="ConnectionLocalAgent" />
+            </Expander>
+            <InfoBar IsOpen="{Binding HasError}" Message="{Binding Error}" IsClosable="False" Severity="Error" Title="Проверьте подключение" />
+        </StackPanel>
+    </ScrollViewer>
+</ContentDialog>
