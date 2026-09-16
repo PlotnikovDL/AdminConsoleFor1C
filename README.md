@@ -31,7 +31,7 @@
 
 ### WinGet
 
-Пакет WinGet подготавливается под идентификатором `PlotnikovDL.AdminConsoleFor1C`. **Пока используйте EXE из Releases.** Команда станет доступна после принятия пакета в публичный каталог:
+Пакет `PlotnikovDL.AdminConsoleFor1C` отправлен на проверку: [заявка в каталог WinGet](https://github.com/microsoft/winget-pkgs/pull/435995). **Пока используйте EXE из Releases.** Команда станет доступна после принятия пакета в публичный каталог:
 
 ```powershell
 winget install --id PlotnikovDL.AdminConsoleFor1C --exact
