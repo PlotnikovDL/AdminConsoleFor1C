@@ -1,0 +1,10 @@
+Generator: built-in image_gen
+
+Use case: stylized-concept / logo-brand.
+Asset type: a single polished Windows 11 desktop application icon for "Admin Console for 1C", a native tool for managing enterprise servers, services, clusters and sessions.
+Primary request: draw an original app icon in the Windows 11 Fluent illustration style, ready to review as an app identity.
+Subject: one compact server tower made of THREE broad rounded horizontal server modules, with a SINGLE small but bold administration gear overlapping its lower right corner. Strong instantly recognizable overall silhouette. The server and gear together must feel like one cohesive icon.
+Style: premium Microsoft Windows 11 Fluent app icon language; simple sculpted 3D volumes, soft rounded bevels, subtle layered depth, very restrained satin and frosted material accents, polished but practical enterprise utility. Three-quarter view with very shallow perspective so the three server fronts are clearly visible. Deliberately minimal, visually balanced. Make the gear simple with six broad teeth and a clear central hole. A tiny indicator on each server module is enough detail.
+Color: rich azure blue server faces with darker cobalt side faces, pale cyan highlights; turquoise teal administration gear with readable depth. Clear contrast at small taskbar sizes.
+Composition: ONE centered standalone icon on a square 1024x1024 canvas, fill about 80% of the canvas with even transparent padding. Entire icon fully within the frame. Transparent alpha background, no scene or surface, no white rectangle, no enclosing app tile, no checkerboard drawn into the image. Gentle self-shadowing only, no broad floor shadow.
+Avoid: text, letters, digits, the 1C trademark, Windows logo, captions, watermark, multiple concepts, presentation boards, screenshots, elaborate circuitry, cables, busy details, photorealistic rack equipment, exaggerated glass transparency, glow, rainbow colors. Preserve crisp legibility as a small desktop/taskbar icon.

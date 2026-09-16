@@ -19,7 +19,7 @@
 
         <TitleBar x:Name="AppTitleBar" Title="Центр администрирования 1С">
             <TitleBar.IconSource>
-                <ImageIconSource ImageSource="ms-appx:///Assets/Square44x44Logo.scale-200.png" />
+                <ImageIconSource ImageSource="ms-appx:///Assets/Square44x44Logo.png" />
             </TitleBar.IconSource>
         </TitleBar>
 

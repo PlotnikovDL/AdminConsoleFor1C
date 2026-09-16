@@ -8,6 +8,9 @@ artifacts/
 publish/
 .codex/
 
+# Local reference manuals are not part of the application's source distribution.
+docs/v851doc/
+
 *.user
 *.suo
 *.rsuser
