@@ -27,6 +27,8 @@ public sealed partial class ServerConnectionEditorViewModel : ObservableObject
     }
 
     public ObservableCollection<string> PlatformDirectories { get; } = [];
+    public ObservableCollection<AdministrationPlatformChoice> Platforms { get; } = [];
+    [ObservableProperty] public partial AdministrationPlatformChoice? SelectedPlatform { get; set; }
     public ObservableCollection<LocalAgentChoice> LocalAgents { get; } = [];
     [ObservableProperty] public partial LocalAgentChoice? LocalAgent { get; set; }
     [ObservableProperty] public partial string Name { get; set; }
@@ -49,16 +51,28 @@ public sealed partial class ServerConnectionEditorViewModel : ObservableObject
             foreach (var tool in inventory.Where(t => t.Kind == OneCAdministrationToolKind.Ras))
             {
                 var bin = Path.GetDirectoryName(tool.FilePath)!;
-                if (File.Exists(Path.Combine(bin, "rac.exe")) && !PlatformDirectories.Contains(bin)) PlatformDirectories.Add(bin);
+                if (File.Exists(Path.Combine(bin, "rac.exe")) && !PlatformDirectories.Contains(bin))
+                {
+                    PlatformDirectories.Add(bin);
+                    try { Platforms.Add(new(AdminConsoleViewModelFactory.GetAdministrationPlatformVersion(bin), bin)); }
+                    catch (Exception) { /* A custom directory can still be entered and validated on save. */ }
+                }
             }
             foreach (var service in local.Where(s => s.Kind == OneCServiceKind.ServerAgent && s.ExecutablePath is not null))
                 LocalAgents.Add(new(service.DisplayName, service.AgentPort ?? 1540, Path.GetDirectoryName(service.ExecutablePath!)!));
             if (string.IsNullOrWhiteSpace(PlatformDirectory)) PlatformDirectory = PlatformDirectories.FirstOrDefault() ?? "";
+            SelectedPlatform = Platforms.FirstOrDefault(p => string.Equals(p.Directory, PlatformDirectory, StringComparison.OrdinalIgnoreCase));
         }
         catch (Exception ex) { DiscoveryMessage = "Не удалось найти платформы: " + ex.Message; }
     }
 
     partial void OnHostChanged(string value) => UpdateSuggestedName();
+    partial void OnSelectedPlatformChanged(AdministrationPlatformChoice? value)
+    {
+        if (value is not null) PlatformDirectory = value.Directory;
+    }
+    partial void OnPlatformDirectoryChanged(string value)
+        => SelectedPlatform = Platforms.FirstOrDefault(p => string.Equals(p.Directory, value, StringComparison.OrdinalIgnoreCase));
     partial void OnAgentPortChanged(double value) => UpdateSuggestedName();
     private string SuggestedName() => string.IsNullOrWhiteSpace(Host) ? "" : $"{Host.Trim()}:{AgentPort:0}";
     private void UpdateSuggestedName()
@@ -100,4 +114,9 @@ public sealed partial class ServerConnectionEditorViewModel : ObservableObject
 public sealed record LocalAgentChoice(string Name, int Port, string PlatformDirectory)
 {
     public override string ToString() => Name;
+}
+
+public sealed record AdministrationPlatformChoice(string Version, string Directory)
+{
+    public override string ToString() => Version;
 }

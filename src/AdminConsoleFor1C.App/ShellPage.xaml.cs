@@ -33,6 +33,12 @@ public sealed partial class ShellPage : Page
 
         currentSection = section;
 
+        if (section == AdminConsoleSection.Infobases)
+        {
+            ContentFrame.Navigate(typeof(InfobasesPage));
+            return;
+        }
+
         if (section == AdminConsoleSection.Sessions)
         {
             ContentFrame.Navigate(typeof(SessionsPage));

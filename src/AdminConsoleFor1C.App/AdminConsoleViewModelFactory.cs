@@ -5,11 +5,14 @@ namespace AdminConsoleFor1C.App;
 
 internal static class AdminConsoleViewModelFactory
 {
+    public static AdminConsoleFor1C.Application.Services.IOneCInfobaseClient CreateInfobaseClient() => new RacInfobaseClient(new TemporaryRasSessionFactory());
+    public static InfobasesPageViewModel CreateInfobasesPageViewModel() => new(CreateInfobaseClient(), GetSessionsPageViewModel());
     private static SessionsPageViewModel? sessions;
     public static SessionsPageViewModel GetSessionsPageViewModel() => sessions ??= new(
         new RacServerSessionClient(new TemporaryRasSessionFactory()),
         new JsonOneCServerConnectionStore(Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "AdminConsoleFor1C", "server-connections.json")));
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "AdminConsoleFor1C", "server-connections.json")),
+        new AdminConsoleFor1C.Application.Services.LocalServerConnectionCatalog(new WindowsOneCServiceInventory(), Environment.MachineName));
 
     public static ServerConnectionEditorViewModel CreateConnectionEditorViewModel(
         AdminConsoleFor1C.Core.Administration.OneCServerConnectionProfile? profile) => new(profile,

@@ -76,7 +76,8 @@ public sealed class TemporaryRasSessionFactory : IOneCRasSessionFactory
         {
             if (ras is null || ras.HasExited) throw new InvalidOperationException("Сервер администрирования завершился.");
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
-            timeout.CancelAfter(TimeSpan.FromSeconds(20));
+            var seconds = arguments.Count >= 2 && arguments[0] == "infobase" && arguments[1] == "create" ? 120 : 20;
+            timeout.CancelAfter(TimeSpan.FromSeconds(seconds));
             using var process = StartOwned("rac.exe", new[] { $"127.0.0.1:{port}" }.Concat(arguments));
             var output = process.StandardOutput.ReadToEndAsync();
             var error = process.StandardError.ReadToEndAsync();
@@ -90,7 +91,7 @@ public sealed class TemporaryRasSessionFactory : IOneCRasSessionFactory
                 return text;
             }
             catch (OperationCanceledException) when (!token.IsCancellationRequested)
-            { throw new TimeoutException($"Сервер {profile.AgentAddress} не ответил за 20 секунд."); }
+            { throw new TimeoutException($"Сервер {profile.AgentAddress} не ответил за {seconds} секунд."); }
             finally
             {
                 KillOwned(process);

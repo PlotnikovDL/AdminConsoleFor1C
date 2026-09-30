@@ -28,6 +28,7 @@
         <StackPanel Spacing="4">
             <TextBlock Text="Сеансы" Style="{StaticResource TitleTextBlockStyle}" />
             <TextBlock Text="{Binding Status}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+            <InfoBar IsOpen="{Binding HasDiscoveryError}" Message="{Binding DiscoveryError}" Severity="Warning" IsClosable="False" />
         </StackPanel>
         <SplitView x:Name="ServerSplitView" Grid.Row="1" DisplayMode="Inline" IsPaneOpen="True"
             OpenPaneLength="256" PaneBackground="{ThemeResource SolidBackgroundFillColorBaseBrush}">
@@ -45,6 +46,7 @@
                                 <StackPanel Spacing="3" ToolTipService.ToolTip="{Binding Connection.Status}">
                                     <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                                     <TextBlock Text="{Binding Details}" FontSize="12" Opacity="0.8" />
+                                    <TextBlock Text="{Binding Connection.SourceText}" FontSize="12" Opacity="0.8" />
                                     <TextBlock Text="{Binding Connection.Summary}" FontSize="12" Opacity="0.8" />
                                 </StackPanel>
                             </DataTemplate>
@@ -78,7 +80,7 @@
                                     <MenuFlyoutSeparator />
                                     <MenuFlyoutItem Text="Изменить подключение…" Click="EditConnection_Click" IsEnabled="{Binding CanManageSelected}" />
                                     <MenuFlyoutItem Text="Отключить" Command="{Binding DisconnectSelectedCommand}" />
-                                    <MenuFlyoutItem Text="Удалить подключение…" Click="RemoveConnection_Click" IsEnabled="{Binding CanManageSelected}" />
+                                    <MenuFlyoutItem Text="Удалить подключение…" Click="RemoveConnection_Click" IsEnabled="{Binding CanRemoveSelected}" />
                                 </MenuFlyout>
                             </AppBarButton.Flyout>
                         </AppBarButton>

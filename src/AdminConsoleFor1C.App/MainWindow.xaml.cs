@@ -15,6 +15,9 @@ public sealed partial class MainWindow : Window
     {
         InitializeComponent();
 
+        Title = ApplicationVersion.WindowTitle;
+        AppTitleBar.Title = ApplicationVersion.WindowTitle;
+
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(AppTitleBar);
 

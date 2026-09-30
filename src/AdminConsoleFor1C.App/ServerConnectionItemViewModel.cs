@@ -1,4 +1,5 @@
 using AdminConsoleFor1C.Core.Administration;
+using AdminConsoleFor1C.Core.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace AdminConsoleFor1C.App;
@@ -6,8 +7,15 @@ namespace AdminConsoleFor1C.App;
 public sealed partial class ServerConnectionItemViewModel(OneCServerConnectionProfile profile) : ObservableObject
 {
     public OneCServerConnectionProfile Profile { get; } = profile;
+    public bool IsDiscovered { get; init; }
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(SourceText))]
+    public partial OneCServiceInfo? LocalService { get; set; }
+    public string SourceText => LocalService is { } service
+        ? $"Локальная служба · {service.State switch { "Stopped" => "Остановлена", "Paused" => "Приостановлена", _ => service.StateDisplayName }}"
+        : "Сохранённое подключение";
     public string Name => Profile.Name;
-    public string AddressText => $"{Profile.AgentAddress} · {Profile.PlatformVersion}";
+    public string AddressText => $"Агент: {Profile.AgentAddress} · {Profile.PlatformVersion}";
+    public override string ToString() => $"{Name} · {AddressText}";
     [ObservableProperty, NotifyPropertyChangedFor(nameof(Summary))] public partial string Status { get; set; } = "Не подключён";
     [ObservableProperty] public partial string? Error { get; set; }
     [ObservableProperty] public partial bool IsConnected { get; set; }

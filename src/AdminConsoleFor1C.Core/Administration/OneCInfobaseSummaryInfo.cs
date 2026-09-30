@@ -34,6 +34,7 @@ public sealed record OneCInfobaseSummaryInfo
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
     public string NameText => string.IsNullOrWhiteSpace(Name) ? "Информационная база" : Name;
+    public override string ToString() => NameText;
 
     public string UuidText => string.IsNullOrWhiteSpace(Uuid) ? "—" : Uuid;
 

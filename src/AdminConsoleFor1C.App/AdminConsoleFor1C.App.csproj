@@ -16,6 +16,20 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <!-- The manifest is the version source for MSIX, EXE installers and the window title. -->
+  <Target Name="ReadApplicationVersion" BeforeTargets="GetAssemblyVersion">
+    <XmlPeek XmlInputPath="$(MSBuildProjectDirectory)\Package.appxmanifest"
+             Query="/*[local-name()='Package']/*[local-name()='Identity']/@Version">
+      <Output TaskParameter="Result" PropertyName="ApplicationPackageVersion" />
+    </XmlPeek>
+    <PropertyGroup>
+      <Version>$([System.Version]::Parse('$(ApplicationPackageVersion)').ToString(3))</Version>
+      <AssemblyVersion>$(ApplicationPackageVersion)</AssemblyVersion>
+      <FileVersion>$(ApplicationPackageVersion)</FileVersion>
+      <InformationalVersion>$(Version)</InformationalVersion>
+    </PropertyGroup>
+  </Target>
+
   <ItemGroup>
     <Content Include="Assets\*.png" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="Assets\AppIcon.ico" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />

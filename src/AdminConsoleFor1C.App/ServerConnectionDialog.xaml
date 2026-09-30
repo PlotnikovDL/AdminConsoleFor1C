@@ -17,7 +17,10 @@
             </Grid>
             <TextBox Header="Название подключения" Text="{Binding Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                 AutomationProperties.AutomationId="ConnectionName" />
-            <ComboBox Header="Платформа сервера · каталог bin" IsEditable="True"
+            <ComboBox Header="Версия платформы сервера" ItemsSource="{Binding Platforms}"
+                SelectedItem="{Binding SelectedPlatform, Mode=TwoWay}" HorizontalAlignment="Stretch"
+                PlaceholderText="Выберите установленную версию" AutomationProperties.AutomationId="ConnectionPlatformVersion" />
+            <ComboBox Header="Каталог bin платформы на этом компьютере" IsEditable="True"
                 ItemsSource="{Binding PlatformDirectories}" HorizontalAlignment="Stretch"
                 Text="{Binding PlatformDirectory, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                 AutomationProperties.AutomationId="ConnectionPlatform" />

@@ -7,7 +7,8 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace AdminConsoleFor1C.App;
 
-public sealed partial class SessionsPageViewModel(IOneCServerSessionClient client, IOneCServerConnectionStore store) : ObservableObject
+public sealed partial class SessionsPageViewModel(IOneCServerSessionClient client, IOneCServerConnectionStore store,
+    LocalServerConnectionCatalog localServers) : ObservableObject
 {
     private readonly Dictionary<Guid, string> passwords = [];
     private bool loaded;
@@ -16,11 +17,11 @@ public sealed partial class SessionsPageViewModel(IOneCServerSessionClient clien
     public ObservableCollection<ServerSessionRow> Sessions { get; } = [];
     public ObservableCollection<SessionConnectionFilter> ConnectionFilters { get; } = [new(null, "Все серверы")];
     public ObservableCollection<string> InfobaseFilters { get; } = ["Все базы"];
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(CanEdit)), NotifyPropertyChangedFor(nameof(CanManageSelected))]
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(CanEdit)), NotifyPropertyChangedFor(nameof(CanManageSelected)), NotifyPropertyChangedFor(nameof(CanRemoveSelected))]
     public partial bool IsBusy { get; set; }
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(CanEdit)), NotifyPropertyChangedFor(nameof(CanManageSelected))]
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(CanEdit)), NotifyPropertyChangedFor(nameof(CanManageSelected)), NotifyPropertyChangedFor(nameof(CanRemoveSelected))]
     public partial bool IsLoaded { get; set; }
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(CanManageSelected)), NotifyPropertyChangedFor(nameof(SelectedConnectionError))]
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(CanManageSelected)), NotifyPropertyChangedFor(nameof(CanRemoveSelected)), NotifyPropertyChangedFor(nameof(SelectedConnectionError))]
     public partial ServerConnectionItemViewModel? SelectedConnection { get; set; }
     [ObservableProperty] public partial SessionConnectionFilter? ConnectionFilter { get; set; }
     [ObservableProperty] public partial string? InfobaseFilter { get; set; }
@@ -31,24 +32,62 @@ public sealed partial class SessionsPageViewModel(IOneCServerSessionClient clien
     public bool HasMessage => !string.IsNullOrWhiteSpace(Message);
     public bool CanEdit => IsLoaded && !IsBusy;
     public bool CanManageSelected => CanEdit && SelectedConnection is not null;
+    public bool CanRemoveSelected => CanManageSelected && SelectedConnection is { IsDiscovered: false };
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(HasDiscoveryError))]
+    public partial string? DiscoveryError { get; set; }
+    public bool HasDiscoveryError => !string.IsNullOrWhiteSpace(DiscoveryError);
     public string SelectedConnectionError => SelectedConnection?.Error ?? string.Empty;
     public bool HasConnectionError => !string.IsNullOrWhiteSpace(SelectedConnectionError);
     public string? GetPassword(Guid id) => passwords.GetValueOrDefault(id);
 
     public async Task LoadAsync()
     {
-        if (loaded) return;
+        if (loaded) { await RefreshLocalConnectionsAsync(); return; }
         loaded = true;
         IsBusy = true;
         try
         {
             foreach (var profile in await store.LoadAsync()) Connections.Add(new(profile));
             IsLoaded = true;
+            await RefreshLocalConnectionsCoreAsync();
             RebuildFilters();
             RebuildSessions();
         }
-        catch (Exception ex) { ShowError("Не удалось загрузить подключения: " + ex.Message); }
+        catch (Exception ex) { loaded = false; ShowError("Не удалось загрузить подключения: " + ex.Message); }
         finally { IsBusy = false; }
+    }
+
+    public async Task RefreshLocalConnectionsAsync()
+    {
+        if (!CanEdit) return;
+        IsBusy = true;
+        try { await RefreshLocalConnectionsCoreAsync(); }
+        finally { IsBusy = false; }
+    }
+
+    private async Task RefreshLocalConnectionsCoreAsync()
+    {
+        try
+        {
+            var entries = await localServers.ReadAsync(Connections.Where(c => !c.IsDiscovered).Select(c => c.Profile).ToArray());
+            // Retain unchanged item instances, selection and session snapshots during refresh.
+            foreach (var old in Connections.Where(c => c.IsDiscovered && !entries.Any(e => e.Profile == c.Profile)).ToArray())
+                Connections.Remove(old);
+            foreach (var entry in entries)
+            {
+                var item = Connections.FirstOrDefault(c => c.Profile == entry.Profile);
+                if (item is null)
+                {
+                    item = new(entry.Profile) { IsDiscovered = entry.IsDiscovered };
+                    Connections.Add(item);
+                }
+                item.LocalService = entry.LocalService;
+            }
+            DiscoveryError = null;
+            RebuildFilters();
+            RebuildSessions();
+        }
+        catch (Exception ex) { DiscoveryError = "Не удалось обновить локальные службы: " + ex.Message; }
     }
 
     public async Task SaveConnectionAsync(OneCServerConnectionProfile profile, string? password)
@@ -57,13 +96,14 @@ public sealed partial class SessionsPageViewModel(IOneCServerSessionClient clien
         IsBusy = true;
         try
         {
-            var profiles = Connections.Select(c => c.Profile).Where(p => p.Id != profile.Id).Append(profile).ToArray();
+            var profiles = Connections.Where(c => !c.IsDiscovered).Select(c => c.Profile).Where(p => p.Id != profile.Id).Append(profile).ToArray();
             await store.SaveAsync(profiles);
             var old = Connections.FirstOrDefault(c => c.Profile.Id == profile.Id);
             if (old is not null) Connections.Remove(old);
             var item = new ServerConnectionItemViewModel(profile);
             Connections.Add(item);
             passwords[profile.Id] = password ?? string.Empty;
+            await RefreshLocalConnectionsCoreAsync();
             RebuildFilters();
             SelectedConnection = item;
             RebuildSessions();
@@ -73,14 +113,15 @@ public sealed partial class SessionsPageViewModel(IOneCServerSessionClient clien
 
     public async Task RemoveSelectedAsync()
     {
-        if (!CanManageSelected || SelectedConnection is not { } selected) return;
+        if (!CanRemoveSelected || SelectedConnection is not { } selected) return;
         IsBusy = true;
         try
         {
-            await store.SaveAsync(Connections.Where(c => c != selected).Select(c => c.Profile).ToArray());
+            await store.SaveAsync(Connections.Where(c => c != selected && !c.IsDiscovered).Select(c => c.Profile).ToArray());
             Connections.Remove(selected);
             passwords.Remove(selected.Profile.Id);
             SelectedConnection = null;
+            await RefreshLocalConnectionsCoreAsync();
             RebuildFilters();
             RebuildSessions();
         }
@@ -102,8 +143,11 @@ public sealed partial class SessionsPageViewModel(IOneCServerSessionClient clien
     private Task ConnectAllAsync() => RefreshConnectionsAsync(Connections.ToArray());
 
     [RelayCommand(CanExecute = nameof(CanEdit))]
-    private Task RefreshScopeAsync() => RefreshConnectionsAsync(SelectedConnection is { } selected
-        ? [selected] : Connections.ToArray());
+    private async Task RefreshScopeAsync()
+    {
+        await RefreshLocalConnectionsAsync();
+        await RefreshConnectionsAsync(SelectedConnection is { } selected ? [selected] : Connections.ToArray());
+    }
 
     [RelayCommand(CanExecute = nameof(CanManageSelected))]
     private void DisconnectSelected()

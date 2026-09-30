@@ -84,14 +84,15 @@ public sealed partial class SessionsPage : Page
 
     private async void RemoveConnection_Click(object sender, RoutedEventArgs e)
     {
-        if (dialogOpen || !viewModel.CanManageSelected || viewModel.SelectedConnection is not { } selected) return;
+        if (dialogOpen || !viewModel.CanRemoveSelected || viewModel.SelectedConnection is not { } selected) return;
         dialogOpen = true;
         try
         {
             var dialog = new ContentDialog
             {
                 XamlRoot = XamlRoot, Title = "Удалить подключение?",
-                Content = $"{selected.Name}\n{selected.AddressText}\n\nБудет удалена только запись в этой консоли.",
+                Content = $"{selected.Name}\n{selected.AddressText}\n\nБудет удалена только запись в этой консоли."
+                    + (selected.LocalService is null ? "" : " Локальная служба продолжит отображаться автоматически."),
                 PrimaryButtonText = "Удалить подключение", CloseButtonText = "Отмена", DefaultButton = ContentDialogButton.Close
             };
             if (await dialog.ShowAsync() == ContentDialogResult.Primary) await viewModel.RemoveSelectedAsync();
