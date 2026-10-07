@@ -53,9 +53,9 @@ public sealed class WindowsOneCProcessInventory : IOneCProcessInventory
                 ParentProcessId = GetUInt32(process, "ParentProcessId"),
                 ExecutablePath = commandLine.ExecutablePath ?? executablePath,
                 Arguments = arguments,
-                Version = OneCServiceCommandLineParser.GetVersionFromExecutablePath(commandLine.ExecutablePath ?? executablePath),
+                Version = OneCPlatformVersionResolver.ResolveExecutableVersion(commandLine.ExecutablePath ?? executablePath),
                 Owner = GetOwner(process),
-                AgentPort = kind == OneCProcessKind.ServerAgent ? port : null,
+                AgentPort = kind == OneCProcessKind.ServerAgent ? port ?? OneCServerAgentDefaults.AgentPort : null,
                 ClusterPort = kind switch
                 {
                     OneCProcessKind.ServerAgent => GetInt32Option(arguments, "regport"),

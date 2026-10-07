@@ -56,6 +56,7 @@
             <NavigationViewItem
                 x:Name="ClustersNavigationItem"
                 Content="Кластеры"
+                IsEnabled="False" ToolTipService.ToolTip="Раздел пока недоступен. Кластер для создания базы можно выбрать в разделе «Информационные базы»."
                 Tag="clusters">
                 <NavigationViewItem.Icon>
                     <ic:FluentIcon
@@ -68,6 +69,7 @@
             <NavigationViewItem
                 x:Name="LicensesNavigationItem"
                 Content="Лицензии"
+                IsEnabled="False" ToolTipService.ToolTip="Раздел пока недоступен."
                 Tag="licenses">
                 <NavigationViewItem.Icon>
                     <ic:FluentIcon
@@ -85,6 +87,7 @@
             <NavigationViewItem
                 x:Name="SettingsNavigationItem"
                 Content="Настройки"
+                IsEnabled="False" ToolTipService.ToolTip="Раздел пока недоступен. Подключения можно изменить в разделах «Информационные базы» и «Сеансы»."
                 Tag="settings">
                 <NavigationViewItem.Icon>
                     <ic:FluentIcon

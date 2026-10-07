@@ -18,7 +18,7 @@ public sealed partial class ServiceDeletionDialog : ContentDialog
         XamlRoot = root;
         DataContext = service;
         DeleteData.IsEnabled = service.Kind == OneCServiceKind.ServerAgent && !string.IsNullOrWhiteSpace(service.DataDirectory);
-        DeleteData.IsChecked = DeleteData.IsEnabled;
+        DeleteData.IsChecked = false;
         if (!DeleteData.IsEnabled)
             DataWarning.Text = "У службы нет явного каталога агента в параметре /d. Будет удалена только служба.";
     }

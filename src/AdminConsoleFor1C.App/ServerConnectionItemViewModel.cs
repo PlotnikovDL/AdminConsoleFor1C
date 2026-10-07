@@ -1,5 +1,6 @@
 using AdminConsoleFor1C.Core.Administration;
 using AdminConsoleFor1C.Core.Services;
+using AdminConsoleFor1C.Application.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace AdminConsoleFor1C.App;
@@ -13,12 +14,13 @@ public sealed partial class ServerConnectionItemViewModel(OneCServerConnectionPr
     public string SourceText => LocalService is { } service
         ? $"Локальная служба · {service.State switch { "Stopped" => "Остановлена", "Paused" => "Приостановлена", _ => service.StateDisplayName }}"
         : "Сохранённое подключение";
-    public string Name => Profile.Name;
-    public string AddressText => $"Агент: {Profile.AgentAddress} · {Profile.PlatformVersion}";
+    public string Name => ServerConnectionPresentation.DisplayName(Profile, Environment.MachineName);
+    public string AddressText => $"Агент: {Profile.AgentAddress} · Платформа: {Profile.PlatformVersion}";
     public override string ToString() => $"{Name} · {AddressText}";
     [ObservableProperty, NotifyPropertyChangedFor(nameof(Summary))] public partial string Status { get; set; } = "Не подключён";
     [ObservableProperty] public partial string? Error { get; set; }
     [ObservableProperty] public partial bool IsConnected { get; set; }
+    [ObservableProperty] public partial bool IsMonitoring { get; set; }
     public OneCServerSessionSnapshot? Snapshot { get; set; }
     public string Summary => Snapshot is not null && string.IsNullOrWhiteSpace(Error)
         ? $"Сеансов: {Snapshot.Clusters.Sum(c => c.Sessions.Count)}" : Status;
@@ -27,8 +29,8 @@ public sealed partial class ServerConnectionItemViewModel(OneCServerConnectionPr
 public sealed record ServerSessionRow(OneCServerConnectionProfile Profile, string ClusterUuid, string ClusterName,
     string InfobaseName, OneCSessionInfo Session)
 {
-    public string ServerText => Profile.Name;
-    public string ServerDetails => $"{Profile.AgentAddress} · {Profile.PlatformVersion}";
+    public string ServerText => ServerConnectionPresentation.DisplayName(Profile, Environment.MachineName);
+    public string ServerDetails => $"Агент: {Profile.AgentAddress} · Платформа: {Profile.PlatformVersion}";
     public string SessionId => Session.Properties.TryGetValue("session-id", out var value) ? value : Session.Uuid;
     public string UserName => Session.UserName ?? "—";
     public string Host => Session.Host ?? "—";
@@ -41,8 +43,10 @@ public sealed record ServerSessionRow(OneCServerConnectionProfile Profile, strin
     private static string FormatDate(string? value) => DateTime.TryParse(value, out var date) ? date.ToString("g") : value ?? "—";
 }
 
-public sealed record SessionConnectionFilter(Guid? Id, string Name, ServerConnectionItemViewModel? Connection = null)
+public sealed record ServerConnectionFilter(Guid? Id, string Name, ServerConnectionItemViewModel? Connection = null,
+    string ScopeDescription = "Общий список сеансов")
 {
-    public string Details => Connection?.Profile.PlatformVersion ?? "Общий список сеансов";
+    public string Details => Connection?.AddressText ?? ScopeDescription;
+    public string SelectionText => Connection is null ? Name : $"{Name} · {Connection.Profile.PlatformVersion}";
     public override string ToString() => Name;
 }

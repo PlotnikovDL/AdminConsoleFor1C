@@ -26,6 +26,10 @@ public sealed record OneCServiceInfo
 
     public int? AgentPort { get; init; }
 
+    public int? EffectiveAgentPort => Kind == OneCServiceKind.ServerAgent
+        ? AgentPort ?? OneCServerAgentDefaults.AgentPort
+        : AgentPort;
+
     public int? RegPort { get; init; }
 
     public int? AdministrationServerPort { get; init; }
@@ -85,7 +89,7 @@ public sealed record OneCServiceInfo
 
     public string VersionText => string.IsNullOrWhiteSpace(Version) ? "—" : Version;
 
-    public string AgentPortText => AgentPort?.ToString() ?? "—";
+    public string AgentPortText => EffectiveAgentPort?.ToString() ?? "—";
 
     public string RegPortText => RegPort?.ToString() ?? "—";
 
@@ -108,9 +112,9 @@ public sealed record OneCServiceInfo
         get
         {
             var ports = new List<string>();
-            if (AgentPort is not null)
+            if (EffectiveAgentPort is { } agentPort)
             {
-                ports.Add($"Агент: {AgentPort}");
+                ports.Add($"Агент: {agentPort}");
             }
 
             if (RegPort is not null)

@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using AdminConsoleFor1C.Application.Services;
 using AdminConsoleFor1C.Core.Administration;
 
@@ -13,7 +12,7 @@ public sealed class RacInfobaseClient(IOneCRasSessionFactory factory) : IOneCInf
         try
         {
             await using var session = await factory.OpenAsync(profile, cancellationToken);
-            await CheckVersionAsync(session, profile, cancellationToken);
+            await RacAgentVersionValidator.CheckAsync(session.RunAsync, profile, cancellationToken);
             var clusters = await ReadClustersAsync(session, cancellationToken);
             var result = new List<OneCClusterInfo>();
             foreach (var cluster in clusters)
@@ -45,7 +44,7 @@ public sealed class RacInfobaseClient(IOneCRasSessionFactory factory) : IOneCInf
         try
         {
             await using var session = await factory.OpenAsync(profile, cancellationToken);
-            await CheckVersionAsync(session, profile, cancellationToken);
+            await RacAgentVersionValidator.CheckAsync(session.RunAsync, profile, cancellationToken);
             var clusters = await ReadClustersAsync(session, cancellationToken);
             var current = clusters.SingleOrDefault(c => c.Uuid == target.Cluster.Uuid);
             if (current is null || !string.Equals(current.Host, target.Cluster.Host, StringComparison.OrdinalIgnoreCase)
@@ -80,16 +79,6 @@ public sealed class RacInfobaseClient(IOneCRasSessionFactory factory) : IOneCInf
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         { throw new InvalidOperationException(Redact(ex.Message, clusterPassword, databasePassword)); }
-    }
-
-    private static async Task CheckVersionAsync(IOneCRasSession session, OneCServerConnectionProfile profile, CancellationToken token)
-    {
-        var output = await session.RunAsync(["agent", "version"], token);
-        var version = Regex.Match(output, @"(?m)^\s*(?:version\s*:\s*)?""?(\d+\.\d+\.\d+\.\d+)""?\s*$");
-        if (!version.Success) throw new InvalidOperationException("Не удалось определить версию агента сервера 1С.");
-        if (version.Groups[1].Value != profile.PlatformVersion)
-            throw new InvalidOperationException($"На сервере {profile.AgentAddress} установлена платформа {version.Groups[1].Value}, "
-                + $"а в подключении выбрана {profile.PlatformVersion}. Выберите соответствующую версию и порт агента.");
     }
 
     private static async Task<IReadOnlyList<OneCClusterInfo>> ReadClustersAsync(IOneCRasSession session, CancellationToken token)

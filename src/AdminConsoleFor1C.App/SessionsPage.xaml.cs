@@ -9,44 +9,64 @@ public sealed partial class SessionsPage : Page
     private readonly SessionsPageViewModel viewModel = AdminConsoleViewModelFactory.GetSessionsPageViewModel();
     private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(15) };
     private bool dialogOpen;
-    private bool? compactLayout;
+    private int? filterColumns;
+    private bool isPageActive;
+    private int activationGeneration;
 
     public SessionsPage()
     {
         InitializeComponent();
         DataContext = viewModel;
-        SizeChanged += (_, _) => UpdateLayoutMode();
-        SessionWorkspace.SizeChanged += (_, e) => SessionFilters.Width = Math.Max(0, Math.Min(760, e.NewSize.Width - 32));
-        Loaded += async (_, _) => { await viewModel.LoadAsync(); timer.Start(); viewModel.PropertyChanged += ViewModel_Changed; UpdateSelection(); };
-        Unloaded += (_, _) => { timer.Stop(); viewModel.PropertyChanged -= ViewModel_Changed; };
+        SessionWorkspace.SizeChanged += (_, e) => UpdateFilterLayout(e.NewSize.Width);
+        Loaded += async (_, _) =>
+        {
+            if (isPageActive) return;
+            isPageActive = true;
+            var generation = ++activationGeneration;
+            viewModel.PropertyChanged += ViewModel_Changed;
+            await viewModel.ActivateAsync();
+            if (!isPageActive || generation != activationGeneration) return;
+            timer.Start();
+            UpdateFilterLayout(SessionWorkspace.ActualWidth);
+            UpdateSelection();
+        };
+        Unloaded += (_, _) =>
+        {
+            isPageActive = false;
+            activationGeneration++;
+            timer.Stop();
+            viewModel.PropertyChanged -= ViewModel_Changed;
+        };
         timer.Tick += async (_, _) =>
         {
-            if (AutoRefresh.IsChecked == true && !dialogOpen && viewModel.CanEdit)
-                await viewModel.RefreshAllCommand.ExecuteAsync(null);
+            if (isPageActive && viewModel.IsAutoRefreshEnabled && !dialogOpen && viewModel.CanEdit)
+                await viewModel.RefreshScopeCommand.ExecuteAsync(null);
         };
     }
 
-    private void UpdateLayoutMode()
+    private void UpdateFilterLayout(double workspaceWidth)
     {
-        var compact = ActualWidth < 1000;
-        if (compactLayout == compact) return;
-        compactLayout = compact;
-        ServerSplitView.DisplayMode = compact ? SplitViewDisplayMode.Overlay : SplitViewDisplayMode.Inline;
-        ServerSplitView.IsPaneOpen = !compact;
-        ShowServersButton.Visibility = compact ? Visibility.Visible : Visibility.Collapsed;
-        SessionWorkspace.Margin = new Thickness(compact ? 0 : 16, 0, 0, 0);
+        var width = Math.Max(0, Math.Min(1320, workspaceWidth - 32));
+        SessionFilters.Width = width;
+        var columns = width < 600 ? 1 : width < 1000 ? 2 : 4;
+        if (filterColumns == columns) return;
+        filterColumns = columns;
+        SessionFilters.RowDefinitions.Clear();
+        for (var i = 0; i < 4 / columns; i++) SessionFilters.RowDefinitions.Add(new() { Height = GridLength.Auto });
+        FrameworkElement[] filters = [SessionServerFilter, SessionClusterFilter, SessionInfobaseFilter, SessionSearchBox];
+        for (var i = 0; i < filters.Length; i++)
+        {
+            Grid.SetColumn(filters[i], i % columns * (4 / columns));
+            Grid.SetColumnSpan(filters[i], 4 / columns);
+            Grid.SetRow(filters[i], i / columns);
+        }
     }
 
-    private void ShowServers_Click(object sender, RoutedEventArgs e) => ServerSplitView.IsPaneOpen = !ServerSplitView.IsPaneOpen;
     private void Connections_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (compactLayout == true && e.AddedItems.Count > 0) ServerSplitView.IsPaneOpen = false;
+        if (SessionsList is not null) SessionsList.SelectedItems.Clear();
+        UpdateSelection();
     }
-    private void Connections_ItemClick(object sender, ItemClickEventArgs e)
-    {
-        if (compactLayout == true) ServerSplitView.IsPaneOpen = false;
-    }
-
     private void ViewModel_Changed(object? sender, System.ComponentModel.PropertyChangedEventArgs e) => UpdateSelection();
     private void Sessions_SelectionChanged(object sender, SelectionChangedEventArgs e) => UpdateSelection();
     private void UpdateSelection()
@@ -57,10 +77,7 @@ public sealed partial class SessionsPage : Page
         TerminateButton.Label = count == 0 ? "Завершить" : $"Завершить ({count})";
         SelectionStatus.Text = count == 0 ? "Выберите сеансы для завершения" : $"Выбрано сеансов: {count}";
         EmptyState.Visibility = viewModel.Sessions.Count == 0 && !viewModel.IsBusy ? Visibility.Visible : Visibility.Collapsed;
-        EmptyState.Text = viewModel.Connections.Count == 0 ? "Добавьте сервер, чтобы просматривать сеансы."
-            : !viewModel.Connections.Any(c => c.IsConnected) || viewModel.SelectedConnection is { IsConnected: false }
-                ? "Нажмите «Обновить», чтобы подключиться к серверу."
-                : "Сеансы не найдены. Проверьте выбранную базу и поиск.";
+        EmptyState.Text = viewModel.EmptyStateText;
     }
 
     private async void AddConnection_Click(object sender, RoutedEventArgs e) => await EditConnectionAsync(null);
@@ -77,7 +94,7 @@ public sealed partial class SessionsPage : Page
         {
             var dialog = new ServerConnectionDialog(viewModel, XamlRoot, profile);
             await dialog.ShowAsync();
-            if (dialog.Saved) await viewModel.ConnectSelectedCommand.ExecuteAsync(null);
+            if (dialog.Saved) await viewModel.RefreshScopeCommand.ExecuteAsync(null);
         }
         finally { dialogOpen = false; }
     }

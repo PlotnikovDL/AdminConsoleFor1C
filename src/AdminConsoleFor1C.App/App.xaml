@@ -10,6 +10,22 @@
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
                 <ResourceDictionary Source="Styles/AppThemeResources.xaml" />
             </ResourceDictionary.MergedDictionaries>
+            <DataTemplate x:Key="ServerScopeFilterTemplate">
+                <TextBlock Text="{Binding SelectionText}" TextTrimming="CharacterEllipsis">
+                    <ToolTipService.ToolTip>
+                        <ToolTip>
+                            <StackPanel Spacing="4" MaxWidth="440">
+                                <TextBlock Text="{Binding Details}" TextWrapping="Wrap" />
+                                <TextBlock Text="{Binding Connection.SourceText}" TextWrapping="Wrap" />
+                                <TextBlock Text="{Binding Connection.Summary}" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </ToolTip>
+                    </ToolTipService.ToolTip>
+                </TextBlock>
+            </DataTemplate>
+            <DataTemplate x:Key="ServerDataScopeFilterTemplate">
+                <TextBlock Text="{Binding SelectionText}" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{Binding Details}" />
+            </DataTemplate>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

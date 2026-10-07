@@ -11,10 +11,15 @@ public sealed partial class AgentComponentPresentationBuilder
         IReadOnlyList<OneCProcessInfo> processes)
     {
         var components = new List<AgentComponentItemViewModel>();
+        var correlatedProcesses = OneCServiceProcessCorrelator.Correlate(services, processes);
 
         foreach (var service in services)
         {
-            var relatedProcesses = GetRelatedProcesses(service, processes).ToList();
+            var relatedProcesses = correlatedProcesses
+                .Where(process => string.Equals(process.RelatedServiceName, service.Name, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(static process => process.Kind)
+                .ThenBy(static process => process.ProcessId)
+                .ToList();
 
             components.Add(BuildComponent(service, relatedProcesses));
         }
@@ -27,12 +32,13 @@ public sealed partial class AgentComponentPresentationBuilder
     }
 
     public IReadOnlyList<OneCProcessItemViewModel> BuildProcessItems(
-        IReadOnlyList<OneCProcessInfo> processes)
+        IReadOnlyList<OneCProcessInfo> processes,
+        bool serviceCorrelationAvailable = true)
     {
         return processes
             .OrderBy(static process => process.Kind)
             .ThenBy(static process => process.ProcessId)
-            .Select(BuildProcessItem)
+            .Select(process => BuildProcessItem(process, serviceCorrelationAvailable))
             .ToList();
     }
 
@@ -68,7 +74,7 @@ public sealed partial class AgentComponentPresentationBuilder
         IReadOnlyList<OneCProcessInfo> processes)
     {
         var processItems = processes
-            .Select(BuildProcessItem)
+            .Select(process => BuildProcessItem(process))
             .ToList();
 
         var primaryPortSummaryText = GetPrimaryServicePortSummaryText(service);
@@ -122,7 +128,7 @@ public sealed partial class AgentComponentPresentationBuilder
         };
     }
 
-    private static OneCProcessItemViewModel BuildProcessItem(OneCProcessInfo process)
+    private static OneCProcessItemViewModel BuildProcessItem(OneCProcessInfo process, bool serviceCorrelationAvailable = true)
     {
         return new OneCProcessItemViewModel
         {
@@ -132,7 +138,7 @@ public sealed partial class AgentComponentPresentationBuilder
             ProcessIdText = $"PID {process.ProcessIdText}",
             RoleText = process.RoleText,
             Icon = GetProcessIcon(process.Kind),
-            Details = BuildProcessDetails(process)
+            Details = BuildProcessDetails(process, serviceCorrelationAvailable)
         };
     }
 
@@ -162,7 +168,7 @@ public sealed partial class AgentComponentPresentationBuilder
     {
         return service.Kind switch
         {
-            OneCServiceKind.ServerAgent => service.AgentPort is null ? "Агент: —" : $"Агент: {service.AgentPort}",
+            OneCServiceKind.ServerAgent => $"Агент: {service.EffectiveAgentPort}",
             OneCServiceKind.AdministrationServer => service.AdministrationServerPort is null ? "RAS: —" : $"RAS: {service.AdministrationServerPort}",
             OneCServiceKind.DebugServer => service.DebugServerPort is null ? "Отладка HTTP: —" : $"Отладка HTTP: {service.DebugServerPort}",
             _ => service.PortsText == "—" ? "Порты: —" : service.PortsText.Replace(Environment.NewLine, ", ")
@@ -257,7 +263,8 @@ public sealed partial class AgentComponentPresentationBuilder
     }
 
     private static IReadOnlyList<OneCProcessDetailItemViewModel> BuildProcessDetails(
-        OneCProcessInfo process)
+        OneCProcessInfo process,
+        bool serviceCorrelationAvailable)
     {
         var details = new List<OneCProcessDetailItemViewModel>();
 
@@ -265,7 +272,9 @@ public sealed partial class AgentComponentPresentationBuilder
         AddProcessDetail(details, "PID", "Идентификатор процесса", process.ProcessIdText, Icon.NumberSymbol, includeEmpty: true);
         AddProcessDetail(details, "Родитель", "PID родительского процесса", process.ParentProcessIdText, Icon.ArrowFlowUpRightRectangleMultiple);
         AddProcessDetail(details, "Роль", "Назначение процесса 1С", process.RoleText, Icon.TaskListSquare);
-        AddProcessDetail(details, "Служба Windows", "Сопоставление со службой", process.RelatedServiceText, Icon.ServiceBell);
+        AddProcessDetail(details, "Службы Windows", "Отображаемое имя службы",
+            serviceCorrelationAvailable ? process.RelatedServiceDisplayName ?? "Не сопоставлен со службой" : "Сведения о службах недоступны", Icon.ServiceBell);
+        AddProcessDetail(details, "Диспетчер задач", "Системное имя службы", process.RelatedServiceName ?? "—", Icon.TaskListSquare);
         AddProcessDetail(details, "Владелец", "Пользователь процесса", process.OwnerText, Icon.Person);
         AddProcessDetail(details, "Версия", "Версия платформы 1С", process.VersionText, Icon.AppGeneric);
         AddProcessPortDetails(details, process);
@@ -291,7 +300,7 @@ public sealed partial class AgentComponentPresentationBuilder
         List<OneCProcessDetailItemViewModel> details,
         OneCProcessInfo process)
     {
-        AddProcessDetail(details, "Агент", "Порт агента кластера", process.AgentPort?.ToString() ?? "—", Icon.SerialPort);
+        AddProcessDetail(details, "Агент", "Порт агента кластера", process.EffectiveAgentPort?.ToString() ?? "—", Icon.SerialPort);
         AddProcessDetail(details, "Кластер", "Порт главного менеджера кластера", process.ClusterPort?.ToString() ?? "—", Icon.ServerMultiple);
         AddProcessDetail(details, "Рабочий", "Порт рабочего процесса", process.WorkerPort?.ToString() ?? "—", Icon.Box);
         AddProcessDetail(details, "RAS", "Порт сервера администрирования", process.AdministrationServerPort?.ToString() ?? "—", Icon.ServerPlay);
@@ -346,44 +355,5 @@ public sealed partial class AgentComponentPresentationBuilder
     private static string ToDisplayText(string? value)
     {
         return string.IsNullOrWhiteSpace(value) ? "—" : value;
-    }
-
-    private static IEnumerable<OneCProcessInfo> GetRelatedProcesses(
-        OneCServiceInfo service,
-        IReadOnlyList<OneCProcessInfo> processes)
-    {
-        return processes
-            .Where(process => IsRelatedProcess(service, process))
-            .OrderBy(static process => process.Kind)
-            .ThenBy(static process => process.ProcessId);
-    }
-
-    private static bool IsRelatedProcess(OneCServiceInfo service, OneCProcessInfo process)
-    {
-        if (service.ProcessId is { } serviceProcessId
-            && serviceProcessId != 0
-            && (process.ProcessId == serviceProcessId || process.ParentProcessId == serviceProcessId))
-        {
-            return true;
-        }
-
-        return service.Kind switch
-        {
-            OneCServiceKind.ServerAgent => process.Kind switch
-            {
-                OneCProcessKind.ServerAgent => service.AgentPort is not null && process.AgentPort == service.AgentPort,
-                OneCProcessKind.ClusterManager => service.RegPort is not null && process.ClusterPort == service.RegPort,
-                OneCProcessKind.WorkerProcess => !string.IsNullOrWhiteSpace(service.PortRange)
-                    && string.Equals(service.PortRange, process.PortRange, StringComparison.OrdinalIgnoreCase),
-                OneCProcessKind.DebugServer => service.DebugServerPort is not null
-                    && process.DebugServerPort == service.DebugServerPort,
-                _ => false
-            },
-            OneCServiceKind.AdministrationServer => service.AdministrationServerPort is not null
-                && process.AdministrationServerPort == service.AdministrationServerPort,
-            OneCServiceKind.DebugServer => service.DebugServerPort is not null
-                && process.DebugServerPort == service.DebugServerPort,
-            _ => false
-        };
     }
 }

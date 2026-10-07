@@ -197,7 +197,7 @@ public sealed partial class AgentsPageViewModel : ObservableObject
         }
     }
 
-    public string ComponentsStatusText => IsRefreshing ? "Обновление" : "Службы Windows не найдены";
+    public string ComponentsStatusText => IsRefreshing ? "Обновление" : "Службы 1С не найдены";
 
     public bool HasError => !string.IsNullOrWhiteSpace(ErrorText);
 

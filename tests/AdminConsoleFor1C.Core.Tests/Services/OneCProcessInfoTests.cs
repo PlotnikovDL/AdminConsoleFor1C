@@ -5,6 +5,16 @@ namespace AdminConsoleFor1C.Core.Tests.Services;
 public sealed class OneCProcessInfoTests
 {
     [Fact]
+    public void DefaultsMissingAgentPortTo1540InRoleAndPortText()
+    {
+        var process = CreateProcessInfo();
+
+        Assert.Equal(1540, process.EffectiveAgentPort);
+        Assert.Equal("Агент: 1540", process.RoleText);
+        Assert.Equal("Агент: 1540", process.PortsText);
+    }
+
+    [Fact]
     public void PortsText_ReturnsNamedPorts_ForServerAgentProcess()
     {
         var process = CreateProcessInfo() with

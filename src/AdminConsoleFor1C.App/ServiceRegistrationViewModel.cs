@@ -1,7 +1,7 @@
 using AdminConsoleFor1C.Core.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml;
-using System.Diagnostics;
+using AdminConsoleFor1C.Infrastructure.Services;
 using System.Collections.ObjectModel;
 using AdminConsoleFor1C.Application.Services;
 using CommunityToolkit.Mvvm.Input;
@@ -109,19 +109,7 @@ public sealed partial class ServiceRegistrationViewModel : ObservableObject
 
     partial void OnExecutablePathChanged(string value)
     {
-        PlatformVersion = OneCServiceCommandLineParser.GetVersionFromExecutablePath(value);
-        if (PlatformVersion is null && File.Exists(value))
-        {
-            try
-            {
-                var version = FileVersionInfo.GetVersionInfo(value);
-                PlatformVersion = $"{version.FileMajorPart}.{version.FileMinorPart}.{version.FileBuildPart}.{version.FilePrivatePart}";
-            }
-            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
-            {
-                PlatformVersion = null;
-            }
-        }
+        PlatformVersion = OneCPlatformVersionResolver.ResolveExecutableVersion(value);
     }
 
     partial void OnAgentPortChanged(double oldValue, double newValue)

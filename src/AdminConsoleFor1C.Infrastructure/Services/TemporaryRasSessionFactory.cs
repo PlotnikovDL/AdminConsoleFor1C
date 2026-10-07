@@ -13,6 +13,9 @@ namespace AdminConsoleFor1C.Infrastructure.Services;
 [SupportedOSPlatform("windows")]
 public sealed class TemporaryRasSessionFactory : IOneCRasSessionFactory
 {
+    // FreePort releases its listener before RAS binds it; keep concurrent startups from reusing those ports.
+    private static readonly SemaphoreSlim startupGate = new(1);
+
     public static string GetPlatformVersion(string directory)
     {
         if (!Path.IsPathFullyQualified(directory)) throw new ArgumentException("Укажите полный путь к каталогу bin платформы.");
@@ -33,9 +36,14 @@ public sealed class TemporaryRasSessionFactory : IOneCRasSessionFactory
         profile.Validate();
         if (GetPlatformVersion(profile.PlatformDirectory) != profile.PlatformVersion)
             throw new InvalidOperationException("Версия платформы в сохранённом каталоге изменилась. Измените подключение.");
-        var session = new TemporaryRasSession(profile);
-        try { await session.StartAsync(cancellationToken); return session; }
-        catch { await session.DisposeAsync(); throw; }
+        await startupGate.WaitAsync(cancellationToken);
+        try
+        {
+            var session = new TemporaryRasSession(profile);
+            try { await session.StartAsync(cancellationToken); return session; }
+            catch { await session.DisposeAsync(); throw; }
+        }
+        finally { startupGate.Release(); }
     }
 
     private sealed class TemporaryRasSession(OneCServerConnectionProfile profile) : IOneCRasSession

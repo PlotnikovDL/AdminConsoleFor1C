@@ -20,6 +20,8 @@ public sealed class RacServerSessionClient(IOneCRasSessionFactory factory) : IOn
     {
         profile.Validate();
         await using var connection = await factory.OpenAsync(profile, cancellationToken);
+        await RacAgentVersionValidator.CheckAsync((args, token) => RunAsync(connection, args, password, token),
+            profile, cancellationToken);
         var output = await RunAsync(connection, ["cluster", "list"], password, cancellationToken);
         var clusters = OneCRacOutputParser.ParseObjects(output).Select(OneCClusterInfo.FromProperties)
             .Where(c => Guid.TryParse(c.Uuid, out _)).ToList();
@@ -56,6 +58,8 @@ public sealed class RacServerSessionClient(IOneCRasSessionFactory factory) : IOn
         foreach (var target in targets) target.Validate(profile);
         if (targets.Count == 0) return [];
         await using var connection = await factory.OpenAsync(profile, cancellationToken);
+        await RacAgentVersionValidator.CheckAsync((args, token) => RunAsync(connection, args, password, token),
+            profile, cancellationToken);
         var results = new List<OneCSessionTerminationResult>();
         foreach (var target in targets.DistinctBy(t => (t.ClusterUuid, t.Session.Uuid)))
         {

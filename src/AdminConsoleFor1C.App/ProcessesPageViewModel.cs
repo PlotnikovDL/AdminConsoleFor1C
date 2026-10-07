@@ -8,14 +8,15 @@ namespace AdminConsoleFor1C.App;
 
 public sealed partial class ProcessesPageViewModel : ObservableObject
 {
-    private readonly IOneCProcessInventory processInventory;
+    private readonly OneCProcessInventoryReader inventoryReader;
     private readonly AgentComponentPresentationBuilder componentBuilder;
 
     public ProcessesPageViewModel(
         IOneCProcessInventory processInventory,
+        IOneCServiceInventory serviceInventory,
         AgentComponentPresentationBuilder componentBuilder)
     {
-        this.processInventory = processInventory;
+        inventoryReader = new(processInventory, serviceInventory);
         this.componentBuilder = componentBuilder;
     }
 
@@ -42,6 +43,11 @@ public sealed partial class ProcessesPageViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(EmptyStateVisibility))]
     [ObservableProperty]
     public partial string? ErrorText { get; set; }
+
+    [NotifyPropertyChangedFor(nameof(HasServiceCorrelationWarning))]
+    [NotifyPropertyChangedFor(nameof(ServiceCorrelationWarningVisibility))]
+    [ObservableProperty]
+    public partial string? ServiceCorrelationWarningText { get; set; }
 
     public string HeaderSubtitle
     {
@@ -72,6 +78,12 @@ public sealed partial class ProcessesPageViewModel : ObservableObject
 
     public bool HasError => !string.IsNullOrWhiteSpace(ErrorText);
 
+    public bool HasServiceCorrelationWarning => !string.IsNullOrWhiteSpace(ServiceCorrelationWarningText);
+
+    public Visibility ServiceCorrelationWarningVisibility => HasServiceCorrelationWarning
+        ? Visibility.Visible
+        : Visibility.Collapsed;
+
     public Visibility ErrorInfoBarVisibility => HasError
         ? Visibility.Visible
         : Visibility.Collapsed;
@@ -96,9 +108,15 @@ public sealed partial class ProcessesPageViewModel : ObservableObject
         try
         {
             ErrorText = null;
+            ServiceCorrelationWarningText = null;
 
-            var processes = await processInventory.GetProcessesAsync();
-            var orderedProcesses = componentBuilder.BuildProcessItems(processes);
+            var snapshot = await inventoryReader.ReadAsync();
+            if (!snapshot.IsServiceCorrelationAvailable)
+            {
+                ServiceCorrelationWarningText = "Список процессов загружен. Сведения о службах Windows недоступны, поэтому сопоставление со службами не выполнено."
+                    + (string.IsNullOrWhiteSpace(snapshot.ServiceCorrelationError) ? string.Empty : $"\n{snapshot.ServiceCorrelationError}");
+            }
+            var orderedProcesses = componentBuilder.BuildProcessItems(snapshot.Processes, snapshot.IsServiceCorrelationAvailable);
 
             Processes.Clear();
             foreach (var process in orderedProcesses)

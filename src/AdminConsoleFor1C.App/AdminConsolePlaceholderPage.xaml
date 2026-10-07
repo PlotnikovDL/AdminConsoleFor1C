@@ -34,8 +34,8 @@
                     TextWrapping="WrapWholeWords" />
 
                 <controls:SettingsCard
-                    Description="Раздел будет собран отдельным шагом на стандартных WinUI и Windows Community Toolkit блоках."
-                    Header="{Binding Title}">
+                    Description="Используйте разделы «Службы», «Процессы», «Информационные базы» и «Сеансы». Подключения к серверам можно изменить в разделах баз и сеансов."
+                    Header="Раздел пока недоступен">
                     <controls:SettingsCard.HeaderIcon>
                         <ic:FluentIcon
                             Icon="{Binding Icon}"
@@ -45,7 +45,7 @@
 
                     <TextBlock
                         FontWeight="SemiBold"
-                        Text="В работе" />
+                        Text="В разработке" />
                 </controls:SettingsCard>
             </StackPanel>
         </Grid>

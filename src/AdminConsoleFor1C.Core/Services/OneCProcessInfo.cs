@@ -20,6 +20,10 @@ public sealed record OneCProcessInfo
 
     public int? AgentPort { get; init; }
 
+    public int? EffectiveAgentPort => Kind == OneCProcessKind.ServerAgent
+        ? AgentPort ?? OneCServerAgentDefaults.AgentPort
+        : AgentPort;
+
     public int? ClusterPort { get; init; }
 
     public int? WorkerPort { get; init; }
@@ -35,6 +39,8 @@ public sealed record OneCProcessInfo
     public string? RawCommandLine { get; init; }
 
     public string? RelatedServiceDisplayName { get; init; }
+
+    public string? RelatedServiceName { get; init; }
 
     public string KindDisplayName => Kind switch
     {
@@ -60,7 +66,7 @@ public sealed record OneCProcessInfo
 
     public string RoleText => Kind switch
     {
-        OneCProcessKind.ServerAgent => AgentPort is null ? "Агент сервера" : $"Агент: {AgentPort}",
+        OneCProcessKind.ServerAgent => $"Агент: {EffectiveAgentPort}",
         OneCProcessKind.ClusterManager => ClusterPort is null ? "Менеджер кластера" : $"Кластер: {ClusterPort}",
         OneCProcessKind.WorkerProcess => WorkerPort is not null
             ? $"Рабочий: {WorkerPort}"
@@ -79,9 +85,9 @@ public sealed record OneCProcessInfo
         get
         {
             var ports = new List<string>();
-            if (AgentPort is not null)
+            if (EffectiveAgentPort is { } agentPort)
             {
-                ports.Add($"Агент: {AgentPort}");
+                ports.Add($"Агент: {agentPort}");
             }
 
             if (ClusterPort is not null)

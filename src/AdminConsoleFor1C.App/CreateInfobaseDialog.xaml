@@ -16,7 +16,7 @@
                 <Grid ColumnSpacing="16">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                     <ComboBox Header="Тип СУБД" ItemsSource="{Binding DbmsChoices}" SelectedItem="{Binding Dbms, Mode=TwoWay}" HorizontalAlignment="Stretch" AutomationProperties.AutomationId="NewInfobaseDbms" />
-                    <TextBox Grid.Column="1" Header="Сервер баз данных" Text="{Binding DbServer, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="sql-server или host\instance" AutomationProperties.AutomationId="NewInfobaseDbServer" />
+                    <TextBox Grid.Column="1" Header="Сервер баз данных" Text="{Binding DbServer, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="Имя или адрес сервера СУБД" AutomationProperties.AutomationId="NewInfobaseDbServer" />
                 </Grid>
                 <TextBox Header="Имя базы данных в СУБД" Text="{Binding DbName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.AutomationId="NewInfobaseDbName" />
                 <Grid ColumnSpacing="16">

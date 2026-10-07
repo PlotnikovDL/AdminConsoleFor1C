@@ -25,6 +25,7 @@ public sealed class ServerSessionClientTests
         Assert.All(snapshots, snapshot => Assert.Single(Assert.Single(snapshot.Clusters).Sessions));
         Assert.Equal(profiles.Select(p => p.PlatformDirectory), factory.Opened.Select(p => p.PlatformDirectory));
         Assert.All(factory.Sessions, session => Assert.True(session.Disposed));
+        Assert.All(factory.Sessions, session => Assert.Equal(new[] { "agent", "version" }, session.Commands[0]));
         Assert.All(factory.Sessions, session => Assert.Contains(session.Commands, args => args.Contains("--cluster-user=Admin")));
     }
 
@@ -37,12 +38,78 @@ public sealed class ServerSessionClientTests
         var results = await client.TerminateAsync(profile, "test-only", [Target(profile), Target(profile)], "Причина с пробелами");
         Assert.True(Assert.Single(results).Success);
         var commands = Assert.Single(factory.Sessions).Commands;
-        Assert.Equal(2, commands.Count);
-        Assert.Contains("info", commands[0]);
-        Assert.Contains("terminate", commands[1]);
-        Assert.Contains("--session=" + Session, commands[1]);
-        Assert.Contains("--cluster=" + Cluster, commands[1]);
-        Assert.Contains("--error-message=Причина с пробелами", commands[1]);
+        Assert.Equal(3, commands.Count);
+        Assert.Equal(new[] { "agent", "version" }, commands[0]);
+        Assert.Contains("info", commands[1]);
+        Assert.Contains("terminate", commands[2]);
+        Assert.Contains("--session=" + Session, commands[2]);
+        Assert.Contains("--cluster=" + Cluster, commands[2]);
+        Assert.Contains("--error-message=Причина с пробелами", commands[2]);
+    }
+
+    [Theory]
+    [InlineData("version : 8.5.1.1343")]
+    [InlineData("unrecognized")]
+    [InlineData("")]
+    public async Task RejectsDifferentOrUnknownAgentVersionBeforeReadingSessions(string version)
+    {
+        var factory = new FakeFactory(_ => throw new InvalidOperationException("Session data must not be requested."), _ => version);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => new RacServerSessionClient(factory).ReadAsync(Profile(), null));
+        var session = Assert.Single(factory.Sessions);
+        Assert.Equal(new[] { "agent", "version" }, Assert.Single(session.Commands));
+        Assert.True(session.Disposed);
+    }
+
+    [Theory]
+    [InlineData("version : 8.5.1.1343")]
+    [InlineData("unrecognized")]
+    [InlineData("")]
+    public async Task RejectsDifferentOrUnknownAgentVersionBeforeTerminatingSessions(string version)
+    {
+        var factory = new FakeFactory(_ => throw new InvalidOperationException("Session commands must not be sent."), _ => version);
+        var profile = Profile();
+        await Assert.ThrowsAsync<InvalidOperationException>(() => new RacServerSessionClient(factory)
+            .TerminateAsync(profile, null, [Target(profile)], "Stop"));
+        var session = Assert.Single(factory.Sessions);
+        Assert.Equal(new[] { "agent", "version" }, Assert.Single(session.Commands));
+        Assert.True(session.Disposed);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task AgentVersionFailureRedactsPasswordAndClosesBridge(bool terminate)
+    {
+        const string secret = "version-check-test-secret";
+        var factory = new FakeFactory(_ => "", _ => throw new InvalidOperationException("Agent version failed: " + secret));
+        var profile = Profile();
+        var client = new RacServerSessionClient(factory);
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        {
+            if (terminate) await client.TerminateAsync(profile, secret, [Target(profile)], "Stop");
+            else await client.ReadAsync(profile, secret);
+        });
+        Assert.Contains("Agent version failed", error.Message);
+        Assert.DoesNotContain(secret, error.ToString());
+        Assert.Single(Assert.Single(factory.Sessions).Commands);
+        Assert.True(factory.Sessions[0].Disposed);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task AgentVersionCancellationStopsBeforeSessionCommandsAndClosesBridge(bool terminate)
+    {
+        var factory = new FakeFactory(_ => "", _ => throw new OperationCanceledException());
+        var profile = Profile();
+        var client = new RacServerSessionClient(factory);
+        await Assert.ThrowsAsync<OperationCanceledException>(async () =>
+        {
+            if (terminate) await client.TerminateAsync(profile, null, [Target(profile)], "Stop");
+            else await client.ReadAsync(profile, null);
+        });
+        Assert.Single(Assert.Single(factory.Sessions).Commands);
+        Assert.True(factory.Sessions[0].Disposed);
     }
 
     [Theory]
@@ -98,14 +165,16 @@ public sealed class ServerSessionClientTests
         finally { File.Delete(path); }
     }
 
-    private sealed class FakeFactory(Func<IReadOnlyList<string>, string> response) : IOneCRasSessionFactory
+    private sealed class FakeFactory(Func<IReadOnlyList<string>, string> response,
+        Func<OneCServerConnectionProfile, string>? versionResponse = null) : IOneCRasSessionFactory
     {
         public List<OneCServerConnectionProfile> Opened { get; } = [];
         public List<FakeSession> Sessions { get; } = [];
         public Task<IOneCRasSession> OpenAsync(OneCServerConnectionProfile profile, CancellationToken token)
         {
             Opened.Add(profile);
-            var session = new FakeSession(response);
+            var session = new FakeSession(args => args.Count == 2 && args[0] == "agent" && args[1] == "version"
+                ? versionResponse?.Invoke(profile) ?? $"version : {profile.PlatformVersion}\n" : response(args));
             Sessions.Add(session);
             return Task.FromResult<IOneCRasSession>(session);
         }

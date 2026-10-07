@@ -1,7 +1,5 @@
-using System.Diagnostics;
 using AdminConsoleFor1C.Application.Services;
 using AdminConsoleFor1C.Core.Administration;
-using AdminConsoleFor1C.Core.Services;
 
 namespace AdminConsoleFor1C.Infrastructure.Services;
 
@@ -80,8 +78,7 @@ public sealed class WindowsOneCAdministrationToolInventory : IOneCAdministration
         {
             Kind = kind,
             FilePath = fullPath,
-            Version = OneCServiceCommandLineParser.GetVersionFromExecutablePath(fullPath)
-                ?? GetFileVersion(fullPath)
+            Version = OneCPlatformVersionResolver.ResolveExecutableVersion(fullPath)
         };
     }
 
@@ -180,18 +177,6 @@ public sealed class WindowsOneCAdministrationToolInventory : IOneCAdministration
         catch (Exception exception) when (exception is ArgumentException or NotSupportedException or PathTooLongException)
         {
             return path;
-        }
-    }
-
-    private static string? GetFileVersion(string filePath)
-    {
-        try
-        {
-            return FileVersionInfo.GetVersionInfo(filePath).FileVersion?.Replace(',', '.');
-        }
-        catch (Exception exception) when (exception is FileNotFoundException or IOException or UnauthorizedAccessException)
-        {
-            return null;
         }
     }
 

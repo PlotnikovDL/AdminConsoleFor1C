@@ -10,7 +10,7 @@
   <Identity
     Name="PlotnikovDL.AdminConsoleFor1C"
     Publisher="CN=PlotnikovDL"
-    Version="1.1.1.0" />
+    Version="1.2.0.0" />
 
   <mp:PhoneIdentity PhoneProductId="8A59952D-C66C-4456-A0B8-71C42F2445CE" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 

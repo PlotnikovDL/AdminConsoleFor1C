@@ -6,7 +6,8 @@ namespace AdminConsoleFor1C.App;
 internal static class AdminConsoleViewModelFactory
 {
     public static AdminConsoleFor1C.Application.Services.IOneCInfobaseClient CreateInfobaseClient() => new RacInfobaseClient(new TemporaryRasSessionFactory());
-    public static InfobasesPageViewModel CreateInfobasesPageViewModel() => new(CreateInfobaseClient(), GetSessionsPageViewModel());
+    private static InfobasesPageViewModel? infobases;
+    public static InfobasesPageViewModel GetInfobasesPageViewModel() => infobases ??= new(CreateInfobaseClient(), GetSessionsPageViewModel());
     private static SessionsPageViewModel? sessions;
     public static SessionsPageViewModel GetSessionsPageViewModel() => sessions ??= new(
         new RacServerSessionClient(new TemporaryRasSessionFactory()),
@@ -40,6 +41,7 @@ internal static class AdminConsoleViewModelFactory
     {
         return new ProcessesPageViewModel(
             new WindowsOneCProcessInventory(),
+            new WindowsOneCServiceInventory(),
             new AgentComponentPresentationBuilder());
     }
 }

@@ -129,6 +129,13 @@
                         Title="Не удалось обновить процессы"
                         Visibility="{Binding ErrorInfoBarVisibility}" />
 
+                    <InfoBar
+                        IsOpen="{Binding HasServiceCorrelationWarning}"
+                        Message="{Binding ServiceCorrelationWarningText}"
+                        Severity="Warning"
+                        Title="Не удалось сопоставить процессы со службами"
+                        Visibility="{Binding ServiceCorrelationWarningVisibility}" />
+
                     <TextBlock
                         Style="{StaticResource SettingsSectionHeaderTextBlockStyle}"
                         Text="Процессы 1С" />

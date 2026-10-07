@@ -24,6 +24,7 @@ public sealed class LocalServerConnectionCatalogTests
     {
         var entry = Assert.Single(LocalServerConnectionCatalog.Merge([], [Agent()], Computer));
         Assert.True(entry.IsDiscovered);
+        Assert.Equal("WORKSTATION:3540", entry.Profile.Name);
         Assert.Equal("localhost:3540", entry.Profile.AgentAddress);
         Assert.Equal("8.3.27.2214", entry.Profile.PlatformVersion);
         Assert.Equal(@"C:\Program Files\1cv8\8.3.27.2214\bin", entry.Profile.PlatformDirectory);

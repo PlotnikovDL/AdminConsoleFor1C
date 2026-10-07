@@ -2,7 +2,7 @@
 <ContentDialog x:Class="AdminConsoleFor1C.App.ServerConnectionDialog"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    Title="Подключение к серверу 1С" PrimaryButtonText="Сохранить и подключить" CloseButtonText="Отмена"
+    Title="Подключение к серверу 1С" PrimaryButtonText="Сохранить" CloseButtonText="Отмена"
     DefaultButton="Primary" PrimaryButtonClick="Save_Click">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Width="440" Spacing="12" Padding="0,0,12,0">
@@ -35,7 +35,11 @@
             <Expander Header="Заполнить из локальной службы" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
                 <ComboBox ItemsSource="{Binding LocalAgents}" PlaceholderText="Выберите службу, если она есть"
                     SelectedItem="{Binding LocalAgent, Mode=TwoWay}" HorizontalAlignment="Stretch"
-                    AutomationProperties.AutomationId="ConnectionLocalAgent" />
+                    AutomationProperties.AutomationId="ConnectionLocalAgent">
+                    <ComboBox.ItemTemplate><DataTemplate>
+                        <StackPanel Spacing="2"><TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding Details}" FontSize="12" Opacity="0.75" /></StackPanel>
+                    </DataTemplate></ComboBox.ItemTemplate>
+                </ComboBox>
             </Expander>
             <InfoBar IsOpen="{Binding HasError}" Message="{Binding Error}" IsClosable="False" Severity="Error" Title="Проверьте подключение" />
         </StackPanel>

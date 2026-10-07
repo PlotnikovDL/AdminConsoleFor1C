@@ -20,20 +20,20 @@ public sealed class LocalServerConnectionCatalog(IOneCServiceInventory inventory
         var agents = services.Where(s => s.Kind == OneCServiceKind.ServerAgent
             && !string.IsNullOrWhiteSpace(s.ExecutablePath)
             && Version.TryParse(s.Version, out var version) && version.Revision >= 0
-            && (s.AgentPort ?? 1540) is >= 1 and <= 65535).ToArray();
+            && s.EffectiveAgentPort is >= 1 and <= 65535).ToArray();
         var result = saved.Select(p => new ServerConnectionEntry(p, false,
             agents.FirstOrDefault(s => Matches(p, s, machineName)))).ToList();
-        foreach (var service in agents.OrderBy(s => s.Version).ThenBy(s => s.AgentPort))
+        foreach (var service in agents.OrderBy(s => s.Version).ThenBy(s => s.EffectiveAgentPort))
         {
             if (result.Any(e => Matches(e.Profile, service, machineName))) continue;
-            var port = service.AgentPort ?? 1540;
+            var port = service.EffectiveAgentPort!.Value;
             var identity = $"{machineName}\n{service.Name}\n{port}\n{service.Version}".ToUpperInvariant();
             var id = new Guid(SHA256.HashData(Encoding.UTF8.GetBytes(identity)).AsSpan(0, 16));
             var directory = Path.GetDirectoryName(service.ExecutablePath!);
             if (string.IsNullOrWhiteSpace(directory)) continue;
             result.Add(new(new OneCServerConnectionProfile
             {
-                Id = id, Name = $"Этот компьютер · {service.Version}", Host = "localhost", AgentPort = port,
+                Id = id, Name = ServerConnectionPresentation.SuggestedName("localhost", port, machineName), Host = "localhost", AgentPort = port,
                 PlatformDirectory = directory, PlatformVersion = service.Version!
             }, true, service));
         }
@@ -41,10 +41,6 @@ public sealed class LocalServerConnectionCatalog(IOneCServiceInventory inventory
     }
 
     private static bool Matches(OneCServerConnectionProfile profile, OneCServiceInfo service, string machineName)
-        => IsLocalHost(profile.Host, machineName) && profile.AgentPort == (service.AgentPort ?? 1540)
+        => ServerConnectionPresentation.IsLocalHost(profile.Host, machineName) && profile.AgentPort == service.EffectiveAgentPort
             && profile.PlatformVersion == service.Version;
-
-    private static bool IsLocalHost(string host, string machineName)
-        => host.Equals(machineName, StringComparison.OrdinalIgnoreCase)
-            || host.Equals("localhost", StringComparison.OrdinalIgnoreCase) || host is "127.0.0.1" or "::1";
 }

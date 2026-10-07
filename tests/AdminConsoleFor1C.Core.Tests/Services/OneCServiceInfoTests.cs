@@ -5,6 +5,26 @@ namespace AdminConsoleFor1C.Core.Tests.Services;
 public sealed class OneCServiceInfoTests
 {
     [Fact]
+    public void DefaultsMissingAgentPortTo1540InAllServicePresentation()
+    {
+        var service = CreateServiceInfo();
+
+        Assert.Equal(1540, service.EffectiveAgentPort);
+        Assert.Equal("1540", service.AgentPortText);
+        Assert.Equal("Агент: 1540", service.PortsText);
+    }
+
+    [Fact]
+    public void DoesNotDefaultAgentPortForOtherServiceKinds()
+    {
+        var service = CreateServiceInfo() with { Kind = OneCServiceKind.AdministrationServer };
+
+        Assert.Null(service.EffectiveAgentPort);
+        Assert.Equal("—", service.AgentPortText);
+        Assert.Equal("—", service.PortsText);
+    }
+
+    [Fact]
     public void PortsText_ReturnsNamedPorts_ForServerAgent()
     {
         var service = CreateServiceInfo() with

@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>preview</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <Compile Include="../../src/AdminConsoleFor1C.Core/**/*.cs" Exclude="../../src/AdminConsoleFor1C.Core/obj/**;../../src/AdminConsoleFor1C.Core/bin/**" />
+    <Compile Include="../../src/AdminConsoleFor1C.Application/Services/IOneCServerSessionClient.cs" />
+    <Compile Include="../../src/AdminConsoleFor1C.Application/Services/IOneCServiceInventory.cs" />
+    <Compile Include="../../src/AdminConsoleFor1C.Application/Services/LocalServerConnectionCatalog.cs" />
+    <Compile Include="../../src/AdminConsoleFor1C.Application/Services/ServerConnectionPresentation.cs" />
+    <Compile Include="../../src/AdminConsoleFor1C.App/SessionsPageViewModel.cs" />
+    <Compile Include="../../src/AdminConsoleFor1C.App/ServerConnectionItemViewModel.cs" />
+    <Compile Include="../../src/AdminConsoleFor1C.App/ServerDataScopeChoices.cs" />
+  </ItemGroup>
+</Project>

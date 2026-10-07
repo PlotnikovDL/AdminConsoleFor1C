@@ -18,7 +18,7 @@ public sealed partial class ServerConnectionEditorViewModel : ObservableObject
         this.services = services;
         this.tools = tools;
         id = profile?.Id ?? Guid.NewGuid();
-        Name = profile?.Name ?? "";
+        Name = profile is null ? "" : ServerConnectionPresentation.DisplayName(profile, Environment.MachineName);
         Host = profile?.Host ?? "";
         AgentPort = profile?.AgentPort ?? 1540;
         PlatformDirectory = profile?.PlatformDirectory ?? "";
@@ -59,7 +59,7 @@ public sealed partial class ServerConnectionEditorViewModel : ObservableObject
                 }
             }
             foreach (var service in local.Where(s => s.Kind == OneCServiceKind.ServerAgent && s.ExecutablePath is not null))
-                LocalAgents.Add(new(service.DisplayName, service.AgentPort ?? 1540, Path.GetDirectoryName(service.ExecutablePath!)!));
+                LocalAgents.Add(new(service.DisplayName, service.EffectiveAgentPort!.Value, Path.GetDirectoryName(service.ExecutablePath!)!, service.Version ?? "—"));
             if (string.IsNullOrWhiteSpace(PlatformDirectory)) PlatformDirectory = PlatformDirectories.FirstOrDefault() ?? "";
             SelectedPlatform = Platforms.FirstOrDefault(p => string.Equals(p.Directory, PlatformDirectory, StringComparison.OrdinalIgnoreCase));
         }
@@ -74,7 +74,8 @@ public sealed partial class ServerConnectionEditorViewModel : ObservableObject
     partial void OnPlatformDirectoryChanged(string value)
         => SelectedPlatform = Platforms.FirstOrDefault(p => string.Equals(p.Directory, value, StringComparison.OrdinalIgnoreCase));
     partial void OnAgentPortChanged(double value) => UpdateSuggestedName();
-    private string SuggestedName() => string.IsNullOrWhiteSpace(Host) ? "" : $"{Host.Trim()}:{AgentPort:0}";
+    private string SuggestedName() => double.IsFinite(AgentPort) && AgentPort is >= 1 and <= 65535
+        ? ServerConnectionPresentation.SuggestedName(Host, (int)AgentPort, Environment.MachineName) : "";
     private void UpdateSuggestedName()
     {
         var next = SuggestedName();
@@ -88,7 +89,6 @@ public sealed partial class ServerConnectionEditorViewModel : ObservableObject
         Host = "localhost";
         AgentPort = value.Port;
         PlatformDirectory = value.PlatformDirectory;
-        Name = $"{Environment.MachineName}:{value.Port}";
     }
 
     public OneCServerConnectionProfile? Validate()
@@ -111,9 +111,10 @@ public sealed partial class ServerConnectionEditorViewModel : ObservableObject
     }
 }
 
-public sealed record LocalAgentChoice(string Name, int Port, string PlatformDirectory)
+public sealed record LocalAgentChoice(string Name, int Port, string PlatformDirectory, string Version)
 {
-    public override string ToString() => Name;
+    public string Details => $"Платформа: {Version} · Агент: {Port}";
+    public override string ToString() => $"{Name} · {Details}";
 }
 
 public sealed record AdministrationPlatformChoice(string Version, string Directory)

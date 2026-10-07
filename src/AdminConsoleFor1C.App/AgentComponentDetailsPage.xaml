@@ -29,7 +29,7 @@
                     IsOpen="{Binding HasError}"
                     Message="{Binding ErrorText}"
                     Severity="Error"
-                    Title="Не удалось обновить агента"
+                    Title="Не удалось обновить сведения о службе"
                     Visibility="{Binding ErrorInfoBarVisibility}" />
 
                 <InfoBar

@@ -58,7 +58,7 @@
                 <controls:SettingsCard
                     Description="{Binding EmptyStateDescription}"
                     HorizontalAlignment="Stretch"
-                    Header="Службы Windows не найдены"
+                    Header="Службы 1С не найдены"
                     Visibility="{Binding EmptyStateVisibility}">
                     <controls:SettingsCard.HeaderIcon>
                         <ic:FluentIcon

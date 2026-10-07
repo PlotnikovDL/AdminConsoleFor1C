@@ -71,6 +71,18 @@ public sealed class InfobaseClientTests
     }
 
     [Theory]
+    [InlineData("version : 8.5.1.1343")]
+    [InlineData("unrecognized")]
+    public async Task RejectsDifferentOrUnknownServerVersionBeforeReadingClusters(string version)
+    {
+        var factory = new FakeFactory(args => args[0] == "agent" ? version : Response(args));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => new RacInfobaseClient(factory).ReadAsync(Profile(), null));
+        var session = Assert.Single(factory.Sessions);
+        Assert.Equal(new[] { "agent", "version" }, Assert.Single(session.Commands));
+        Assert.True(session.Disposed);
+    }
+
+    [Theory]
     [InlineData("")]
     [InlineData("cluster : 11111111-1111-1111-1111-111111111111\nhost : other.test\nport : 1541")]
     public async Task RejectsMissingOrMovedCluster(string output)
