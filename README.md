@@ -41,7 +41,7 @@
 
 ### WinGet
 
-Пакет `PlotnikovDL.AdminConsoleFor1C` опубликован в WinGet. [Заявка одобрена и принята 30 сентября 2026 года](https://github.com/microsoft/winget-pkgs/pull/435995). На 7 октября в каталоге доступна версия **1.1.1**; для установки **1.2.0** используйте EXE из Releases до завершения проверки обновления WinGet.
+Пакет `PlotnikovDL.AdminConsoleFor1C` опубликован в WinGet. [Заявка одобрена и принята 30 сентября 2026 года](https://github.com/microsoft/winget-pkgs/pull/435995). На 7 октября в каталоге доступна версия **1.1.1**; обновление **1.2.0** отправлено на проверку в [заявке №448261](https://github.com/microsoft/winget-pkgs/pull/448261). До его публикации используйте EXE из Releases.
 
 ```powershell
 winget install --id PlotnikovDL.AdminConsoleFor1C --exact
